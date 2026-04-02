@@ -1,0 +1,126 @@
+{
+  "building": "C1",
+  "floor": 2,
+  "viewBox": "0 0 1000 700",
+  "areas": [
+    {
+      "id": "corridor-main",
+      "name": "Главный коридор",
+      "type": "corridor",
+      "path": "M 440 100 L 560 100 L 560 640 L 440 640 Z",
+      "center": { "x": 500, "y": 370 }
+    },
+    {
+      "id": "corridor-left",
+      "name": "Коридор (запад)",
+      "type": "corridor",
+      "path": "M 50 280 L 440 280 L 440 360 L 50 360 Z",
+      "center": { "x": 245, "y": 320 }
+    },
+    {
+      "id": "corridor-right",
+      "name": "Коридор (восток)",
+      "type": "corridor",
+      "path": "M 560 280 L 950 280 L 950 360 L 560 360 Z",
+      "center": { "x": 755, "y": 320 }
+    },
+    {
+      "id": "stairs-left",
+      "name": "Лестница (запад)",
+      "type": "stairs",
+      "path": "M 50 100 L 150 100 L 150 280 L 50 280 Z",
+      "center": { "x": 100, "y": 190 }
+    },
+    {
+      "id": "stairs-right",
+      "name": "Лестница (восток)",
+      "type": "stairs",
+      "path": "M 850 100 L 950 100 L 950 280 L 850 280 Z",
+      "center": { "x": 900, "y": 190 }
+    },
+    {
+      "id": "room-201",
+      "name": "Аудитория 201",
+      "type": "classroom",
+      "path": "M 150 100 L 290 100 L 290 280 L 150 280 Z",
+      "center": { "x": 220, "y": 190 }
+    },
+    {
+      "id": "room-202",
+      "name": "Аудитория 202",
+      "type": "classroom",
+      "path": "M 290 100 L 440 100 L 440 280 L 290 280 Z",
+      "center": { "x": 365, "y": 190 }
+    },
+    {
+      "id": "room-203",
+      "name": "Аудитория 203",
+      "type": "classroom",
+      "path": "M 560 100 L 710 100 L 710 280 L 560 280 Z",
+      "center": { "x": 635, "y": 190 }
+    },
+    {
+      "id": "room-204",
+      "name": "Аудитория 204",
+      "type": "classroom",
+      "path": "M 710 100 L 850 100 L 850 280 L 710 280 Z",
+      "center": { "x": 780, "y": 190 }
+    },
+    {
+      "id": "room-205",
+      "name": "Аудитория 205",
+      "type": "classroom",
+      "path": "M 150 360 L 290 360 L 290 560 L 150 560 Z",
+      "center": { "x": 220, "y": 460 }
+    },
+    {
+      "id": "room-206",
+      "name": "Аудитория 206",
+      "type": "classroom",
+      "path": "M 290 360 L 440 360 L 440 560 L 290 560 Z",
+      "center": { "x": 365, "y": 460 }
+    },
+    {
+      "id": "lab-207",
+      "name": "Лаборатория 207",
+      "type": "lab",
+      "path": "M 560 360 L 710 360 L 710 560 L 560 560 Z",
+      "center": { "x": 635, "y": 460 }
+    },
+    {
+      "id": "lab-208",
+      "name": "Лаборатория 208",
+      "type": "lab",
+      "path": "M 710 360 L 850 360 L 850 560 L 710 560 Z",
+      "center": { "x": 780, "y": 460 }
+    },
+    {
+      "id": "library",
+      "name": "Библиотека",
+      "type": "library",
+      "path": "M 50 360 L 150 360 L 150 700 L 50 700 Z",
+      "center": { "x": 100, "y": 530 }
+    },
+    {
+      "id": "dean-office",
+      "name": "Деканат",
+      "type": "office",
+      "path": "M 850 360 L 950 360 L 950 560 L 850 560 Z",
+      "center": { "x": 900, "y": 460 }
+    },
+    {
+      "id": "restroom-left",
+      "name": "Туалет",
+      "type": "restroom",
+      "path": "M 50 560 L 150 560 L 150 640 L 50 640 Z",
+      "center": { "x": 100, "y": 600 }
+    },
+    {
+      "id": "restroom-right",
+      "name": "Туалет",
+      "type": "restroom",
+      "path": "M 850 560 L 950 560 L 950 640 L 850 640 Z",
+      "center": { "x": 900, "y": 600 }
+    }
+  ]
+}

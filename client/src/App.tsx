@@ -1,8 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+
+const queryClient = new QueryClient();
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -38,14 +41,16 @@ function Router() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="light" switchable>
-        <TooltipProvider>
-          <Toaster richColors position="top-center" />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <ThemeProvider defaultTheme="light" switchable>
+          <TooltipProvider>
+            <Toaster richColors position="top-center" />
+            <Router />
+          </TooltipProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 

@@ -2,15 +2,13 @@
    Design: "Digital Bazaar" — campus SVG map with red/green markers
 */
 import { useState } from "react";
-import { MapPin, Plus, Filter, X, ExternalLink } from "lucide-react";
+import { MapPin, Plus, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
+import { FloorPlanMap } from "@/components/Map";
 import { MOCK_LISTINGS } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { useLocation } from "wouter";
-
-const CAMPUS_MAP_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663495884739/DGUPBTppTqo5bjNNyAy3QB/comunikit-campus-map-bg-T8ZyHrwYhDrtVNt496PAhT.webp";
 
 const MAP_MARKERS = [
   { id: "1", type: "lost" as const, x: 30, y: 45, title: "Потерян AirPods Pro", location: "Библиотека, 3-й этаж", time: "5h ago", listingId: "2" },
@@ -34,7 +32,7 @@ export default function MapPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>
-              Lost & Found карта
+              План корпуса C1
             </h2>
             <p className="text-sm text-muted-foreground">Кампус AITUC · {MAP_MARKERS.length} меток</p>
           </div>
@@ -47,12 +45,16 @@ export default function MapPage() {
           </Button>
         </div>
 
+        {/* Floor plan map */}
+        <FloorPlanMap building="C1" />
+
         {/* Filter toggles */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-2">
+          <p className="text-sm font-semibold text-foreground self-center mr-1">Метки:</p>
           {([
-            { value: "all", label: "Все", color: "bg-muted text-muted-foreground" },
-            { value: "lost", label: "🔴 Потеряно", activeColor: "bg-red-500 text-white" },
-            { value: "found", label: "🟢 Найдено", activeColor: "bg-green-500 text-white" },
+            { value: "all", label: "Все" },
+            { value: "lost", label: "🔴 Потеряно" },
+            { value: "found", label: "🟢 Найдено" },
           ] as const).map(opt => (
             <button
               key={opt.value}
@@ -67,83 +69,6 @@ export default function MapPage() {
               {opt.label}
             </button>
           ))}
-        </div>
-
-        {/* Map */}
-        <div className="relative rounded-2xl overflow-hidden border border-border" style={{ height: "400px" }}>
-          <img
-            src={CAMPUS_MAP_BG}
-            alt="Карта кампуса AITUC"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/10" />
-
-          {/* Markers */}
-          {visibleMarkers.map(marker => (
-            <button
-              key={marker.id}
-              onClick={() => setSelectedMarker(selectedMarker?.id === marker.id ? null : marker)}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110 active:scale-95"
-              style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
-            >
-              <div className={cn(
-                "w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-sm",
-                marker.type === "lost" ? "bg-red-500" : "bg-green-500",
-                selectedMarker?.id === marker.id ? "ring-2 ring-white ring-offset-1 scale-110" : ""
-              )}>
-                <MapPin className="w-4 h-4" />
-              </div>
-            </button>
-          ))}
-
-          {/* Popup */}
-          {selectedMarker && (
-            <div
-              className="absolute bg-card border border-border rounded-xl p-3 shadow-xl w-52 ck-animate-in"
-              style={{
-                left: `${Math.min(Math.max(selectedMarker.x, 20), 70)}%`,
-                top: `${Math.min(selectedMarker.y + 5, 75)}%`,
-                transform: "translateX(-50%)",
-              }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className={cn(
-                      "text-xs font-bold px-1.5 py-0.5 rounded-full",
-                      selectedMarker.type === "lost" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                    )}>
-                      {selectedMarker.type === "lost" ? "🔴 Потеряно" : "🟢 Найдено"}
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-foreground leading-snug">{selectedMarker.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{selectedMarker.location}</p>
-                  <p className="text-xs text-muted-foreground">{selectedMarker.time}</p>
-                </div>
-                <button onClick={() => setSelectedMarker(null)} className="text-muted-foreground hover:text-foreground shrink-0">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <button
-                onClick={() => navigate(`/listing/${selectedMarker.listingId}`)}
-                className="mt-2 w-full flex items-center justify-center gap-1 text-xs text-primary font-semibold hover:underline"
-              >
-                Открыть объявление <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          {/* Legend */}
-          <div className="absolute bottom-3 left-3 bg-card/90 backdrop-blur-sm rounded-xl p-2.5 space-y-1.5 border border-border">
-            <div className="flex items-center gap-2 text-xs">
-              <div className="w-4 h-4 rounded-full bg-red-500 border border-white" />
-              <span className="text-foreground font-semibold">Потеряно</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <div className="w-4 h-4 rounded-full bg-green-500 border border-white" />
-              <span className="text-foreground font-semibold">Найдено</span>
-            </div>
-          </div>
         </div>
 
         {/* Listings below map */}

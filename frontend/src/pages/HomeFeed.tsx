@@ -44,14 +44,14 @@ export default function HomeFeed() {
       <div className="container py-4 space-y-4">
         {/* Hero banner (mobile) */}
         <div
-          className="lg:hidden rounded-2xl overflow-hidden relative h-28"
+          className="md:hidden rounded-2xl overflow-hidden relative h-28"
           style={{
             background: "url(https://d2xsxph8kpxj0f.cloudfront.net/310519663495884739/DGUPBTppTqo5bjNNyAy3QB/comunikit-hero-banner-85VqLVpBhkiWK658xP953V.webp) center/cover no-repeat"
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-900/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-950/70 to-transparent" />
           <div className="relative z-10 p-4 h-full flex flex-col justify-center">
-            <p className="text-white font-black text-lg leading-tight" style={{ fontFamily: "Nunito, sans-serif" }}>
+            <p className="text-white font-black text-lg leading-tight" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
               Студенческий базар AITUC
             </p>
             <p className="text-white/80 text-xs mt-0.5">500+ объявлений · только для своих</p>
@@ -185,7 +185,7 @@ export default function HomeFeed() {
 
       {/* FAB */}
       <Link href="/create">
-        <button className="ck-fab lg:hidden" aria-label="Добавить объявление">
+        <button className="ck-fab md:hidden" aria-label="Добавить объявление">
           <span className="text-2xl font-bold leading-none">+</span>
         </button>
       </Link>

@@ -78,13 +78,13 @@ tmp/
 temp/
 
 # ─── Claude ────────────────────────────────────────────────────────────────────
-.claude/settings.local.json
-.claude/logs/
-.claude/cache/
-.claude/specs/*.auto.md
-.claude/summary.md
+.claude/
 .agents/
 skills-lock.json
+CLAUDE.md
+.mcp.json
+ideas.md
+INTERACTIONS.md
 
 # ─── Agent / AI local overrides (keep all *.md tracked) ───────────────────────
 **/*.local.md
@@ -92,7 +92,7 @@ skills-lock.json
 
 # ─── Misc ──────────────────────────────────────────────────────────────────────
 .webdev/
-client/public/__manus__/version.json
+frontend/public/__manus__/version.json
 
 userflow.mmd
 userflow.png

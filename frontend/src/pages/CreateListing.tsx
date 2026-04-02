@@ -102,7 +102,7 @@ export default function CreateListing() {
         {step === 1 && (
           <div className="space-y-6 ck-animate-in">
             <div>
-              <h2 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "Nunito, sans-serif" }}>Тип объявления</h2>
+              <h2 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>Тип объявления</h2>
               <p className="text-sm text-muted-foreground">Выберите категорию вашего объявления</p>
             </div>
 
@@ -179,7 +179,7 @@ export default function CreateListing() {
         {step === 2 && (
           <div className="space-y-5 ck-animate-in">
             <div>
-              <h2 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "Nunito, sans-serif" }}>Детали объявления</h2>
+              <h2 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>Детали объявления</h2>
               <p className="text-sm text-muted-foreground">Заполните информацию об объявлении</p>
             </div>
 
@@ -335,7 +335,7 @@ export default function CreateListing() {
         {step === 3 && (
           <div className="space-y-5 ck-animate-in">
             <div>
-              <h2 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "Nunito, sans-serif" }}>Готово к публикации!</h2>
+              <h2 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>Готово к публикации!</h2>
               <p className="text-sm text-muted-foreground">Проверьте данные перед публикацией</p>
             </div>
 

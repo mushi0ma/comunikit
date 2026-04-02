@@ -229,7 +229,7 @@ export function getTypeColor(type: ListingType): string {
 
 export function getStripeColor(type: ListingType): string {
   const colors: Record<ListingType, string> = {
-    sell: "bg-orange-400",
+    sell: "bg-primary",
     buy: "bg-sky-400",
     service: "bg-purple-400",
     lost: "bg-red-400",

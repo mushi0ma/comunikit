@@ -37,7 +37,7 @@ export default function ForumPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-black text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>
+            <h2 className="text-lg font-black text-foreground" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
               Обсуждения
             </h2>
             <p className="text-sm text-muted-foreground">{filtered.length} тем · студенческий форум AITUC</p>

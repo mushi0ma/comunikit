@@ -81,7 +81,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 { label: "Пользователей", value: "1,248", icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-                { label: "Объявлений", value: "534", icon: FileText, color: "text-primary", bg: "bg-orange-50 dark:bg-orange-900/20" },
+                { label: "Объявлений", value: "534", icon: FileText, color: "text-primary", bg: "bg-fuchsia-50 dark:bg-fuchsia-900/20" },
                 { label: "Жалоб", value: "3", icon: Flag, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
                 { label: "Активных сегодня", value: "87", icon: BarChart2, color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
               ].map(stat => (
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
                   <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3", stat.bg)}>
                     <stat.icon className={cn("w-5 h-5", stat.color)} />
                   </div>
-                  <div className="text-2xl font-black text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>{stat.value}</div>
+                  <div className="text-2xl font-black text-foreground" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>{stat.value}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
                 </div>
               ))}

@@ -19,7 +19,7 @@ export default function ComponentsShowcase() {
     <AppLayout title="UI Компоненты">
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-8">
         <div>
-          <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>
+          <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
             comunikit Design System
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Все компоненты и состояния</p>
@@ -79,7 +79,7 @@ export default function ComponentsShowcase() {
           <div className="space-y-3">
             {/* Listing card compact */}
             <div className="ck-card p-4">
-              <div className="ck-card-stripe bg-orange-400" />
+              <div className="ck-card-stripe bg-primary" />
               <div className="ml-1 flex gap-3">
                 <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center text-2xl shrink-0">📱</div>
                 <div className="flex-1">
@@ -196,11 +196,11 @@ export default function ComponentsShowcase() {
         {/* Typography */}
         <Section title="Типографика">
           <div className="space-y-2">
-            <p className="text-3xl font-black" style={{ fontFamily: "Nunito, sans-serif" }}>Nunito Black — Заголовок H1</p>
-            <p className="text-xl font-bold" style={{ fontFamily: "Nunito, sans-serif" }}>Nunito Bold — Заголовок H2</p>
-            <p className="text-base font-semibold">Nunito Sans SemiBold — Подзаголовок</p>
-            <p className="text-sm">Nunito Sans Regular — Основной текст для чтения</p>
-            <p className="text-xs text-muted-foreground">Nunito Sans — Мелкий текст, метаданные</p>
+            <p className="text-3xl font-black" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>Plus Jakarta Sans Black — Заголовок H1</p>
+            <p className="text-xl font-bold" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>Plus Jakarta Sans Bold — Заголовок H2</p>
+            <p className="text-base font-semibold">Plus Jakarta Sans SemiBold — Подзаголовок</p>
+            <p className="text-sm">Plus Jakarta Sans Regular — Основной текст для чтения</p>
+            <p className="text-xs text-muted-foreground">Plus Jakarta Sans — Мелкий текст, метаданные</p>
             <p className="font-mono text-lg text-primary">280 000 ₸ — JetBrains Mono (цены)</p>
             <p className="font-mono text-sm text-muted-foreground">****1234 — Student ID</p>
           </div>
@@ -213,7 +213,7 @@ export default function ComponentsShowcase() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <h2 className="text-base font-black text-foreground border-b border-border pb-2" style={{ fontFamily: "Nunito, sans-serif" }}>
+      <h2 className="text-base font-black text-foreground border-b border-border pb-2" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
         {title}
       </h2>
       {children}

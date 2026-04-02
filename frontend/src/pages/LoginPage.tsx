@@ -51,19 +51,19 @@ export default function LoginPage() {
           background: `url(${AUTH_BG}) center/cover no-repeat`,
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-900/70 to-orange-600/50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-950/70 to-fuchsia-700/50" />
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-xl bg-white/20 backdrop-blur-sm">
               c
             </div>
-            <span className="font-black text-2xl text-white" style={{ fontFamily: "Nunito, sans-serif" }}>
+            <span className="font-black text-2xl text-white" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
               comunikit
             </span>
           </div>
         </div>
         <div className="relative z-10">
-          <h2 className="text-4xl font-black text-white leading-tight mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
+          <h2 className="text-4xl font-black text-white leading-tight mb-4" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
             Твой цифровой<br />студенческий базар
           </h2>
           <p className="text-white/80 text-lg leading-relaxed">
@@ -72,7 +72,7 @@ export default function LoginPage() {
           <div className="flex gap-6 mt-8">
             {[["500+", "Объявлений"], ["1200+", "Студентов"], ["98%", "Довольных"]].map(([num, label]) => (
               <div key={label}>
-                <div className="text-2xl font-black text-white" style={{ fontFamily: "Nunito, sans-serif" }}>{num}</div>
+                <div className="text-2xl font-black text-white" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>{num}</div>
                 <div className="text-white/70 text-sm">{label}</div>
               </div>
             ))}
@@ -91,14 +91,14 @@ export default function LoginPage() {
             style={{ background: "linear-gradient(135deg, #F97316, #FB923C)" }}>
             c
           </div>
-          <span className="font-black text-2xl text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>
+          <span className="font-black text-2xl text-foreground" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
             comuni<span className="text-primary">kit</span>
           </span>
         </div>
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "Nunito, sans-serif" }}>
+            <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
               Войти
             </h1>
             <p className="text-muted-foreground">Введите данные вашего аккаунта</p>

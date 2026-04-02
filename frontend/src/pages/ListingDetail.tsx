@@ -118,7 +118,7 @@ export default function ListingDetail() {
                   {listing.status === "active" ? "Активно" : "Закрыто"}
                 </span>
               </div>
-              <h1 className="text-xl font-black text-foreground leading-snug" style={{ fontFamily: "Nunito, sans-serif" }}>
+              <h1 className="text-xl font-black text-foreground leading-snug" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
                 {listing.title}
               </h1>
             </div>

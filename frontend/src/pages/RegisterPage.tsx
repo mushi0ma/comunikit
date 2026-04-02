@@ -97,15 +97,15 @@ export default function RegisterPage() {
         className="hidden lg:flex flex-col justify-between w-1/2 relative overflow-hidden p-10"
         style={{ background: `url(${AUTH_BG}) center/cover no-repeat` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-900/70 to-orange-600/50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-950/70 to-fuchsia-700/50" />
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-xl bg-white/20 backdrop-blur-sm">c</div>
-            <span className="font-black text-2xl text-white" style={{ fontFamily: "Nunito, sans-serif" }}>comunikit</span>
+            <span className="font-black text-2xl text-white" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>comunikit</span>
           </div>
         </div>
         <div className="relative z-10">
-          <h2 className="text-4xl font-black text-white leading-tight mb-4" style={{ fontFamily: "Nunito, sans-serif" }}>
+          <h2 className="text-4xl font-black text-white leading-tight mb-4" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
             Присоединяйся<br />к сообществу
           </h2>
           <div className="space-y-3">
@@ -126,7 +126,7 @@ export default function RegisterPage() {
         <div className="lg:hidden flex items-center gap-2 mb-6">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-lg"
             style={{ background: "linear-gradient(135deg, #F97316, #FB923C)" }}>c</div>
-          <span className="font-black text-2xl text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>
+          <span className="font-black text-2xl text-foreground" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
             comuni<span className="text-primary">kit</span>
           </span>
         </div>
@@ -150,7 +150,7 @@ export default function RegisterPage() {
           {step === 1 ? (
             <>
               <div className="mb-6">
-                <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "Nunito, sans-serif" }}>Регистрация</h1>
+                <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>Регистрация</h1>
                 <p className="text-muted-foreground text-sm">Введите ваш Student ID для верификации</p>
               </div>
               <div className="space-y-5">
@@ -230,7 +230,7 @@ export default function RegisterPage() {
                 <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
                   <ArrowLeft className="w-4 h-4" /> Назад
                 </button>
-                <h1 className="text-3xl font-black text-foreground mb-1" style={{ fontFamily: "Nunito, sans-serif" }}>Создать аккаунт</h1>
+                <h1 className="text-3xl font-black text-foreground mb-1" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>Создать аккаунт</h1>
                 <p className="text-muted-foreground text-sm">Привет, <strong>{autoName}</strong>! Заполните данные входа.</p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">

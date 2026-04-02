@@ -53,7 +53,7 @@ export default function ProfilePage() {
             <div className="flex items-end justify-between -mt-10">
               <div className="relative">
                 <div className="w-20 h-20 rounded-2xl bg-white border-4 border-background flex items-center justify-center text-primary font-black text-3xl shadow-lg"
-                  style={{ fontFamily: "Nunito, sans-serif" }}>
+                  style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
                   {MOCK_USER.name[0]}
                 </div>
                 <button
@@ -68,7 +68,7 @@ export default function ProfilePage() {
               </Button>
             </div>
             <div className="mt-3">
-              <h1 className="text-xl font-black text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>
+              <h1 className="text-xl font-black text-foreground" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
                 {MOCK_USER.name}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
@@ -95,7 +95,7 @@ export default function ProfilePage() {
             { label: "Карма", value: MOCK_USER.karma },
           ].map(stat => (
             <div key={stat.label} className="p-3 rounded-xl bg-card border border-border text-center">
-              <div className="text-2xl font-black text-foreground" style={{ fontFamily: "Nunito, sans-serif" }}>{stat.value}</div>
+              <div className="text-2xl font-black text-foreground" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>{stat.value}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
             </div>
           ))}

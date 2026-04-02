@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomeFeed from "./pages/HomeFeed";
+import Home from "./pages/Home";
 import ListingDetail from "./pages/ListingDetail";
 import CreateListing from "./pages/CreateListing";
 import ProfilePage from "./pages/ProfilePage";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/" component={LoginPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/dashboard" component={Home} />
       <Route path="/feed" component={HomeFeed} />
       <Route path="/listing/:id" component={ListingDetail} />
       <Route path="/create" component={CreateListing} />

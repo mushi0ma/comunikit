@@ -1,7 +1,7 @@
 /* comunikit — ListingCard component
    Design: "Digital Bazaar" — card with diagonal stripe, price in JetBrains Mono
 */
-import { Heart, Star, Eye, MapPin, Clock } from "lucide-react";
+import { Heart, Star, Eye, MapPin, Clock, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Listing, formatPrice, getTypeLabel, getTypeColor, getStripeColor } from "@/lib/mockData";
 import { useState } from "react";
@@ -32,7 +32,7 @@ export default function ListingCard({ listing, view = "grid" }: ListingCardProps
           {listing.images[0] ? (
             <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-2xl">📦</div>
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="w-8 h-8 opacity-40" /></div>
           )}
         </div>
 
@@ -40,8 +40,11 @@ export default function ListingCard({ listing, view = "grid" }: ListingCardProps
         <div className="flex-1 min-w-0 flex flex-col justify-between">
           <div>
             <div className="flex items-start justify-between gap-2">
-              <span className={cn(getTypeColor(listing.type), "mb-1")}>
-                {listing.type === "lost" ? "🔴" : listing.type === "found" ? "🟢" : ""} {getTypeLabel(listing.type)}
+              <span className={cn(getTypeColor(listing.type), "mb-1 flex items-center gap-1")}>
+                {(listing.type === "lost" || listing.type === "found") && (
+                  <span className={cn("w-2 h-2 rounded-full shrink-0", listing.type === "lost" ? "bg-red-500" : "bg-green-500")} />
+                )}
+                {getTypeLabel(listing.type)}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
@@ -97,12 +100,15 @@ export default function ListingCard({ listing, view = "grid" }: ListingCardProps
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="w-10 h-10 opacity-40" /></div>
         )}
         {/* Badge overlay */}
         <div className="absolute top-2 left-2">
-          <span className={cn(getTypeColor(listing.type))}>
-            {listing.type === "lost" ? "🔴" : listing.type === "found" ? "🟢" : ""} {getTypeLabel(listing.type)}
+          <span className={cn(getTypeColor(listing.type), "flex items-center gap-1")}>
+            {(listing.type === "lost" || listing.type === "found") && (
+              <span className={cn("w-2 h-2 rounded-full shrink-0", listing.type === "lost" ? "bg-red-500" : "bg-green-500")} />
+            )}
+            {getTypeLabel(listing.type)}
           </span>
         </div>
         {/* Favorite */}

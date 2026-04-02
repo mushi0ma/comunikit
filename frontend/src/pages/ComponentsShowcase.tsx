@@ -2,7 +2,11 @@
    Design: "Digital Bazaar" — all UI components and variants displayed
 */
 import { useState } from "react";
-import { Loader2, Check, AlertCircle, Info, X } from "lucide-react";
+import {
+  Loader2, Check, AlertCircle, Info, X,
+  Banknote, ShoppingCart, Wrench, Search, Smartphone, Star,
+  Home, Map, Plus, MessageSquare, User
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,11 +50,11 @@ export default function ComponentsShowcase() {
         {/* Badges */}
         <Section title="Бейджи">
           <div className="flex flex-wrap gap-2">
-            <span className="ck-badge-sell">💰 Продажа</span>
-            <span className="ck-badge-buy">🛒 Покупка</span>
-            <span className="ck-badge-service">🔧 Услуга</span>
-            <span className="ck-badge-lost">🔴 Потеряно</span>
-            <span className="ck-badge-found">🟢 Найдено</span>
+            <span className="ck-badge-sell inline-flex items-center gap-1"><Banknote className="w-3 h-3" /> Продажа</span>
+            <span className="ck-badge-buy inline-flex items-center gap-1"><ShoppingCart className="w-3 h-3" /> Покупка</span>
+            <span className="ck-badge-service inline-flex items-center gap-1"><Wrench className="w-3 h-3" /> Услуга</span>
+            <span className="ck-badge-lost inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Потеряно</span>
+            <span className="ck-badge-found inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Найдено</span>
           </div>
           <div className="flex flex-wrap gap-2 mt-3">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Активно</span>
@@ -69,7 +73,7 @@ export default function ComponentsShowcase() {
             <Textarea placeholder="Многострочное поле..." rows={3} />
             <div className="relative">
               <Input placeholder="Поиск..." className="pl-9" />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">🔍</span>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             </div>
           </div>
         </Section>
@@ -81,7 +85,7 @@ export default function ComponentsShowcase() {
             <div className="ck-card p-4">
               <div className="ck-card-stripe bg-primary" />
               <div className="ml-1 flex gap-3">
-                <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center text-2xl shrink-0">📱</div>
+                <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center shrink-0 text-muted-foreground"><Smartphone className="w-7 h-7 opacity-60" /></div>
                 <div className="flex-1">
                   <span className="ck-badge-sell mb-1 inline-block">Продажа</span>
                   <p className="font-bold text-sm text-foreground">iPhone 14 Pro, 256GB</p>
@@ -96,7 +100,7 @@ export default function ComponentsShowcase() {
                 <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-lg">А</div>
                 <div>
                   <p className="font-bold text-foreground">Алиев Арман</p>
-                  <p className="text-sm text-muted-foreground">CS-21-K · ⭐ 4.8 (12 отзывов)</p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">CS-21-K · <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> 4.8 (12 отзывов)</p>
                 </div>
                 <Button size="sm" variant="outline" className="ml-auto">Профиль</Button>
               </div>
@@ -124,10 +128,16 @@ export default function ComponentsShowcase() {
             <div className="rounded-xl border border-border bg-card p-1">
               <p className="text-xs text-muted-foreground px-3 py-1 mb-1">Bottom Nav (Mobile)</p>
               <div className="flex items-center justify-around py-2 border-t border-border">
-                {["🏠 Лента", "🗺️ Карта", "➕ Добавить", "💬 Форум", "👤 Профиль"].map((item, i) => (
-                  <div key={item} className={cn("flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg", i === 0 ? "text-primary" : "text-muted-foreground")}>
-                    <span className="text-lg">{item.split(" ")[0]}</span>
-                    <span className="text-[9px] font-semibold">{item.split(" ")[1]}</span>
+                {([
+                  { Icon: Home, label: "Лента" },
+                  { Icon: Map, label: "Карта" },
+                  { Icon: Plus, label: "Добавить" },
+                  { Icon: MessageSquare, label: "Форум" },
+                  { Icon: User, label: "Профиль" },
+                ]).map(({ Icon, label }, i) => (
+                  <div key={label} className={cn("flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg", i === 0 ? "text-primary" : "text-muted-foreground")}>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[9px] font-semibold">{label}</span>
                   </div>
                 ))}
               </div>

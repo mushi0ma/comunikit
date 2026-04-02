@@ -86,7 +86,7 @@ export default function RegisterPage() {
     setLoading(true);
     await new Promise(r => setTimeout(r, 1500));
     setLoading(false);
-    toast.success("Аккаунт создан! Добро пожаловать в comunikit 🎉");
+    toast.success("Аккаунт создан! Добро пожаловать в comunikit");
     navigate("/feed");
   };
 

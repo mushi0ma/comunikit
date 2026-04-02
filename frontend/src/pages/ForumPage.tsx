@@ -2,19 +2,19 @@
    Design: "Digital Bazaar" — category tabs, thread list, create thread CTA
 */
 import { useState } from "react";
-import { MessageSquare, Pin, Plus, ChevronRight, Clock, Hash } from "lucide-react";
+import { MessageSquare, Pin, Plus, ChevronRight, Clock, Hash, Globe, BookOpen, MessageCircle, CalendarDays, Home as HomeIcon, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
 import { FORUM_THREADS } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const FORUM_CATEGORIES = [
-  { value: "all", label: "Все", emoji: "🌐" },
-  { value: "Учёба", label: "Учёба", emoji: "📚" },
-  { value: "Общее", label: "Общее", emoji: "💬" },
-  { value: "События", label: "События", emoji: "🎉" },
-  { value: "Жильё", label: "Жильё", emoji: "🏠" },
+const FORUM_CATEGORIES: { value: string; label: string; Icon: LucideIcon }[] = [
+  { value: "all", label: "Все", Icon: Globe },
+  { value: "Учёба", label: "Учёба", Icon: BookOpen },
+  { value: "Общее", label: "Общее", Icon: MessageCircle },
+  { value: "События", label: "События", Icon: CalendarDays },
+  { value: "Жильё", label: "Жильё", Icon: HomeIcon },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -64,7 +64,7 @@ export default function ForumPage() {
                   : "bg-muted text-muted-foreground hover:bg-accent"
               )}
             >
-              <span>{cat.emoji}</span>
+              <cat.Icon className="w-3.5 h-3.5 shrink-0" />
               {cat.label}
             </button>
           ))}
@@ -92,7 +92,8 @@ export default function ForumPage() {
                           </span>
                         )}
                         <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold", CATEGORY_COLORS[thread.category] || "bg-muted text-muted-foreground")}>
-                          {FORUM_CATEGORIES.find(c => c.value === thread.category)?.emoji} {thread.category}
+                          {(() => { const cat = FORUM_CATEGORIES.find(c => c.value === thread.category); return cat ? <cat.Icon className="w-3 h-3 inline mr-1" /> : null; })()}
+                          {thread.category}
                         </span>
                       </div>
                       <h3 className="text-sm font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
@@ -135,7 +136,7 @@ export default function ForumPage() {
 
         {filtered.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            <p className="text-4xl mb-3">💬</p>
+            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="font-semibold">Нет тем в этой категории</p>
             <Button className="mt-4" onClick={() => toast.info("Создание темы в разработке")}>
               Создать первую тему

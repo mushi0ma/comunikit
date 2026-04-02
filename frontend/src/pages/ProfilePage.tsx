@@ -4,7 +4,7 @@
 import { useState } from "react";
 import {
   Camera, Star, Settings, LogOut, Bell, Moon, Sun,
-  MessageCircle, Shield, ChevronRight, Edit3
+  MessageCircle, Shield, ChevronRight, Edit3, Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,7 +122,7 @@ export default function ProfilePage() {
           <div className="space-y-3 ck-animate-in">
             {myListings.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <p className="text-4xl mb-3">📦</p>
+                <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="font-semibold">Нет объявлений</p>
                 <p className="text-sm mt-1">Создайте первое объявление</p>
               </div>

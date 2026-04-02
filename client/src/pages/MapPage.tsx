@@ -51,8 +51,8 @@ export default function MapPage() {
         <div className="flex gap-2">
           {([
             { value: "all", label: "Все", color: "bg-muted text-muted-foreground" },
-            { value: "lost", label: "🔴 Потеряно", activeColor: "bg-red-500 text-white" },
-            { value: "found", label: "🟢 Найдено", activeColor: "bg-green-500 text-white" },
+            { value: "lost", label: "Потеряно", dot: "red", activeColor: "bg-red-500 text-white" },
+            { value: "found", label: "Найдено", dot: "green", activeColor: "bg-green-500 text-white" },
           ] as const).map(opt => (
             <button
               key={opt.value}
@@ -64,6 +64,7 @@ export default function MapPage() {
                   : "bg-muted text-muted-foreground hover:bg-accent"
               )}
             >
+              {"dot" in opt && opt.dot && <span className={cn("w-2 h-2 rounded-full shrink-0 mr-1 inline-block", opt.dot === "red" ? "bg-red-500" : "bg-green-500")} />}
               {opt.label}
             </button>
           ))}
@@ -113,7 +114,8 @@ export default function MapPage() {
                       "text-xs font-bold px-1.5 py-0.5 rounded-full",
                       selectedMarker.type === "lost" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
                     )}>
-                      {selectedMarker.type === "lost" ? "🔴 Потеряно" : "🟢 Найдено"}
+                      <span className={cn("w-2 h-2 rounded-full inline-block mr-1", selectedMarker.type === "lost" ? "bg-red-500" : "bg-green-500")} />
+                      {selectedMarker.type === "lost" ? "Потеряно" : "Найдено"}
                     </span>
                   </div>
                   <p className="text-sm font-bold text-foreground leading-snug">{selectedMarker.title}</p>

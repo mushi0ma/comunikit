@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   ArrowLeft, Star, Eye, Clock, MapPin, Phone, MessageCircle,
-  Send, ChevronLeft, ChevronRight, Share2, Flag, Heart
+  Send, ChevronLeft, ChevronRight, Share2, Flag, Heart, Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,7 +58,7 @@ export default function ListingDetail() {
           {images[0] ? (
             <img src={images[imgIdx] || images[0]} alt={listing.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-6xl">📦</div>
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="w-16 h-16 opacity-30" /></div>
           )}
           {images.length > 1 && (
             <>
@@ -108,7 +108,10 @@ export default function ListingDetail() {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className={cn(getTypeColor(listing.type))}>
-                  {listing.type === "lost" ? "🔴" : listing.type === "found" ? "🟢" : ""} {getTypeLabel(listing.type)}
+                  {(listing.type === "lost" || listing.type === "found") && (
+                    <span className={cn("w-2 h-2 rounded-full inline-block mr-1", listing.type === "lost" ? "bg-red-500" : "bg-green-500")} />
+                  )}
+                  {getTypeLabel(listing.type)}
                 </span>
                 <span className="text-xs text-muted-foreground px-2 py-0.5 rounded-full bg-muted">{listing.category}</span>
                 <span className={cn(

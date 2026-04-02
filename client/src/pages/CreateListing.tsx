@@ -5,7 +5,8 @@ import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, ArrowRight, Upload, X, Eye, EyeOff,
-  CheckCircle2, MapPin, Loader2, ImagePlus
+  CheckCircle2, MapPin, Loader2, ImagePlus,
+  ShoppingBag, Search, Banknote, ShoppingCart, Wrench, Rocket
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,7 @@ export default function CreateListing() {
     setPublishing(true);
     await new Promise(r => setTimeout(r, 1500));
     setPublishing(false);
-    toast.success("Объявление опубликовано! 🎉");
+    toast.success("Объявление опубликовано!");
     navigate("/feed");
   };
 
@@ -109,8 +110,8 @@ export default function CreateListing() {
             {/* Main type */}
             <div className="grid grid-cols-2 gap-3">
               {([
-                { value: "marketplace", label: "Маркетплейс", emoji: "🛍️", desc: "Продать, купить или предложить услугу" },
-                { value: "lostfound", label: "Lost & Found", emoji: "🔍", desc: "Потерял или нашёл вещь" },
+                { value: "marketplace", label: "Маркетплейс", Icon: ShoppingBag, desc: "Продать, купить или предложить услугу" },
+                { value: "lostfound", label: "Lost & Found", Icon: Search, desc: "Потерял или нашёл вещь" },
               ] as const).map(opt => (
                 <button
                   key={opt.value}
@@ -122,7 +123,7 @@ export default function CreateListing() {
                       : "border-border bg-card hover:border-primary/50"
                   )}
                 >
-                  <div className="text-3xl mb-2">{opt.emoji}</div>
+                  <opt.Icon className={cn("w-7 h-7 mb-2", mainType === opt.value ? "text-primary" : "text-muted-foreground")} />
                   <div className="font-bold text-sm text-foreground">{opt.label}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
                 </button>
@@ -139,13 +140,14 @@ export default function CreateListing() {
                     ? (["sell", "buy", "service"] as SubType[])
                     : (["lost", "found"] as SubType[])
                   ).map((t, i) => {
-                    const labels: Record<SubType, { label: string; emoji: string }> = {
-                      sell: { label: "Продам", emoji: "💰" },
-                      buy: { label: "Куплю", emoji: "🛒" },
-                      service: { label: "Услуга", emoji: "🔧" },
-                      lost: { label: "Потерял", emoji: "🔴" },
-                      found: { label: "Нашёл", emoji: "🟢" },
+                    const labels: Record<SubType, { label: string; Icon: React.ElementType }> = {
+                      sell: { label: "Продам", Icon: Banknote },
+                      buy: { label: "Куплю", Icon: ShoppingCart },
+                      service: { label: "Услуга", Icon: Wrench },
+                      lost: { label: "Потерял", Icon: () => <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" /> },
+                      found: { label: "Нашёл", Icon: () => <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" /> },
                     };
+                    const { label, Icon } = labels[t];
                     return (
                       <button
                         key={t}
@@ -155,8 +157,8 @@ export default function CreateListing() {
                           subType === t ? "border-primary bg-primary/10 text-primary" : "border-border bg-card hover:border-primary/50"
                         )}
                       >
-                        <span>{labels[t].emoji}</span>
-                        {labels[t].label}
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
                       </button>
                     );
                   })}
@@ -346,7 +348,9 @@ export default function CreateListing() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{category}</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                  {subType === "sell" ? "Продажа" : subType === "buy" ? "Покупка" : subType === "service" ? "Услуга" : subType === "lost" ? "🔴 Потеряно" : "🟢 Найдено"}
+                  {subType === "lost" && <span className="w-2 h-2 rounded-full bg-red-500 inline-block mr-1" />}
+                  {subType === "found" && <span className="w-2 h-2 rounded-full bg-green-500 inline-block mr-1" />}
+                  {subType === "sell" ? "Продажа" : subType === "buy" ? "Покупка" : subType === "service" ? "Услуга" : subType === "lost" ? "Потеряно" : "Найдено"}
                 </span>
               </div>
               {price && <p className="ck-price text-2xl">{formatPrice(Number(price))}</p>}
@@ -368,7 +372,7 @@ export default function CreateListing() {
                 disabled={publishing}
                 style={{ background: "linear-gradient(135deg, #F97316, #FB923C)" }}
               >
-                {publishing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Публикуем...</> : "Опубликовать 🚀"}
+                {publishing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Публикуем...</> : <><Rocket className="w-4 h-4 mr-1" />Опубликовать</>}
               </Button>
             </div>
           </div>

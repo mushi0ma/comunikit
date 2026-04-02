@@ -2,7 +2,7 @@
    Design: "Digital Bazaar" — 2-col grid (mobile), 3-col (desktop), tabs, filters, FAB
 */
 import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, LayoutGrid, List, X, ChevronDown } from "lucide-react";
+import { Search, SlidersHorizontal, LayoutGrid, List, X, ChevronDown, ShoppingBag, Wrench, MessageSquare, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -12,13 +12,13 @@ import { MOCK_LISTINGS, CATEGORIES, ListingType } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const TABS: { label: string; value: string; emoji?: string }[] = [
+const TABS: { label: string; value: string; dot?: "red" | "green" }[] = [
   { label: "Все", value: "all" },
   { label: "Продажа", value: "sell" },
   { label: "Покупка", value: "buy" },
   { label: "Услуги", value: "service" },
-  { label: "Потеряно", value: "lost", emoji: "🔴" },
-  { label: "Найдено", value: "found", emoji: "🟢" },
+  { label: "Потеряно", value: "lost", dot: "red" },
+  { label: "Найдено", value: "found", dot: "green" },
 ];
 
 export default function HomeFeed() {
@@ -57,6 +57,29 @@ export default function HomeFeed() {
             <p className="text-white/80 text-xs mt-0.5">500+ объявлений · только для своих</p>
           </div>
         </div>
+
+        {/* Bento quick-categories */}
+        {activeTab === "all" && !search && (
+          <div className="grid grid-cols-4 gap-2 ck-animate-in">
+            {([
+              { label: "Продажа", Icon: ShoppingBag, tab: "sell", color: "text-orange-500", bg: "bg-orange-500/10" },
+              { label: "Покупка", Icon: Package, tab: "buy", color: "text-blue-500", bg: "bg-blue-500/10" },
+              { label: "Услуги", Icon: Wrench, tab: "service", color: "text-violet-500", bg: "bg-violet-500/10" },
+              { label: "Форум", Icon: MessageSquare, tab: null, href: "/forum", color: "text-emerald-500", bg: "bg-emerald-500/10" },
+            ] as const).map(({ label, Icon, tab, bg, color }) => (
+              <button
+                key={label}
+                onClick={() => tab && setActiveTab(tab)}
+                className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-card border border-border hover:border-primary/40 transition-all duration-150 group"
+              >
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", bg)}>
+                  <Icon className={cn("w-5 h-5", color)} strokeWidth={1.75} />
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center">{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Search bar */}
         <div className="flex gap-2">
@@ -140,7 +163,7 @@ export default function HomeFeed() {
                   : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
-              {tab.emoji && <span className="mr-1">{tab.emoji}</span>}
+              {tab.dot && <span className={cn("w-2 h-2 rounded-full shrink-0 mr-1", tab.dot === "red" ? "bg-red-500" : "bg-green-500")} />}
               {tab.label}
             </button>
           ))}

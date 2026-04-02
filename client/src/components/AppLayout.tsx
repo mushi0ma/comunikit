@@ -73,7 +73,7 @@ export default function AppLayout({ children, title, showBack, onBack, headerRig
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}>
-                <Icon className="w-5 h-5 shrink-0" />
+                <Icon className="w-5 h-5 shrink-0" strokeWidth={location === href || location.startsWith(href + "/") ? 2.5 : 1.75} />
                 {label}
               </div>
             </Link>
@@ -195,14 +195,31 @@ export default function AppLayout({ children, title, showBack, onBack, headerRig
 
       {/* Mobile bottom nav */}
       <nav className="ck-bottom-nav lg:hidden">
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => (
-          <Link key={href} href={href}>
-            <div className={cn("ck-bottom-nav-item", location === href || location.startsWith(href + "/") ? "active" : "")}>
-              <Icon className={cn("w-5 h-5", href === "/create" ? "text-primary" : "")} />
-              <span className="text-[10px] font-semibold">{label}</span>
-            </div>
-          </Link>
-        ))}
+        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+          const isActive = location === href || location.startsWith(href + "/");
+          const isCreate = href === "/create";
+          return (
+            <Link key={href} href={href}>
+              <div className={cn("ck-bottom-nav-item", isActive ? "active" : "")}>
+                {isCreate ? (
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center -mt-3 shadow-lg"
+                    style={{ background: "linear-gradient(135deg, #F97316, #FB923C)" }}>
+                    <Icon className="w-5 h-5 text-white" strokeWidth={2.5} />
+                  </div>
+                ) : (
+                  <div className="relative flex flex-col items-center gap-0.5">
+                    {isActive && (
+                      <span className="absolute -top-3 w-4 h-0.5 rounded-full bg-primary" />
+                    )}
+                    <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 1.75} />
+                    <span className="text-[10px] font-semibold">{label}</span>
+                  </div>
+                )}
+                {isCreate && <span className="text-[10px] font-semibold mt-0.5">{label}</span>}
+              </div>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

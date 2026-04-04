@@ -1,16 +1,18 @@
 /* comunikit — HomeFeed
    Design: "Digital Bazaar" — 2-col grid (mobile), 3-col (desktop), tabs, filters, FAB
 */
-import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, LayoutGrid, List, X, ChevronDown, ShoppingBag, Wrench, MessageSquare, Package } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, SlidersHorizontal, LayoutGrid, List, X, ShoppingBag, Wrench, MessageSquare, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
-import { MOCK_LISTINGS, CATEGORIES, ListingType } from "@/lib/mockData";
+import { CATEGORIES } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useListings } from "@/hooks/useListings";
 
 const TABS: { label: string; value: string; dot?: "red" | "green" }[] = [
   { label: "Все", value: "all" },
@@ -21,6 +23,37 @@ const TABS: { label: string; value: string; dot?: "red" | "green" }[] = [
   { label: "Найдено", value: "found", dot: "green" },
 ];
 
+function ListingCardSkeleton({ view }: { view: "grid" | "list" }) {
+  if (view === "list") {
+    return (
+      <div className="ck-card flex gap-3 p-3">
+        <div className="w-1 rounded-full bg-muted shrink-0" />
+        <Skeleton className="w-24 h-20 rounded-lg ml-1 shrink-0" />
+        <div className="flex-1 flex flex-col gap-2">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2 mt-auto" />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="ck-card flex flex-col overflow-hidden">
+      <Skeleton className="aspect-video w-full rounded-none ml-1" />
+      <div className="p-3 flex flex-col gap-2 ml-1">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-5 w-1/2" />
+        <div className="flex items-center gap-2 mt-1">
+          <Skeleton className="size-5 rounded-full" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomeFeed() {
   const [activeTab, setActiveTab] = useState("all");
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -29,15 +62,23 @@ export default function HomeFeed() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [priceMax, setPriceMax] = useState("");
 
+  const { listings, isLoading, error } = useListings();
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Не удалось загрузить объявления", { description: error.message });
+    }
+  }, [error]);
+
   const filtered = useMemo(() => {
-    return MOCK_LISTINGS.filter(l => {
+    return listings.filter(l => {
       if (activeTab !== "all" && l.type !== activeTab) return false;
       if (search && !l.title.toLowerCase().includes(search.toLowerCase())) return false;
       if (selectedCategory !== "all" && l.category !== selectedCategory) return false;
       if (priceMax && l.price && l.price > Number(priceMax)) return false;
       return true;
     });
-  }, [activeTab, search, selectedCategory, priceMax]);
+  }, [listings, activeTab, search, selectedCategory, priceMax]);
 
   return (
     <AppLayout title="Лента объявлений">
@@ -172,37 +213,52 @@ export default function HomeFeed() {
         {/* Results count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {filtered.length} объявлений
-            {activeTab !== "all" && ` · ${TABS.find(t => t.value === activeTab)?.label}`}
+            {isLoading ? "Загрузка..." : `${filtered.length} объявлений`}
+            {!isLoading && activeTab !== "all" && ` · ${TABS.find(t => t.value === activeTab)?.label}`}
           </p>
         </div>
 
-        {/* Listings grid/list */}
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663495884739/DGUPBTppTqo5bjNNyAy3QB/comunikit-empty-state-c4ABgXauiyYkmsN9H2jibK.webp"
-              alt="Ничего не найдено"
-              className="w-32 h-32 object-contain mb-4 opacity-60"
-            />
-            <p className="text-lg font-bold text-foreground">Ничего не найдено</p>
-            <p className="text-sm text-muted-foreground mt-1">Попробуйте изменить фильтры или поисковый запрос</p>
-            <Button variant="outline" className="mt-4" onClick={() => { setSearch(""); setActiveTab("all"); setSelectedCategory("all"); }}>
-              Сбросить фильтры
-            </Button>
-          </div>
-        ) : (
+        {/* Skeleton grid while loading */}
+        {isLoading && (
           <div className={cn(
             view === "grid"
               ? "grid grid-cols-2 lg:grid-cols-3 gap-3"
               : "flex flex-col gap-3"
           )}>
-            {filtered.map((listing, i) => (
-              <div key={listing.id} style={{ animationDelay: `${i * 40}ms` }}>
-                <ListingCard listing={listing} view={view} />
-              </div>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ListingCardSkeleton key={i} view={view} />
             ))}
           </div>
+        )}
+
+        {/* Listings grid/list */}
+        {!isLoading && (
+          filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663495884739/DGUPBTppTqo5bjNNyAy3QB/comunikit-empty-state-c4ABgXauiyYkmsN9H2jibK.webp"
+                alt="Ничего не найдено"
+                className="w-32 h-32 object-contain mb-4 opacity-60"
+              />
+              <p className="text-lg font-bold text-foreground">Ничего не найдено</p>
+              <p className="text-sm text-muted-foreground mt-1">Попробуйте изменить фильтры или поисковый запрос</p>
+              <Button variant="outline" className="mt-4" onClick={() => { setSearch(""); setActiveTab("all"); setSelectedCategory("all"); }}>
+                Сбросить фильтры
+              </Button>
+            </div>
+          ) : (
+            <div className={cn(
+              view === "grid"
+                ? "grid grid-cols-2 lg:grid-cols-3 gap-3"
+                : "flex flex-col gap-3"
+            )}>
+              {filtered.map((listing, i) => (
+                <div key={listing.id} style={{ animationDelay: `${i * 40}ms` }}>
+                  <ListingCard listing={listing} view={view} />
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 

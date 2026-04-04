@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String        @id @default(uuid())
+  studentId      String        @unique
+  name           String
+  avatarUrl      String?
+  telegramHandle String?
+  listings       Listing[]
+  threads        ForumThread[]
+  createdAt      DateTime      @default(now())
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  price       Float?
+  type        ListingType
+  category    String
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  images      String[]
+  status      ListingStatus @default(active)
+  createdAt   DateTime      @default(now())
+}
+
+model ForumThread {
+  id         String   @id @default(uuid())
+  title      String
+  body       String
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  category   String
+  replyCount Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+enum ListingType {
+  sell
+  buy
+  service
+  lost
+  found
+}
+
+enum ListingStatus {
+  active
+  closed
+  archived
+}

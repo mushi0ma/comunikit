@@ -1,7 +1,7 @@
 // comunikit — Mock data for prototype
+import type { ListingType, ListingStatus } from "@shared/types";
 
-export type ListingType = "sell" | "buy" | "service" | "lost" | "found";
-export type ListingStatus = "active" | "sold" | "closed" | "draft";
+export type { ListingType, ListingStatus };
 
 export interface Listing {
   id: string;

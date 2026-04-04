@@ -96,3 +96,9 @@ frontend/public/__manus__/version.json
 
 userflow.mmd
 userflow.png
+
+.manus-logs/
+.agent/
+ACTIVE_TASK.md
+comunikit-backend/
+comunikit-frontend/

@@ -8,6 +8,9 @@ import { HealthModule } from './modules/health/health.module.js';
 import { WhitelistModule } from './modules/whitelist/whitelist.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ListingsModule } from './modules/listings/listings.module.js';
+import { ForumModule } from './modules/forum/forum.module.js';
+import { CommentsModule } from './modules/comments/comments.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { ListingsModule } from './modules/listings/listings.module.js';
     WhitelistModule,
     AuthModule,
     ListingsModule,
+    ForumModule,
+    CommentsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

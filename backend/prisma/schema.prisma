@@ -12,14 +12,19 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(uuid())
-  studentId      String        @unique
+  id             String         @id @default(uuid())
+  studentId      String         @unique
   name           String
   avatarUrl      String?
   telegramHandle String?
+  karma          Int            @default(0)
   listings       Listing[]
   threads        ForumThread[]
-  createdAt      DateTime      @default(now())
+  comments       Comment[]
+  votes          Vote[]
+  bookmarks      Bookmark[]
+  notifications  Notification[]
+  createdAt      DateTime       @default(now())
 }
 
 model Listing {
@@ -33,18 +38,87 @@ model Listing {
   author      User          @relation(fields: [authorId], references: [id])
   images      String[]
   status      ListingStatus @default(active)
+  comments    Comment[]
+  votes       Vote[]
+  bookmarks   Bookmark[]
   createdAt   DateTime      @default(now())
 }
 
 model ForumThread {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   title      String
   body       String
   authorId   String
-  author     User     @relation(fields: [authorId], references: [id])
+  author     User      @relation(fields: [authorId], references: [id])
   category   String
-  replyCount Int      @default(0)
-  createdAt  DateTime @default(now())
+  replyCount Int       @default(0) @map("replyCount")
+  upvotes    Int       @default(0)
+  isPinned   Boolean   @default(false) @map("isPinned")
+  createdAt  DateTime  @default(now())
+  comments   Comment[]
+  votes      Vote[]
+
+  @@map("ForumThread")
+}
+
+model Comment {
+  id        String       @id @default(uuid())
+  body      String
+  authorId  String
+  author    User         @relation(fields: [authorId], references: [id])
+  listingId String?
+  listing   Listing?     @relation(fields: [listingId], references: [id])
+  threadId  String?
+  thread    ForumThread? @relation(fields: [threadId], references: [id])
+  parentId  String?
+  parent    Comment?     @relation("replies", fields: [parentId], references: [id])
+  replies   Comment[]    @relation("replies")
+  votes     Vote[]
+  createdAt DateTime     @default(now())
+
+  @@map("Comment")
+}
+
+model Vote {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  listingId String?
+  listing   Listing?     @relation(fields: [listingId], references: [id])
+  threadId  String?
+  thread    ForumThread? @relation(fields: [threadId], references: [id])
+  commentId String?
+  comment   Comment?     @relation(fields: [commentId], references: [id])
+  value     Int
+  createdAt DateTime     @default(now())
+
+  @@map("Vote")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@map("Bookmark")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false) @map("isRead")
+  relatedId String?
+  createdAt DateTime @default(now())
+
+  @@map("Notification")
 }
 
 model Whitelist {

@@ -1,0 +1,176 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service.js';
+
+@Injectable()
+export class CommentsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private readonly authorSelect = {
+    id: true,
+    name: true,
+    avatarUrl: true,
+    karma: true,
+  } as const;
+
+  async findByListing(listingId: string) {
+    return this.prisma.comment.findMany({
+      where: { listingId, parentId: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        author: { select: this.authorSelect },
+        replies: {
+          include: {
+            author: { select: this.authorSelect },
+            _count: { select: { votes: true } },
+          },
+        },
+        _count: { select: { votes: true } },
+      },
+    });
+  }
+
+  async findByThread(threadId: string) {
+    return this.prisma.comment.findMany({
+      where: { threadId, parentId: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        author: { select: this.authorSelect },
+        replies: {
+          include: {
+            author: { select: this.authorSelect },
+            _count: { select: { votes: true } },
+          },
+        },
+        _count: { select: { votes: true } },
+      },
+    });
+  }
+
+  async create(
+    data: {
+      body: string;
+      listingId?: string;
+      threadId?: string;
+      parentId?: string;
+    },
+    authorId: string,
+  ) {
+    const comment = await this.prisma.comment.create({
+      data: {
+        body: data.body,
+        authorId,
+        listingId: data.listingId ?? null,
+        threadId: data.threadId ?? null,
+        parentId: data.parentId ?? null,
+      },
+      include: {
+        author: { select: this.authorSelect },
+      },
+    });
+
+    // Increment replyCount on forum thread
+    if (data.threadId) {
+      await this.prisma.forumThread.update({
+        where: { id: data.threadId },
+        data: { replyCount: { increment: 1 } },
+      });
+    }
+
+    // Create notification for content author
+    if (data.listingId) {
+      const listing = await this.prisma.listing.findUnique({
+        where: { id: data.listingId },
+        select: { authorId: true, title: true },
+      });
+      if (listing && listing.authorId !== authorId) {
+        await this.prisma.notification.create({
+          data: {
+            userId: listing.authorId,
+            type: 'comment',
+            title: 'Новый комментарий',
+            body: `Комментарий к "${listing.title}"`,
+            relatedId: data.listingId,
+          },
+        });
+      }
+    }
+
+    if (data.threadId) {
+      const thread = await this.prisma.forumThread.findUnique({
+        where: { id: data.threadId },
+        select: { authorId: true, title: true },
+      });
+      if (thread && thread.authorId !== authorId) {
+        await this.prisma.notification.create({
+          data: {
+            userId: thread.authorId,
+            type: 'forum',
+            title: 'Новый ответ в теме',
+            body: `Ответ в "${thread.title}"`,
+            relatedId: data.threadId,
+          },
+        });
+      }
+    }
+
+    return comment;
+  }
+
+  async vote(commentId: string, userId: string, value: number) {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { authorId: true },
+    });
+    if (!comment) {
+      throw new NotFoundException({
+        success: false,
+        data: null,
+        error: `Comment ${commentId} not found`,
+      });
+    }
+
+    const existing = await this.prisma.vote.findFirst({
+      where: { commentId, userId },
+    });
+
+    if (existing) {
+      if (existing.value === value) {
+        // Toggle off
+        await this.prisma.$transaction([
+          this.prisma.vote.delete({ where: { id: existing.id } }),
+          this.prisma.user.update({
+            where: { id: comment.authorId },
+            data: { karma: { increment: -existing.value } },
+          }),
+        ]);
+        return { action: 'removed', value: 0 };
+      } else {
+        // Change vote
+        const delta = value - existing.value;
+        await this.prisma.$transaction([
+          this.prisma.vote.update({
+            where: { id: existing.id },
+            data: { value },
+          }),
+          this.prisma.user.update({
+            where: { id: comment.authorId },
+            data: { karma: { increment: delta } },
+          }),
+        ]);
+        return { action: 'updated', value };
+      }
+    }
+
+    // New vote
+    await this.prisma.$transaction([
+      this.prisma.vote.create({
+        data: { commentId, userId, value },
+      }),
+      this.prisma.user.update({
+        where: { id: comment.authorId },
+        data: { karma: { increment: value } },
+      }),
+    ]);
+    return { action: 'created', value };
+  }
+}

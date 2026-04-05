@@ -100,10 +100,9 @@ userflow.png
 .manus-logs/
 .agent/
 ACTIVE_TASK.md
-comunikit-backend/
-comunikit-frontend/
 node_modules/
 **/node_modules/
 backend/node_modules/
 backend/.env
 .vercel
+backend/generated/

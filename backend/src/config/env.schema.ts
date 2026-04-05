@@ -10,6 +10,7 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

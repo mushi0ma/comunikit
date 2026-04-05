@@ -15,10 +15,14 @@ import {
   Send,
   XCircle,
   Github,
+  CreditCard,
+  Upload,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
@@ -57,10 +61,19 @@ const FEATURES = [
 
 type VerifyState = "idle" | "checking" | "valid" | "invalid";
 
+interface IdCardResult {
+  valid: boolean;
+  name?: string;
+  validUntil?: string;
+  reason?: string;
+}
+
 export default function RegisterPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
   const [verifyState, setVerifyState] = useState<VerifyState>("idle");
+  const [idCardResult, setIdCardResult] = useState<IdCardResult | null>(null);
+  const [idCardLoading, setIdCardLoading] = useState(false);
   const verifyAbort = useRef<AbortController | null>(null);
   const signUp = useAuthStore((s) => s.signUp);
 
@@ -97,6 +110,37 @@ export default function RegisterPage() {
     } catch (err) {
       if ((err as Error).name !== "AbortError") setVerifyState("idle");
     }
+  }
+
+  async function handleIdCardUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIdCardLoading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(",")[1];
+      const mimeType = file.type;
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/auth/verify-id-card`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64, mimeType }),
+          },
+        );
+        const data = (await res.json()) as IdCardResult;
+        setIdCardResult(data);
+        if (data.valid) toast.success("ID карта верифицирована!");
+        else toast.error(data.reason || "Карта не прошла проверку");
+      } catch {
+        toast.error("Ошибка при проверке карты");
+      } finally {
+        setIdCardLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   async function onSubmit(data: RegisterValues) {
@@ -279,6 +323,64 @@ export default function RegisterPage() {
                 </p>
               )}
             </div>
+
+            {/* ID Card verification (optional) */}
+            {verifyState === "valid" && (
+              <div className="flex flex-col gap-3 p-4 bg-muted/50 rounded-xl border border-border">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold">
+                    Верификация ID карты
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    Необязательно
+                  </span>
+                </div>
+
+                {!idCardResult ? (
+                  <label className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                    {idCardLoading ? (
+                      <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                    ) : (
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                    )}
+                    <span className="text-xs text-muted-foreground text-center">
+                      {idCardLoading
+                        ? "Проверяем карту..."
+                        : "Загрузите фото ID карты AITU для верификации"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={idCardLoading}
+                      onChange={handleIdCardUpload}
+                    />
+                  </label>
+                ) : (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 p-3 rounded-lg text-sm",
+                      idCardResult.valid
+                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                        : "bg-red-500/10 text-red-400 border border-red-500/20",
+                    )}
+                  >
+                    {idCardResult.valid ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Карта верифицирована · {idCardResult.name}
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-4 h-4" />
+                        {idCardResult.reason || "Не удалось верифицировать"}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Name */}
             <div className="flex flex-col gap-1.5">

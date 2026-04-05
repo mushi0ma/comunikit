@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -10,7 +11,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { IdCardService, type IdCardResult } from './id-card.service.js';
 import { verifyTelegramAuth } from './telegram.strategy.js';
+
+const verifyIdCardSchema = z.object({
+  image: z.string().min(1),
+  mimeType: z.string().min(1),
+});
 
 const telegramPayloadSchema = z.object({
   id: z.number(),
@@ -29,7 +36,10 @@ export class AuthController {
   private readonly admin: SupabaseClient;
   private readonly botToken: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly idCardService: IdCardService,
+  ) {
     const supabaseUrl = this.config.get<string>('SUPABASE_URL');
     const serviceRoleKey = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !serviceRoleKey) {
@@ -136,6 +146,20 @@ export class AuthController {
       access_token: session.session.access_token,
       refresh_token: session.session.refresh_token,
     };
+  }
+
+  @Post('verify-id-card')
+  @HttpCode(HttpStatus.OK)
+  async verifyIdCard(@Body() body: unknown): Promise<IdCardResult> {
+    const parsed = verifyIdCardSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'Invalid payload: expected { image, mimeType }',
+      });
+    }
+    return this.idCardService.verify(parsed.data.image, parsed.data.mimeType);
   }
 
   private deterministicPassword(telegramId: number): string {

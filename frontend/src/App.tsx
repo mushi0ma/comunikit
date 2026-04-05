@@ -69,7 +69,7 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="light" switchable>
+        <ThemeProvider defaultTheme="dark" switchable>
           <TooltipProvider>
             <Toaster richColors position="top-center" />
             <Router />

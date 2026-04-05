@@ -4,9 +4,9 @@ RUN npm install -g @nestjs/cli
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 
-RUN npm ci --include=dev
+RUN npm install --include=dev
 
 COPY . .
 

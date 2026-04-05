@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { validateEnv } from './config/env.schema.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { WhitelistModule } from './modules/whitelist/whitelist.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { HealthModule } from './modules/health/health.module.js';
     }),
     PrismaModule,
     HealthModule,
+    WhitelistModule,
   ],
   controllers: [AppController],
   providers: [AppService],

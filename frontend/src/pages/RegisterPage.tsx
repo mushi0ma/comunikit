@@ -1,7 +1,7 @@
 /* comunikit — RegisterPage (Split-Screen, RunPod-inspired)
    Left: form on black bg · Right: feature highlights on zinc-900 (desktop only)
 */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,11 +13,13 @@ import {
   Check,
   Boxes,
   Send,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/authStore";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -50,24 +52,59 @@ const FEATURES = [
 
 /* ── Component ───────────────────────────────────────────────── */
 
+type VerifyState = "idle" | "checking" | "valid" | "invalid";
+
 export default function RegisterPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
+  const [verifyState, setVerifyState] = useState<VerifyState>("idle");
+  const verifyAbort = useRef<AbortController | null>(null);
+  const signUp = useAuthStore((s) => s.signUp);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { studentId: "", name: "", email: "", password: "" },
   });
 
-  async function onSubmit(_data: RegisterValues) {
-    // TODO: replace with real Supabase auth + whitelist check
-    await new Promise((r) => setTimeout(r, 1200));
-    toast.success("Аккаунт создан! Добро пожаловать в comunikit");
-    navigate("/feed");
+  async function verifyStudentId(id: string) {
+    if (id.length < 5) {
+      setVerifyState("idle");
+      return;
+    }
+    verifyAbort.current?.abort();
+    verifyAbort.current = new AbortController();
+    setVerifyState("checking");
+    try {
+      const res = await fetch(
+        `/api/whitelist/check?studentId=${encodeURIComponent(id)}`,
+        { signal: verifyAbort.current.signal },
+      );
+      const json = await res.json();
+      if (json.data?.valid) {
+        setVerifyState("valid");
+        if (json.data.name) setValue("name", json.data.name);
+      } else {
+        setVerifyState("invalid");
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") setVerifyState("idle");
+    }
+  }
+
+  async function onSubmit(data: RegisterValues) {
+    if (verifyState !== "valid") return;
+    try {
+      await signUp(data.email, data.password, data.studentId, data.name);
+      toast.success("Аккаунт создан! Добро пожаловать в comunikit");
+      navigate("/feed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка регистрации");
+    }
   }
 
   return (
@@ -149,20 +186,44 @@ export default function RegisterPage() {
               <Label htmlFor="studentId" className="text-sm font-medium">
                 Student ID
               </Label>
-              <Input
-                id="studentId"
-                type="text"
-                inputMode="numeric"
-                placeholder="12345"
-                autoComplete="off"
-                className={
-                  errors.studentId
-                    ? "font-mono border-destructive focus-visible:ring-destructive"
-                    : "font-mono"
-                }
-                {...register("studentId")}
-              />
-              {errors.studentId && (
+              <div className="relative">
+                <Input
+                  id="studentId"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="12345"
+                  autoComplete="off"
+                  className={
+                    verifyState === "invalid"
+                      ? "font-mono border-destructive focus-visible:ring-destructive pr-8"
+                      : verifyState === "valid"
+                        ? "font-mono border-green-500 focus-visible:ring-green-500 pr-8"
+                        : errors.studentId
+                          ? "font-mono border-destructive focus-visible:ring-destructive"
+                          : "font-mono"
+                  }
+                  {...register("studentId", {
+                    onBlur: (e) => verifyStudentId(e.target.value),
+                  })}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {verifyState === "checking" && (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                  {verifyState === "valid" && (
+                    <Check className="w-4 h-4 text-green-500" />
+                  )}
+                  {verifyState === "invalid" && (
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  )}
+                </div>
+              </div>
+              {verifyState === "invalid" && (
+                <p className="text-xs text-destructive">
+                  Student ID не найден в базе AITUC
+                </p>
+              )}
+              {errors.studentId && verifyState === "idle" && (
                 <p className="text-xs text-destructive">
                   {errors.studentId.message}
                 </p>
@@ -259,7 +320,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90 mt-1"
-              disabled={isSubmitting}
+              disabled={isSubmitting || verifyState !== "valid"}
             >
               {isSubmitting ? (
                 <>

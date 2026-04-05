@@ -9,9 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model User {
@@ -48,6 +46,15 @@ model ForumThread {
   category   String
   replyCount Int      @default(0)
   createdAt  DateTime @default(now())
+}
+
+model Whitelist {
+  studentId String  @id @map("student_id")
+  name      String
+  groupCode String  @map("group_code")
+  isActive  Boolean @default(true) @map("is_active")
+
+  @@map("whitelist")
 }
 
 enum ListingType {

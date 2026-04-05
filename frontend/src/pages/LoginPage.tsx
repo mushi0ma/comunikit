@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -41,6 +43,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
+  const signIn = useAuthStore((s) => s.signIn);
 
   const {
     register,
@@ -51,11 +54,13 @@ export default function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
 
-  async function onSubmit(_data: LoginValues) {
-    // TODO: replace with real Supabase auth
-    await new Promise((r) => setTimeout(r, 1200));
-    toast.success("Добро пожаловать в comunikit!");
-    navigate("/feed");
+  async function onSubmit(data: LoginValues) {
+    try {
+      await signIn(data.email, data.password);
+      navigate("/feed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка входа");
+    }
   }
 
   return (
@@ -82,7 +87,12 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => toast.info("GitHub OAuth в разработке")}
+              onClick={() =>
+                supabase.auth.signInWithOAuth({
+                  provider: "github",
+                  options: { redirectTo: window.location.origin + "/feed" },
+                })
+              }
               className="flex items-center justify-center gap-2 h-10 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
             >
               <Github className="w-4 h-4" />

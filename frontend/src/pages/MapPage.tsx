@@ -8,6 +8,7 @@ import AppLayout from "@/components/AppLayout";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import AituMap, { type MapMarker } from "@/features/map/AituMap";
+import type { PendingMarker } from "@/features/map/AituMapContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type FilterValue = "all" | "lost" | "found";
@@ -66,6 +67,8 @@ export default function MapPage() {
   const [activeFloor, setActiveFloor] = useState<(typeof FLOORS)[number]>(1);
   const [filter, setFilter] = useState<FilterValue>("all");
   const [activeMarker, setActiveMarker] = useState<MarkerWithMeta | null>(null);
+  const [pendingMarker, setPendingMarker] = useState<PendingMarker | null>(null);
+  const [pickerPoint, setPickerPoint] = useState<{ x: number; y: number } | null>(null);
 
   const floorKey = `all-${activeFloor}`;
 
@@ -78,6 +81,25 @@ export default function MapPage() {
     if (marker) {
       setActiveMarker((prev) => (prev?.roomId === roomId ? null : marker));
     }
+  }
+
+  function handleMapClick(point: { x: number; y: number }) {
+    setActiveMarker(null);
+    setPickerPoint(point);
+  }
+
+  function confirmPending(type: "lost" | "found") {
+    if (!pickerPoint) return;
+    setPendingMarker({ x: pickerPoint.x, y: pickerPoint.y, type });
+    setPickerPoint(null);
+  }
+
+  function cancelPicker() {
+    setPickerPoint(null);
+  }
+
+  function cancelPending() {
+    setPendingMarker(null);
   }
 
   return (
@@ -131,8 +153,36 @@ export default function MapPage() {
             floor={floorKey}
             markers={visibleMarkers}
             onRoomClick={handleRoomClick}
+            onMapClick={handleMapClick}
             className="aspect-[16/9] lg:aspect-[21/9]"
-          />
+          >
+            {pendingMarker && (
+              <div
+                style={{
+                  left: `${pendingMarker.x}%`,
+                  top: `${pendingMarker.y}%`,
+                }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+              >
+                <div
+                  className={cn(
+                    "w-3 h-3 rounded-full border-2 border-white",
+                    pendingMarker.type === "lost"
+                      ? "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]"
+                      : "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]"
+                  )}
+                />
+              </div>
+            )}
+            {pickerPoint && (
+              <div
+                style={{ left: `${pickerPoint.x}%`, top: `${pickerPoint.y}%` }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+              >
+                <div className="w-3 h-3 rounded-full bg-primary/70 border-2 border-white animate-pulse" />
+              </div>
+            )}
+          </AituMap>
 
           {/* Vertical floor switcher */}
           <div
@@ -206,6 +256,73 @@ export default function MapPage() {
               >
                 Открыть объявление <ExternalLink className="w-3 h-3" />
               </button>
+            </div>
+          )}
+
+          {/* Bottom sheet: pick marker type */}
+          {pickerPoint && (
+            <div className="fixed bottom-20 left-4 right-4 lg:absolute lg:bottom-4 lg:left-4 lg:right-20 bg-card/95 backdrop-blur-sm border border-border rounded-xl p-4 z-30 ck-animate-in">
+              <p className="text-sm font-bold text-foreground mb-3">
+                Отметить место потери?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => confirmPending("lost")}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-500/15 text-red-400 border border-red-400/30 hover:bg-red-500/25 transition-colors"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  Потеряно
+                </button>
+                <button
+                  onClick={() => confirmPending("found")}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500/15 text-green-400 border border-green-400/30 hover:bg-green-500/25 transition-colors"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                  Найдено
+                </button>
+                <button
+                  onClick={cancelPicker}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold text-muted-foreground border border-border hover:bg-muted transition-colors"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Pending marker actions */}
+          {pendingMarker && !pickerPoint && (
+            <div className="fixed bottom-20 left-4 right-4 lg:absolute lg:bottom-4 lg:left-4 lg:right-20 bg-card/95 backdrop-blur-sm border border-border rounded-xl p-4 z-20 ck-animate-in">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full shrink-0",
+                      pendingMarker.type === "lost"
+                        ? "bg-red-400"
+                        : "bg-green-400"
+                    )}
+                  />
+                  <p className="text-sm font-bold text-foreground truncate">
+                    {pendingMarker.type === "lost"
+                      ? "Место потери отмечено"
+                      : "Место находки отмечено"}
+                  </p>
+                </div>
+                <button
+                  onClick={cancelPending}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                  aria-label="Убрать метку"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <Button
+                onClick={() => navigate("/create")}
+                className="w-full text-sm"
+              >
+                Добавить объявление
+              </Button>
             </div>
           )}
         </div>

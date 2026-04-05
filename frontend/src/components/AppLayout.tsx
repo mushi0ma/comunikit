@@ -23,7 +23,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 /* ── Navigation definitions ──────────────────────────────────── */
 
@@ -98,9 +97,11 @@ function SidebarIconBtn({
 /* ── Main component ──────────────────────────────────────────── */
 
 export default function AppLayout({ title, children }: AppLayoutProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   // TODO: replace with auth store value
   const isAdmin = false;
+  // TODO: replace with real unread count from notifications store
+  const unreadCount = 2;
 
   function isActive(href: string) {
     return location === href || location.startsWith(href + "/");
@@ -190,7 +191,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
               {/* Search hint — desktop only */}
               <button
                 className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground bg-muted/60 border border-border/60 hover:bg-accent hover:text-foreground transition-colors"
-                onClick={() => toast.info("Поиск скоро будет доступен")}
+                onClick={() => navigate("/search")}
               >
                 <Search className="w-3.5 h-3.5" />
                 <span>Поиск</span>
@@ -200,11 +201,13 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
               {/* Notification bell */}
               <button
                 className="relative flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                onClick={() => toast.info("Уведомлений нет")}
+                onClick={() => navigate("/notifications")}
                 aria-label="Уведомления"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+                )}
               </button>
 
               {/* Avatar */}

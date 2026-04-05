@@ -1,6 +1,10 @@
 import { Suspense } from "react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { AituMapContext, type MapMarker } from "./AituMapContext";
+import {
+  AituMapContext,
+  type MapMarker,
+  type MapClickPoint,
+} from "./AituMapContext";
 import { FLOOR_COMPONENTS } from "./floors";
 import { cn } from "@/lib/utils";
 
@@ -8,14 +12,18 @@ interface AituMapProps {
   floor: string;
   markers?: MapMarker[];
   onRoomClick?: (roomId: string) => void;
+  onMapClick?: (point: MapClickPoint) => void;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export default function AituMap({
   floor,
   markers = [],
   onRoomClick,
+  onMapClick,
   className,
+  children,
 }: AituMapProps) {
   const FloorComponent = FLOOR_COMPONENTS[floor];
 
@@ -28,13 +36,22 @@ export default function AituMap({
       }
       el = el.parentElement;
     }
+    // Empty-space click → compute percentage coords relative to the container
+    if (onMapClick) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        onMapClick({ x, y });
+      }
+    }
   }
 
   return (
-    <AituMapContext.Provider value={{ markers, onRoomClick }}>
+    <AituMapContext.Provider value={{ markers, onRoomClick, onMapClick }}>
       <div
         className={cn(
-          "relative w-full overflow-hidden rounded-xl bg-[#363636]",
+          "relative w-full overflow-hidden rounded-xl bg-[#e8e8e8] dark:bg-[#2a2a2a]",
           className
         )}
         onClick={handleClick}
@@ -68,6 +85,7 @@ export default function AituMap({
             </div>
           </TransformComponent>
         </TransformWrapper>
+        {children}
       </div>
     </AituMapContext.Provider>
   );

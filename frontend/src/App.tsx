@@ -33,7 +33,10 @@ import Home from "./pages/Home";
 import ListingDetail from "./pages/ListingDetail";
 import CreateListing from "./pages/CreateListing";
 import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import MapPage from "./pages/MapPage";
+import SearchPage from "./pages/SearchPage";
 import ForumPage from "./pages/ForumPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ComponentsShowcase from "./pages/ComponentsShowcase";
@@ -50,8 +53,10 @@ function Router() {
       <Route path="/listing/:id">{() => <ProtectedRoute component={ListingDetail} />}</Route>
       <Route path="/create">{() => <ProtectedRoute component={CreateListing} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
-      <Route path="/settings">{() => <ProtectedRoute component={ProfilePage} />}</Route>
+      <Route path="/settings">{() => <ProtectedRoute component={SettingsPage} />}</Route>
+      <Route path="/notifications">{() => <ProtectedRoute component={NotificationsPage} />}</Route>
       <Route path="/map">{() => <ProtectedRoute component={MapPage} />}</Route>
+      <Route path="/search">{() => <ProtectedRoute component={SearchPage} />}</Route>
       <Route path="/forum">{() => <ProtectedRoute component={ForumPage} />}</Route>
       <Route path="/admin">{() => <ProtectedRoute component={AdminDashboard} />}</Route>
       <Route path="/components">{() => <ProtectedRoute component={ComponentsShowcase} />}</Route>

@@ -2,14 +2,17 @@ import { useContext } from "react";
 import { AituMapContext } from "../AituMapContext";
 import Wallpaper from "../general/map/Wallpaper";
 import IconsCommon from "../general/map/IconsCommon";
-
-// Dark theme fixed colors (no Chakra)
-const BG = "#363636ff";
-const STROKE = "#7f7f7f";
-const STAIRS_FILL = "#1a202c";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const MapLayout = ({ children }) => {
   const { markers } = useContext(AituMapContext);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const BG = isDark ? "#2a2a2a" : "#f0f0f0";
+  const STROKE = isDark ? "#555555" : "#9a9a9a";
+  const STAIRS_FILL = isDark ? "#1a202c" : "#d4d4d4";
+  const LABEL = isDark ? "#ffffff" : "#1f2937";
 
   const markerStyles = markers
     .map((m) => {
@@ -59,8 +62,8 @@ const MapLayout = ({ children }) => {
           }
           .map-groups-rooms g text, .map-groups-rooms g span,
           .map-groups-rooms g path {
-            stroke: #ffffff !important; stroke-width: 0.1 !important;
-            fill: #ffffff !important; color: #ffffff !important;
+            stroke: ${LABEL} !important; stroke-width: 0.1 !important;
+            fill: ${LABEL} !important; color: ${LABEL} !important;
             font: 11px sans-serif; text-rendering: optimizeSpeed !important;
             pointer-events: none;
           }
@@ -95,14 +98,14 @@ const MapLayout = ({ children }) => {
             stroke: ${STROKE}; fill: ${BG};
           }
           .label-huge { fill: ${STROKE} !important; color: ${STROKE} !important; stroke-width: 0.1 !important; }
-          .label { fill: #ffffff !important; color: #ffffff !important; stroke-width: 0.1 !important; }
-          .label-white { fill: #ffffff !important; color: #ffffff !important; stroke-width: 0.1 !important; }
+          .label { fill: ${LABEL} !important; color: ${LABEL} !important; stroke-width: 0.1 !important; }
+          .label-white { fill: ${LABEL} !important; color: ${LABEL} !important; stroke-width: 0.1 !important; }
           .map-groups-rooms-vk g line, .map-groups-rooms-vk g polygon,
           .map-groups-rooms-vk g polyline { stroke: ${STROKE}; fill: #61a166; }
           .map-groups-rooms-vk g text, .map-groups-rooms-vk g span,
           .map-groups-rooms-vk g path {
-            stroke: #ffffff !important; stroke-width: 0.1 !important;
-            fill: #ffffff !important; color: #ffffff !important;
+            stroke: ${LABEL} !important; stroke-width: 0.1 !important;
+            fill: ${LABEL} !important; color: ${LABEL} !important;
             font: 11px sans-serif !important; text-rendering: optimizeSpeed !important;
             pointer-events: none;
           }

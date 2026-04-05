@@ -1,10 +1,24 @@
-// comunikit — typed fetch wrapper
+// comunikit — typed fetch wrapper with optional auth
+import { supabase } from "@/lib/supabase";
+
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001";
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  // Merge auth token into headers if a session exists
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((init?.headers as Record<string, string>) ?? {}),
+  };
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers,
   });
 
   if (!res.ok) {

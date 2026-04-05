@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import AppLayout from "@/components/AppLayout";
 import { CATEGORIES, formatPrice } from "@/lib/mockData";
+import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -35,6 +36,8 @@ const SUB_TYPES: Record<MainType, { value: SubType; label: string; Icon: React.E
     { value: "found", label: "Нашёл",   Icon: Search },
   ],
 };
+
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001";
 
 export default function CreateListing() {
   const [, navigate] = useLocation();
@@ -83,15 +86,49 @@ export default function CreateListing() {
     !!mainType && !!subType && title.length >= 5 && !!category && description.length >= 10;
 
   const handlePublish = async () => {
-    if (!canPublish) {
+    if (!canPublish || !subType) {
       toast.error("Заполните обязательные поля");
       return;
     }
     setPublishing(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setPublishing(false);
-    toast.success("Объявление опубликовано!");
-    navigate("/feed");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Войдите в аккаунт, чтобы публиковать объявления");
+        setPublishing(false);
+        return;
+      }
+
+      const payload = {
+        title,
+        description,
+        type: subType,
+        category,
+        ...(showPrice && price && Number(price) > 0 ? { price: Number(price) } : {}),
+        ...(images.length > 0 ? { images } : {}),
+      };
+
+      const res = await fetch(`${API_URL}/api/listings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json() as { success: boolean; data?: { id: string }; error?: string };
+      if (!res.ok) {
+        throw new Error(result.error ?? `HTTP ${res.status}`);
+      }
+
+      toast.success("Объявление опубликовано!");
+      navigate(result.data?.id ? `/listing/${result.data.id}` : "/feed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка при публикации");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (

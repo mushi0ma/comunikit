@@ -7,6 +7,7 @@ import { validateEnv } from './config/env.schema.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { WhitelistModule } from './modules/whitelist/whitelist.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { ListingsModule } from './modules/listings/listings.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
     HealthModule,
     WhitelistModule,
     AuthModule,
+    ListingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

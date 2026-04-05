@@ -1,8 +1,8 @@
 /* comunikit — HomeFeed
-   Design: "Digital Bazaar" — 2-col grid (mobile), 3-col (desktop), tabs, filters, FAB
+   Design: RunPod-inspired — underline tabs, compact card grid, fuchsia accents
 */
 import { useState, useMemo, useEffect } from "react";
-import { Search, SlidersHorizontal, LayoutGrid, List, X, ShoppingBag, Wrench, MessageSquare, Package } from "lucide-react";
+import { Search, SlidersHorizontal, X, ShoppingBag, Wrench, MessageSquare, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,32 +23,18 @@ const TABS: { label: string; value: string; dot?: "red" | "green" }[] = [
   { label: "Найдено", value: "found", dot: "green" },
 ];
 
-function ListingCardSkeleton({ view }: { view: "grid" | "list" }) {
-  if (view === "list") {
-    return (
-      <div className="ck-card flex gap-3 p-3">
-        <div className="w-1 rounded-full bg-muted shrink-0" />
-        <Skeleton className="w-24 h-20 rounded-lg ml-1 shrink-0" />
-        <div className="flex-1 flex flex-col gap-2">
-          <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2 mt-auto" />
-        </div>
-      </div>
-    );
-  }
+function ListingCardSkeleton() {
   return (
-    <div className="ck-card flex flex-col overflow-hidden">
-      <Skeleton className="aspect-video w-full rounded-none ml-1" />
-      <div className="p-3 flex flex-col gap-2 ml-1">
-        <Skeleton className="h-4 w-full" />
+    <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-2">
         <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-5 w-1/2" />
-        <div className="flex items-center gap-2 mt-1">
-          <Skeleton className="size-5 rounded-full" />
-          <Skeleton className="h-3 w-24" />
-        </div>
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </div>
+      <Skeleton className="h-3 w-full" />
+      <Skeleton className="h-3 w-2/3" />
+      <div className="flex items-center justify-between mt-1">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-3 w-12" />
       </div>
     </div>
   );
@@ -56,7 +42,6 @@ function ListingCardSkeleton({ view }: { view: "grid" | "list" }) {
 
 export default function HomeFeed() {
   const [activeTab, setActiveTab] = useState("all");
-  const [view, setView] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -82,7 +67,7 @@ export default function HomeFeed() {
 
   return (
     <AppLayout title="Лента объявлений">
-      <div className="container py-4 space-y-4">
+      <div className="container py-4 flex flex-col gap-4">
         {/* Hero banner (mobile) */}
         <div
           className="md:hidden rounded-2xl overflow-hidden relative h-28"
@@ -103,18 +88,18 @@ export default function HomeFeed() {
         {activeTab === "all" && !search && (
           <div className="grid grid-cols-4 gap-2 ck-animate-in">
             {([
-              { label: "Продажа", Icon: ShoppingBag, tab: "sell", color: "text-orange-500", bg: "bg-orange-500/10" },
-              { label: "Покупка", Icon: Package, tab: "buy", color: "text-blue-500", bg: "bg-blue-500/10" },
-              { label: "Услуги", Icon: Wrench, tab: "service", color: "text-violet-500", bg: "bg-violet-500/10" },
-              { label: "Форум", Icon: MessageSquare, tab: null, href: "/forum", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-            ] as const).map(({ label, Icon, tab, bg, color }) => (
+              { label: "Продажа", Icon: ShoppingBag, tab: "sell" },
+              { label: "Покупка", Icon: Package, tab: "buy" },
+              { label: "Услуги", Icon: Wrench, tab: "service" },
+              { label: "Форум", Icon: MessageSquare, tab: null, href: "/forum" },
+            ] as const).map(({ label, Icon, tab }) => (
               <button
                 key={label}
                 onClick={() => tab && setActiveTab(tab)}
-                className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-card border border-border hover:border-primary/40 transition-all duration-150 group"
+                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card border border-border hover:border-primary/40 transition-all duration-150 group"
               >
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", bg)}>
-                  <Icon className={cn("w-5 h-5", color)} strokeWidth={1.75} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                  <Icon className="w-5 h-5 text-primary" strokeWidth={1.75} />
                 </div>
                 <span className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center">{label}</span>
               </button>
@@ -130,7 +115,7 @@ export default function HomeFeed() {
               placeholder="Поиск объявлений..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 bg-muted border-border"
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -146,19 +131,11 @@ export default function HomeFeed() {
           >
             <SlidersHorizontal className="w-4 h-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setView(v => v === "grid" ? "list" : "grid")}
-            className="shrink-0"
-          >
-            {view === "grid" ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
-          </Button>
         </div>
 
         {/* Filters panel */}
         {showFilters && (
-          <div className="p-4 rounded-xl border border-border bg-card space-y-3 ck-animate-in">
+          <div className="p-4 rounded-xl border border-border bg-card flex flex-col gap-3 ck-animate-in">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold">Фильтры</span>
               <button onClick={() => { setSelectedCategory("all"); setPriceMax(""); }} className="text-xs text-primary hover:underline">
@@ -166,7 +143,7 @@ export default function HomeFeed() {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-muted-foreground">Категория</label>
                 <select
                   value={selectedCategory}
@@ -177,7 +154,7 @@ export default function HomeFeed() {
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-muted-foreground">Макс. цена (₸)</label>
                 <Input
                   type="number"
@@ -191,20 +168,20 @@ export default function HomeFeed() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap">
+        {/* Tabs — underline style */}
+        <div className="flex gap-4 overflow-x-auto pb-px scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap border-b border-border">
           {TABS.map(tab => (
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-150",
+                "shrink-0 pb-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 flex items-center gap-1.5",
                 activeTab === tab.value
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
-              {tab.dot && <span className={cn("w-2 h-2 rounded-full shrink-0 mr-1", tab.dot === "red" ? "bg-red-500" : "bg-green-500")} />}
+              {tab.dot && <span className={cn("w-2 h-2 rounded-full shrink-0", tab.dot === "red" ? "bg-red-500" : "bg-green-500")} />}
               {tab.label}
             </button>
           ))}
@@ -220,18 +197,14 @@ export default function HomeFeed() {
 
         {/* Skeleton grid while loading */}
         {isLoading && (
-          <div className={cn(
-            view === "grid"
-              ? "grid grid-cols-2 lg:grid-cols-3 gap-3"
-              : "flex flex-col gap-3"
-          )}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <ListingCardSkeleton key={i} view={view} />
+              <ListingCardSkeleton key={i} />
             ))}
           </div>
         )}
 
-        {/* Listings grid/list */}
+        {/* Listings grid */}
         {!isLoading && (
           filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -247,14 +220,10 @@ export default function HomeFeed() {
               </Button>
             </div>
           ) : (
-            <div className={cn(
-              view === "grid"
-                ? "grid grid-cols-2 lg:grid-cols-3 gap-3"
-                : "flex flex-col gap-3"
-            )}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filtered.map((listing, i) => (
                 <div key={listing.id} style={{ animationDelay: `${i * 40}ms` }}>
-                  <ListingCard listing={listing} view={view} />
+                  <ListingCard listing={listing} />
                 </div>
               ))}
             </div>

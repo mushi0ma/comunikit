@@ -10,7 +10,7 @@ RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 
-RUN pnpm build
+RUN pnpm build && echo "=== BUILD OUTPUT ===" && find dist -name "*.js" | head -20
 
 EXPOSE 3001
 

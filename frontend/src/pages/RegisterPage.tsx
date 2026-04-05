@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
-import { openTelegramAuth } from "@/lib/telegram-auth";
+import { initTelegramWidget } from "@/lib/telegram-auth";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -103,7 +103,7 @@ export default function RegisterPage() {
     if (verifyState !== "valid") return;
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/whitelist/check?studentId=${encodeURIComponent(data.studentId)}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/whitelist/check?studentId=${encodeURIComponent(data.studentId)}`,
       );
       const json = await res.json();
       if (!json.data?.valid) {
@@ -121,39 +121,54 @@ export default function RegisterPage() {
   async function handleGithubAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo: `${window.location.origin}/feed` },
+      options: {
+        redirectTo: `${window.location.origin}/feed`,
+      },
     });
     if (error) toast.error(error.message);
   }
 
-  async function handleTelegramAuth() {
+  function handleTelegramAuth() {
     const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
     if (!botUsername) {
       toast.error("Telegram бот не настроен");
       return;
     }
-    openTelegramAuth(botUsername, async (telegramUser) => {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/auth/telegram`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(telegramUser),
-          },
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message ?? data.error ?? "Ошибка");
-        await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-        toast.success("Добро пожаловать!");
-        navigate("/feed");
-      } catch (e) {
-        toast.error((e as Error).message);
-      }
-    });
+
+    initTelegramWidget(
+      botUsername,
+      async (telegramUser) => {
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/auth/telegram`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(telegramUser),
+            },
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message ?? data.error ?? "Ошибка");
+          await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+          });
+          toast.success("Добро пожаловать!");
+          navigate("/feed");
+        } catch (e) {
+          toast.error((e as Error).message);
+        }
+      },
+      "telegram-widget-container",
+    );
+
+    // Programmatically click the rendered Telegram button after short delay
+    setTimeout(() => {
+      const iframe = document.querySelector(
+        "#telegram-widget-container iframe",
+      ) as HTMLElement | null;
+      iframe?.click();
+    }, 500);
   }
 
   return (
@@ -198,6 +213,9 @@ export default function RegisterPage() {
               Зарегистрироваться через Telegram
             </button>
           </div>
+
+          {/* Hidden Telegram widget container */}
+          <div id="telegram-widget-container" className="hidden" />
 
           {/* Divider */}
           <div className="flex items-center gap-3">

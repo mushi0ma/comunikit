@@ -1,16 +1,16 @@
 FROM node:20-alpine
 
-RUN npm install -g pnpm @nestjs/cli
+RUN npm install -g @nestjs/cli
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 
-RUN pnpm install --no-frozen-lockfile
+RUN npm ci --include=dev
 
 COPY . .
 
-RUN pnpm build && echo "=== BUILD OUTPUT ===" && find dist -name "*.js" | head -20
+RUN npm run build
 
 EXPOSE 3001
 

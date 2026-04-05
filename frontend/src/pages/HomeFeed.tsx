@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
+import TrendingSection from "@/components/TrendingSection";
 import { CATEGORIES } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -67,7 +68,8 @@ export default function HomeFeed() {
 
   return (
     <AppLayout title="Лента объявлений">
-      <div className="container py-4 flex flex-col gap-4">
+      <div className="container py-4 flex gap-6">
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
         {/* Hero banner (mobile) */}
         <div
           className="md:hidden rounded-2xl overflow-hidden relative h-28"
@@ -86,7 +88,7 @@ export default function HomeFeed() {
 
         {/* Bento quick-categories */}
         {activeTab === "all" && !search && (
-          <div className="grid grid-cols-4 gap-2 ck-animate-in">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4 ck-animate-in">
             {([
               { label: "Продажа", Icon: ShoppingBag, tab: "sell" },
               { label: "Покупка", Icon: Package, tab: "buy" },
@@ -96,12 +98,12 @@ export default function HomeFeed() {
               <button
                 key={label}
                 onClick={() => tab && setActiveTab(tab)}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card border border-border hover:border-primary/40 transition-all duration-150 group"
+                className="shrink-0 min-w-[100px] lg:min-w-0 flex flex-col items-center gap-1 lg:gap-2 p-2 lg:p-3 rounded-xl bg-card border border-border hover:border-primary/40 transition-all duration-150 group"
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
-                  <Icon className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                  <Icon className="w-5 h-5 lg:w-5 lg:h-5 text-primary" strokeWidth={1.75} />
                 </div>
-                <span className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center">{label}</span>
+                <span className="text-xs lg:text-[10px] font-bold text-muted-foreground group-hover:text-foreground transition-colors leading-tight text-center">{label}</span>
               </button>
             ))}
           </div>
@@ -229,6 +231,12 @@ export default function HomeFeed() {
             </div>
           )
         )}
+        </div>
+
+        {/* Side section — desktop only */}
+        <aside className="hidden xl:block w-80 shrink-0">
+          <TrendingSection />
+        </aside>
       </div>
 
       {/* FAB */}

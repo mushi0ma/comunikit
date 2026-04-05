@@ -24,7 +24,7 @@ const telegramPayloadSchema = z.object({
 
 type TelegramPayload = z.infer<typeof telegramPayloadSchema>;
 
-@Controller('api/auth')
+@Controller('auth')
 export class AuthController {
   private readonly admin: SupabaseClient;
   private readonly botToken: string;

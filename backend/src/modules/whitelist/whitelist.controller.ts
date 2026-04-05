@@ -1,7 +1,7 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-@Controller('api/whitelist')
+@Controller('whitelist')
 export class WhitelistController {
   constructor(private readonly prisma: PrismaService) {}
 

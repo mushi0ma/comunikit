@@ -10,6 +10,8 @@ RUN npm install --include=dev --legacy-peer-deps
 
 COPY backend/ .
 
+RUN DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npx prisma generate
+
 RUN npm run build
 
 EXPOSE 3001

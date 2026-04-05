@@ -106,3 +106,6 @@ backend/node_modules/
 backend/.env
 .vercel
 backend/generated/
+
+# ─── Claude Agent Logs ──────────────────────────────────────────────────────────
+.claude/brain/AGENT_ACTIVITY.md

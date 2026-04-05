@@ -43,7 +43,7 @@ export default function ListingDetail() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout title="Объявление">
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-5">
         {/* Back */}
         <button

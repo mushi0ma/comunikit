@@ -1,24 +1,31 @@
-/* comunikit — AppLayout v2
-   Phase 2 Redesign: Mobile-first with sticky bottom nav + desktop sidebar.
-   Uses Shadcn Sheet for mobile sidebar, Radix Avatar, clean Lucide icons.
-   Design tokens from DESIGN.md — all spacing/colors via Tailwind v4 utilities.
+/* comunikit — AppLayout v3
+   RunPod-style navigation:
+   - Desktop (lg+): icon-only sidebar 64px + top header
+   - Mobile (<lg):  top header + bottom nav bar
 */
 import { useLocation, Link } from "wouter";
 import {
-  Home, Map, PlusCircle, MessageSquare, User,
-  ShieldCheck, LayoutGrid, Moon, Sun, Bell, Menu,
+  Home,
+  MapPin,
+  Plus,
+  MessageSquare,
+  User,
+  Shield,
+  Boxes,
+  Settings,
+  Bell,
+  Search,
 } from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle,
-} from "@/components/ui/sheet";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { toast } from "sonner";
 
-/* ── Navigation definitions ─────────────────────────────────── */
+/* ── Navigation definitions ──────────────────────────────────── */
 
 interface NavItem {
   href: string;
@@ -26,110 +33,74 @@ interface NavItem {
   label: string;
 }
 
-const BOTTOM_NAV_ITEMS: NavItem[] = [
+const SIDEBAR_TOP_ITEMS: NavItem[] = [
   { href: "/feed", icon: Home, label: "Лента" },
-  { href: "/map", icon: Map, label: "Карта" },
-  { href: "/create", icon: PlusCircle, label: "Добавить" },
+  { href: "/map", icon: MapPin, label: "Карта" },
   { href: "/forum", icon: MessageSquare, label: "Форум" },
-  { href: "/profile", icon: User, label: "Профиль" },
+  { href: "/create", icon: Plus, label: "Добавить" },
 ];
 
-const SIDEBAR_NAV_ITEMS: NavItem[] = [
+const MOBILE_NAV_ITEMS: NavItem[] = [
   { href: "/feed", icon: Home, label: "Лента" },
-  { href: "/map", icon: Map, label: "Карта" },
+  { href: "/map", icon: MapPin, label: "Карта" },
+  { href: "/create", icon: Plus, label: "Добавить" },
   { href: "/forum", icon: MessageSquare, label: "Форум" },
   { href: "/profile", icon: User, label: "Профиль" },
-  { href: "/admin", icon: ShieldCheck, label: "Админ" },
-  { href: "/components", icon: LayoutGrid, label: "Компоненты" },
 ];
 
 /* ── Props ───────────────────────────────────────────────────── */
 
 interface AppLayoutProps {
+  title: string;
   children: React.ReactNode;
-  title?: string;
-  showBack?: boolean;
-  onBack?: () => void;
-  headerRight?: React.ReactNode;
-  hideFab?: boolean;
 }
 
-/* ── Shared sub-components ───────────────────────────────────── */
+/* ── Sidebar icon button (desktop only) ──────────────────────── */
 
-function BrandLogo({ size = "md" }: { size?: "sm" | "md" }) {
-  const dims = size === "sm"
-    ? "w-7 h-7 text-sm rounded-lg"
-    : "w-9 h-9 text-lg rounded-xl";
-
-  return (
-    <div className="flex items-center gap-2">
-      <div
-        className={cn(
-          dims,
-          "flex items-center justify-center font-black text-white",
-        )}
-        style={{ background: "linear-gradient(135deg, #F97316, #FB923C)" }}
-      >
-        c
-      </div>
-      <div>
-        <span
-          className={cn(
-            "font-black text-foreground",
-            size === "sm" ? "text-lg" : "text-xl",
-          )}
-          style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-        >
-          comuni<span className="text-primary">kit</span>
-        </span>
-        {size === "md" && (
-          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
-            AITUC Platform
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SidebarNavLink({
+function SidebarIconBtn({
   item,
-  isActive,
-  onClick,
+  active,
 }: {
   item: NavItem;
-  isActive: boolean;
-  onClick?: () => void;
+  active: boolean;
 }) {
   const Icon = item.icon;
+  const isCreate = item.href === "/create";
+
   return (
-    <Link href={item.href}>
-      <div
-        className={cn(
-          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150",
-          isActive
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-        )}
-        onClick={onClick}
-      >
-        <Icon className="w-5 h-5 shrink-0" />
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link href={item.href}>
+          {/* Full-width row so the left-edge indicator reaches the sidebar border */}
+          <div className="relative w-full flex items-center justify-center h-11">
+            {active && (
+              <div className="absolute left-0 inset-y-2 w-0.5 bg-primary rounded-r-full" />
+            )}
+            <div
+              className={cn(
+                "ck-sidebar-icon",
+                active && "active",
+                isCreate && !active && "text-primary bg-primary/5 hover:bg-primary/15",
+              )}
+            >
+              <Icon className="w-5 h-5" />
+            </div>
+          </div>
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
         {item.label}
-      </div>
-    </Link>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
 /* ── Main component ──────────────────────────────────────────── */
 
-export default function AppLayout({
-  children,
-  title,
-  headerRight,
-}: AppLayoutProps) {
+export default function AppLayout({ title, children }: AppLayoutProps) {
   const [location] = useLocation();
-  const { theme, toggleTheme } = useTheme();
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  // TODO: replace with auth store value
+  const isAdmin = false;
 
   function isActive(href: string) {
     return location === href || location.startsWith(href + "/");
@@ -138,135 +109,107 @@ export default function AppLayout({
   return (
     <div className="min-h-screen bg-background flex">
       {/* ═══════════════════════════════════════════════════════
-          DESKTOP SIDEBAR  (≥ md / 768px)
-          Fixed left sidebar w-64, full height.
+          DESKTOP SIDEBAR  (≥ lg / 1024px)
+          Icon-only, w-16 = 64px, sticky full-height.
           ═══════════════════════════════════════════════════════ */}
-      <aside className="hidden md:flex flex-col w-64 shrink-0 border-r border-border bg-sidebar sticky top-0 h-screen overflow-y-auto">
-        {/* Logo */}
-        <div className="flex items-center px-6 py-5 border-b border-border">
-          <BrandLogo size="md" />
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {SIDEBAR_NAV_ITEMS.map((item) => (
-            <SidebarNavLink
-              key={item.href}
-              item={item}
-              isActive={isActive(item.href)}
-            />
-          ))}
-        </nav>
-
-        {/* Bottom actions */}
-        <div className="px-3 py-4 border-t border-border space-y-1">
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150"
-          >
-            {theme === "dark" ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
-            {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-          </button>
-          <Link href="/create">
-            <div
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-150 mt-2"
-              style={{ background: "linear-gradient(135deg, #F97316, #FB923C)" }}
-            >
-              <PlusCircle className="w-5 h-5" />
-              Добавить объявление
-            </div>
+      <aside className="hidden lg:flex flex-col w-16 shrink-0 bg-sidebar border-r border-sidebar-border sticky top-0 h-screen">
+        {/* Logo — Boxes icon centered, fuchsia */}
+        <div className="flex items-center justify-center h-14 border-b border-sidebar-border shrink-0">
+          <Link href="/feed">
+            <Boxes className="w-6 h-6 text-primary" />
           </Link>
         </div>
-      </aside>
 
-      {/* ═══════════════════════════════════════════════════════
-          MOBILE SIDEBAR SHEET  (< md / 768px)
-          Radix Sheet sliding from the left.
-          ═══════════════════════════════════════════════════════ */}
-      <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
-        <SheetContent side="left" className="w-72 p-0">
-          <SheetHeader className="px-5 py-4 border-b border-border">
-            <SheetTitle asChild>
-              <div>
-                <BrandLogo size="sm" />
-              </div>
-            </SheetTitle>
-          </SheetHeader>
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            {SIDEBAR_NAV_ITEMS.map((item) => (
-              <SidebarNavLink
-                key={item.href}
-                item={item}
-                isActive={isActive(item.href)}
-                onClick={() => setMobileSheetOpen(false)}
-              />
-            ))}
-          </nav>
-        </SheetContent>
-      </Sheet>
+        {/* Top nav items */}
+        <nav className="flex flex-col items-center py-2 flex-1 overflow-y-auto">
+          {SIDEBAR_TOP_ITEMS.map((item) => (
+            <SidebarIconBtn key={item.href} item={item} active={isActive(item.href)} />
+          ))}
+          {isAdmin && (
+            <SidebarIconBtn
+              item={{ href: "/admin", icon: Shield, label: "Админ" }}
+              active={isActive("/admin")}
+            />
+          )}
+        </nav>
+
+        {/* Bottom: Settings + Profile */}
+        <div className="flex flex-col items-center py-3 border-t border-sidebar-border gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/settings">
+                <div className="ck-sidebar-icon">
+                  <Settings className="w-5 h-5" />
+                </div>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              Настройки
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/profile">
+                <div className={cn("ck-sidebar-icon", isActive("/profile") && "active")}>
+                  <User className="w-5 h-5" />
+                </div>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              Профиль
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </aside>
 
       {/* ═══════════════════════════════════════════════════════
           MAIN CONTENT AREA
           ═══════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* ── Sticky Header ──────────────────────────────────── */}
-        <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center gap-3 px-4 h-14">
-            {/* Mobile: hamburger menu trigger */}
-            <button
-              className="md:hidden text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setMobileSheetOpen(true)}
-              aria-label="Открыть меню"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            {/* Mobile: logo */}
-            <div className="md:hidden flex items-center gap-2 flex-1">
-              <BrandLogo size="sm" />
+        {/* ── Header ─────────────────────────────────────────── */}
+        <header className="sticky top-0 z-40 h-14 bg-background/95 backdrop-blur-sm border-b border-border">
+          <div className="flex items-center gap-3 px-4 h-full">
+            {/* Mobile: logo + title */}
+            <div className="lg:hidden flex items-center gap-2 flex-1 min-w-0">
+              <Link href="/feed">
+                <Boxes className="w-6 h-6 text-primary shrink-0" />
+              </Link>
+              <span className="text-sm font-semibold text-foreground truncate">
+                {title}
+              </span>
             </div>
 
             {/* Desktop: page title */}
-            {title ? (
-              <h1 className="hidden md:block text-lg font-bold text-foreground flex-1">
-                {title}
-              </h1>
-            ) : (
-              <div className="hidden md:block flex-1" />
-            )}
+            <h1 className="hidden lg:block text-lg font-bold text-foreground flex-1 truncate">
+              {title}
+            </h1>
 
             {/* Right actions */}
-            <div className="flex items-center gap-2">
-              {headerRight}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative rounded-xl"
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Search hint — desktop only */}
+              <button
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground bg-muted/60 border border-border/60 hover:bg-accent hover:text-foreground transition-colors"
+                onClick={() => toast.info("Поиск скоро будет доступен")}
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Поиск</span>
+                <kbd className="ml-1 text-[10px] opacity-60">⌘K</kbd>
+              </button>
+
+              {/* Notification bell */}
+              <button
+                className="relative flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                 onClick={() => toast.info("Уведомлений нет")}
                 aria-label="Уведомления"
               >
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl"
-                onClick={toggleTheme}
-                aria-label="Переключить тему"
-              >
-                {theme === "dark" ? (
-                  <Sun className="w-5 h-5" />
-                ) : (
-                  <Moon className="w-5 h-5" />
-                )}
-              </Button>
+              </button>
+
+              {/* Avatar */}
               <Link href="/profile">
-                <Avatar className="w-8 h-8">
+                <Avatar className="w-8 h-8 cursor-pointer">
                   <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
                     А
                   </AvatarFallback>
@@ -277,34 +220,39 @@ export default function AppLayout({
         </header>
 
         {/* ── Page content ───────────────────────────────────── */}
-        <main className="flex-1 pb-20 md:pb-6">
+        <main className="flex-1 pb-20 lg:pb-6">
           {children}
         </main>
       </div>
 
       {/* ═══════════════════════════════════════════════════════
-          MOBILE BOTTOM NAVIGATION  (< md / 768px)
-          Sticky 5-icon bottom bar with safe-area padding.
+          MOBILE BOTTOM NAVIGATION  (< lg / 1024px)
+          Glassmorphism bar, FAB for create action.
           ═══════════════════════════════════════════════════════ */}
-      <nav className="ck-bottom-nav md:hidden" aria-label="Основная навигация">
-        {BOTTOM_NAV_ITEMS.map(({ href, icon: Icon, label }) => (
-          <Link key={href} href={href}>
-            <div
-              className={cn(
-                "ck-bottom-nav-item",
-                isActive(href) ? "active" : "",
-              )}
-            >
-              <Icon
-                className={cn(
-                  "w-5 h-5",
-                  href === "/create" ? "text-primary" : "",
+      <nav
+        className="ck-bottom-nav ck-glass lg:hidden"
+        aria-label="Основная навигация"
+      >
+        {MOBILE_NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+          const active = isActive(href);
+          const isCreate = href === "/create";
+          return (
+            <Link key={href} href={href}>
+              <div className={cn("ck-bottom-nav-item", active && "active")}>
+                {isCreate ? (
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground ck-primary-glow -mt-1">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                ) : (
+                  <>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold">{label}</span>
+                  </>
                 )}
-              />
-              <span className="text-[10px] font-semibold">{label}</span>
-            </div>
-          </Link>
-        ))}
+              </div>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

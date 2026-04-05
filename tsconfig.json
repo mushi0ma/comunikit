@@ -13,6 +13,8 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
     "experimentalDecorators": true,
     "baseUrl": ".",
     "types": ["node", "vite/client"],

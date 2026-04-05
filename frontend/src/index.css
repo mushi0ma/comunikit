@@ -126,11 +126,11 @@
   --primary-foreground: oklch(0.21 0.06 328.3); /* fuchsia-950             */
 
   /* Deep Zinc Surfaces */
-  --background: oklch(0.141 0.005 285.823);     /* zinc-950 ~#09090B       */
+  --background: oklch(0.09 0.002 285.823);      /* near-black, cooler ~#09090b */
   --foreground: oklch(0.985 0.002 247.839);     /* zinc-50                 */
-  --card: oklch(0.21 0.006 285.885);            /* zinc-900 ~#18181B       */
+  --card: oklch(0.16 0.004 285.885);            /* zinc-900 equivalent     */
   --card-foreground: oklch(0.985 0.002 247.839);
-  --popover: oklch(0.21 0.006 285.885);
+  --popover: oklch(0.16 0.004 285.885);
   --popover-foreground: oklch(0.985 0.002 247.839);
 
   /* Secondary / Muted */
@@ -150,14 +150,17 @@
   --input: oklch(0.357 0.011 285.885);
   --ring: oklch(0.74 0.238 322.16);             /* fuchsia-400             */
 
+  /* Glow */
+  --primary-glow: oklch(0.74 0.238 322.16 / 20%);
+
   /* Sidebar */
-  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar: oklch(0.12 0.003 285.885);         /* slightly lighter than bg */
   --sidebar-foreground: oklch(0.985 0.002 247.839);
   --sidebar-primary: oklch(0.74 0.238 322.16);
   --sidebar-primary-foreground: oklch(0.21 0.06 328.3);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-border: oklch(0.357 0.011 285.885);
+  --sidebar-border: oklch(0.22 0.006 285.885);
   --sidebar-ring: oklch(0.74 0.238 322.16);
 
   /* Charts */
@@ -347,5 +350,20 @@
   }
   .ck-fade-in {
     animation: ck-fade-in 0.2s ease-out forwards;
+  }
+
+  /* ── Primary glow ──────────────────────────────────────────── */
+  .ck-primary-glow {
+    box-shadow: 0 0 20px oklch(0.74 0.238 322.16 / 25%);
+  }
+
+  /* ── Sidebar icon button ───────────────────────────────────── */
+  .ck-sidebar-icon {
+    @apply flex items-center justify-center size-10 rounded-md
+           text-muted-foreground hover:bg-accent hover:text-foreground
+           transition-colors cursor-pointer;
+  }
+  .ck-sidebar-icon.active {
+    @apply bg-primary/10 text-primary;
   }
 }

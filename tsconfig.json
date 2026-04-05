@@ -1,6 +1,6 @@
 {
   "include": ["frontend/src/**/*", "shared/**/*", "backend/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "**/*.spec.ts", "backend/test"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
@@ -13,6 +13,7 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
+    "experimentalDecorators": true,
     "baseUrl": ".",
     "types": ["node", "vite/client"],
     "paths": {

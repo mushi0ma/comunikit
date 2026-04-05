@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
+import { openTelegramAuth } from "@/lib/telegram-auth";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -63,6 +64,44 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGithubAuth() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: { redirectTo: `${window.location.origin}/feed` },
+    });
+    if (error) toast.error(error.message);
+  }
+
+  async function handleTelegramAuth() {
+    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+    if (!botUsername) {
+      toast.error("Telegram бот не настроен");
+      return;
+    }
+    openTelegramAuth(botUsername, async (telegramUser) => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/auth/telegram`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(telegramUser),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message ?? data.error ?? "Ошибка");
+        await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        toast.success("Добро пожаловать!");
+        navigate("/feed");
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -87,12 +126,7 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() =>
-                supabase.auth.signInWithOAuth({
-                  provider: "github",
-                  options: { redirectTo: window.location.origin + "/feed" },
-                })
-              }
+              onClick={handleGithubAuth}
               className="flex items-center justify-center gap-2 h-10 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
             >
               <Github className="w-4 h-4" />
@@ -100,7 +134,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => toast.info("Telegram OAuth в разработке")}
+              onClick={handleTelegramAuth}
               className="flex items-center justify-center gap-2 h-10 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
             >
               <Send className="w-4 h-4" />

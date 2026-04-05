@@ -14,12 +14,15 @@ import {
   Boxes,
   Send,
   XCircle,
+  Github,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
+import { openTelegramAuth } from "@/lib/telegram-auth";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -99,12 +102,58 @@ export default function RegisterPage() {
   async function onSubmit(data: RegisterValues) {
     if (verifyState !== "valid") return;
     try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/whitelist/check?studentId=${encodeURIComponent(data.studentId)}`,
+      );
+      const json = await res.json();
+      if (!json.data?.valid) {
+        toast.error("Student ID не найден в базе AITUC");
+        return;
+      }
       await signUp(data.email, data.password, data.studentId, data.name);
       toast.success("Аккаунт создан! Добро пожаловать в comunikit");
       navigate("/feed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Ошибка регистрации");
     }
+  }
+
+  async function handleGithubAuth() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: { redirectTo: `${window.location.origin}/feed` },
+    });
+    if (error) toast.error(error.message);
+  }
+
+  async function handleTelegramAuth() {
+    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+    if (!botUsername) {
+      toast.error("Telegram бот не настроен");
+      return;
+    }
+    openTelegramAuth(botUsername, async (telegramUser) => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/auth/telegram`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(telegramUser),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message ?? data.error ?? "Ошибка");
+        await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        toast.success("Добро пожаловать!");
+        navigate("/feed");
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    });
   }
 
   return (
@@ -134,32 +183,15 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              onClick={() => toast.info("Google OAuth в разработке")}
+              onClick={handleGithubAuth}
               className="flex items-center justify-center gap-2 h-10 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Зарегистрироваться через Google
+              <Github className="w-4 h-4" />
+              Зарегистрироваться через GitHub
             </button>
             <button
               type="button"
-              onClick={() => toast.info("Telegram OAuth в разработке")}
+              onClick={handleTelegramAuth}
               className="flex items-center justify-center gap-2 h-10 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
             >
               <Send className="w-4 h-4" />

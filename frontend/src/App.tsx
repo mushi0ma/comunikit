@@ -50,6 +50,7 @@ function Router() {
       <Route path="/listing/:id">{() => <ProtectedRoute component={ListingDetail} />}</Route>
       <Route path="/create">{() => <ProtectedRoute component={CreateListing} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
+      <Route path="/settings">{() => <ProtectedRoute component={ProfilePage} />}</Route>
       <Route path="/map">{() => <ProtectedRoute component={MapPage} />}</Route>
       <Route path="/forum">{() => <ProtectedRoute component={ForumPage} />}</Route>
       <Route path="/admin">{() => <ProtectedRoute component={AdminDashboard} />}</Route>

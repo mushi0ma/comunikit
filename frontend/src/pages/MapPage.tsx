@@ -53,7 +53,6 @@ const MOCK_MARKERS: MarkerWithMeta[] = [
   },
 ];
 
-const BLOCKS = ["C1.1", "C1.2", "C1.3"] as const;
 const FLOORS = [1, 2, 3] as const;
 const FILTERS: { value: FilterValue; label: string }[] = [
   { value: "all", label: "Все" },
@@ -64,12 +63,11 @@ const FILTERS: { value: FilterValue; label: string }[] = [
 // ── Component ──────────────────────────────────────────────────────────────
 export default function MapPage() {
   const [, navigate] = useLocation();
-  const [activeBlock, setActiveBlock] = useState<(typeof BLOCKS)[number]>("C1.1");
   const [activeFloor, setActiveFloor] = useState<(typeof FLOORS)[number]>(1);
   const [filter, setFilter] = useState<FilterValue>("all");
   const [activeMarker, setActiveMarker] = useState<MarkerWithMeta | null>(null);
 
-  const floorKey = `${activeBlock}-${activeFloor}`;
+  const floorKey = `all-${activeFloor}`;
 
   const visibleMarkers = MOCK_MARKERS.filter(
     (m) => filter === "all" || m.type === filter
@@ -127,56 +125,43 @@ export default function MapPage() {
           ))}
         </div>
 
-        {/* Floor selector */}
-        <div className="flex flex-wrap gap-2">
-          {/* Block tabs */}
-          <div className="flex gap-1 bg-muted rounded-lg p-1">
-            {BLOCKS.map((block) => (
-              <button
-                key={block}
-                onClick={() => setActiveBlock(block)}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-xs font-semibold transition-colors",
-                  activeBlock === block
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {block}
-              </button>
-            ))}
-          </div>
-          {/* Floor tabs */}
-          <div className="flex gap-1 bg-muted rounded-lg p-1">
-            {FLOORS.map((f) => (
-              <button
-                key={f}
-                onClick={() => setActiveFloor(f)}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-xs font-semibold transition-colors",
-                  activeFloor === f
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Этаж {f}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Map */}
+        {/* Map with vertical floor switcher (right side, like aitumap) */}
         <div className="relative">
           <AituMap
             floor={floorKey}
             markers={visibleMarkers}
             onRoomClick={handleRoomClick}
-            className="aspect-square lg:aspect-[4/3]"
+            className="aspect-[16/9] lg:aspect-[21/9]"
           />
+
+          {/* Vertical floor switcher */}
+          <div
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1 shadow-md z-10"
+            role="tablist"
+            aria-label="Переключатель этажей"
+          >
+            {FLOORS.map((f) => (
+              <button
+                key={f}
+                role="tab"
+                aria-selected={activeFloor === f}
+                onClick={() => setActiveFloor(f)}
+                className={cn(
+                  "w-9 h-9 rounded-md text-sm font-bold transition-colors",
+                  activeFloor === f
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+                title={`Этаж ${f}`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
 
           {/* Popup */}
           {activeMarker && (
-            <div className="fixed bottom-20 left-4 right-4 lg:absolute lg:bottom-4 lg:left-4 lg:right-4 bg-card/95 backdrop-blur-sm border border-border rounded-xl p-4 z-10 ck-animate-in">
+            <div className="fixed bottom-20 left-4 right-4 lg:absolute lg:bottom-4 lg:left-4 lg:right-20 bg-card/95 backdrop-blur-sm border border-border rounded-xl p-4 z-10 ck-animate-in">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <span

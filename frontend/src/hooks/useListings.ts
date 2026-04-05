@@ -1,7 +1,7 @@
 // comunikit — listings query hook
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import type { Listing } from "@/lib/mockData";
+import { MOCK_LISTINGS, type Listing } from "@/lib/mockData";
 
 export function useListings() {
   const { data, isLoading, error } = useQuery<Listing[]>({
@@ -9,8 +9,11 @@ export function useListings() {
     queryFn: () => apiFetch<Listing[]>("/api/listings"),
   });
 
+  const apiListings = data ?? [];
+  const listings = apiListings.length > 0 ? apiListings : MOCK_LISTINGS;
+
   return {
-    listings: data ?? [],
+    listings,
     isLoading,
     error,
   };

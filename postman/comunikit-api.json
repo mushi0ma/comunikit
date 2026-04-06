@@ -1,0 +1,369 @@
+{
+  "info": {
+    "name": "Comunikit API",
+    "_postman_id": "comunikit-api-v1",
+    "description": "API collection for Comunikit — closed ecosystem marketplace for AITUC students.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://comunikit-production.up.railway.app",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Supabase JWT access_token. Set after authenticating."
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health",
+            "description": "Returns server status and timestamp."
+          }
+        },
+        {
+          "name": "DB health check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health/db",
+            "description": "Runs a SELECT 1 against the database."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listings",
+      "item": [
+        {
+          "name": "List listings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/listings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "listings"],
+              "query": [
+                { "key": "type", "value": "sell", "disabled": true, "description": "sell | buy | service | lost | found" },
+                { "key": "category", "value": "electronics", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true },
+                { "key": "offset", "value": "0", "disabled": true }
+              ]
+            },
+            "description": "Public. Returns all listings with optional filters."
+          }
+        },
+        {
+          "name": "Get listing by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/listings/:id",
+            "description": "Public. Returns a single listing.",
+            "url": {
+              "raw": "{{baseUrl}}/api/listings/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "listings", ":id"],
+              "variable": [{ "key": "id", "value": "LISTING_UUID" }]
+            }
+          }
+        },
+        {
+          "name": "Create listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/listings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"MacBook Pro 14\\\" M3\",\n  \"description\": \"Selling my MacBook Pro in excellent condition. Comes with original charger and box.\",\n  \"price\": 850000,\n  \"type\": \"sell\",\n  \"category\": \"electronics\",\n  \"images\": []\n}"
+            },
+            "description": "Auth required. type: sell | buy | service | lost | found"
+          }
+        },
+        {
+          "name": "Delete listing",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/listings/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "listings", ":id"],
+              "variable": [{ "key": "id", "value": "LISTING_UUID" }]
+            },
+            "description": "Auth required. Owner only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Forum",
+      "item": [
+        {
+          "name": "List threads",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/forum",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forum"],
+              "query": [
+                { "key": "category", "value": "general", "disabled": true }
+              ]
+            },
+            "description": "Public. Returns all threads with optional category filter."
+          }
+        },
+        {
+          "name": "Get thread",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/forum/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forum", ":id"],
+              "variable": [{ "key": "id", "value": "THREAD_UUID" }]
+            },
+            "description": "Public. Returns thread with its comments."
+          }
+        },
+        {
+          "name": "Create thread",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/forum",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Best places to study on campus?\",\n  \"body\": \"Looking for quiet spots in C1 where I can focus. Any recommendations from fellow students?\",\n  \"category\": \"general\"\n}"
+            },
+            "description": "Auth required. title: 3-200 chars, body: 10-5000 chars."
+          }
+        },
+        {
+          "name": "Vote on thread",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forum/:id/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forum", ":id", "vote"],
+              "variable": [{ "key": "id", "value": "THREAD_UUID" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 1\n}"
+            },
+            "description": "Auth required. value: 1 (upvote) or -1 (downvote)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Get comments for listing",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/comments?listingId=LISTING_UUID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "comments"],
+              "query": [
+                { "key": "listingId", "value": "LISTING_UUID" }
+              ]
+            },
+            "description": "Public. Returns comments for a listing."
+          }
+        },
+        {
+          "name": "Get comments for thread",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/comments?threadId=THREAD_UUID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "comments"],
+              "query": [
+                { "key": "threadId", "value": "THREAD_UUID" }
+              ]
+            },
+            "description": "Public. Returns comments for a forum thread."
+          }
+        },
+        {
+          "name": "Add comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/comments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Is this still available? I'm interested!\",\n  \"listingId\": \"LISTING_UUID\"\n}"
+            },
+            "description": "Auth required. Provide either listingId or threadId (not both). Optional parentId for replies."
+          }
+        },
+        {
+          "name": "Add reply (nested comment)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/comments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Yes it is! DM me.\",\n  \"listingId\": \"LISTING_UUID\",\n  \"parentId\": \"PARENT_COMMENT_UUID\"\n}"
+            },
+            "description": "Auth required. parentId makes this a reply to an existing comment."
+          }
+        },
+        {
+          "name": "Vote on comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/:id/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "comments", ":id", "vote"],
+              "variable": [{ "key": "id", "value": "COMMENT_UUID" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 1\n}"
+            },
+            "description": "Auth required. value: 1 or -1."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get my notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/notifications",
+            "description": "Auth required. Returns authenticated user's notifications."
+          }
+        },
+        {
+          "name": "Mark all as read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/notifications/read",
+            "description": "Auth required. Marks all notifications as read."
+          }
+        },
+        {
+          "name": "Mark one as read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", ":id", "read"],
+              "variable": [{ "key": "id", "value": "NOTIFICATION_UUID" }]
+            },
+            "description": "Auth required. Marks a single notification as read."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Whitelist",
+      "item": [
+        {
+          "name": "Check student ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/whitelist/check?studentId=220103001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "whitelist", "check"],
+              "query": [
+                { "key": "studentId", "value": "220103001" }
+              ]
+            },
+            "description": "Public. Returns { valid, name, groupCode } if student is whitelisted."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Telegram login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/auth/telegram",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 123456789,\n  \"first_name\": \"Aibek\",\n  \"last_name\": \"Nurlanov\",\n  \"username\": \"aibek_aituc\",\n  \"photo_url\": \"https://t.me/i/userpic/...\",\n  \"auth_date\": 1712345678,\n  \"hash\": \"<HMAC-SHA256 hash from Telegram Widget>\"\n}"
+            },
+            "description": "No auth required. Payload from Telegram Login Widget. Returns access_token and refresh_token. Hash must be valid HMAC-SHA256 signed by the bot token."
+          }
+        },
+        {
+          "name": "Verify ID card (OCR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/auth/verify-id-card",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image\": \"<base64-encoded image string>\",\n  \"mimeType\": \"image/jpeg\"\n}"
+            },
+            "description": "No auth required. Sends AITUC student ID card image for OCR verification. Returns extracted student data."
+          }
+        }
+      ]
+    }
+  ]
+}

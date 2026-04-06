@@ -57,7 +57,19 @@ export default function ProfilePage() {
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge variant="outline">{MOCK_USER.listingsCount} объявлений</Badge>
               <Badge variant="outline">{MOCK_USER.rating}★ ({MOCK_USER.reviewCount} отзывов)</Badge>
-              <Badge variant="outline">Карма: {MOCK_USER.karma}</Badge>
+              {(() => {
+                const karma = (user?.user_metadata?.karma as number) ?? MOCK_USER.karma;
+                return (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      karma > 0 ? "text-primary border-primary/30" : karma < 0 ? "text-red-400 border-red-400/30" : ""
+                    )}
+                  >
+                    {karma > 100 ? "🔥 " : ""}Карма: {karma}
+                  </Badge>
+                );
+              })()}
             </div>
           </div>
 

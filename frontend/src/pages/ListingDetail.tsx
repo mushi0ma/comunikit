@@ -38,6 +38,39 @@ interface ApiComment {
   replies?: ApiComment[];
 }
 
+/* ── CommentVote component ────────────────────────────────── */
+
+function CommentVote({ commentId, initialVotes }: { commentId: string; initialVotes: number }) {
+  const [votes, setVotes] = useState(initialVotes);
+  const [voted, setVoted] = useState(false);
+
+  async function vote() {
+    try {
+      await apiFetch(`/api/comments/${commentId}/vote`, {
+        method: "POST",
+        body: JSON.stringify({ value: voted ? -1 : 1 }),
+      });
+      setVotes(v => voted ? v - 1 : v + 1);
+      setVoted(!voted);
+    } catch {
+      toast.error("Ошибка голосования");
+    }
+  }
+
+  return (
+    <button
+      onClick={vote}
+      className={cn(
+        "flex items-center gap-1 text-xs transition-colors mt-1",
+        voted ? "text-primary" : "text-muted-foreground hover:text-foreground"
+      )}
+    >
+      <ThumbsUp className="size-3" />
+      <span>{votes > 0 ? votes : "Нравится"}</span>
+    </button>
+  );
+}
+
 /* ── page ─────────────────────────────────────────────────── */
 
 export default function ListingDetail() {
@@ -96,16 +129,6 @@ export default function ListingDetail() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const voteCommentMut = useMutation({
-    mutationFn: (commentId: string) =>
-      apiFetch(`/api/comments/${commentId}/vote`, {
-        method: "POST",
-        body: JSON.stringify({ value: 1 }),
-      }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["comments", "listing", params.id] }),
-    onError: (err: Error) => toast.error(err.message),
-  });
 
   function submitComment() {
     if (!isAuthenticated) {
@@ -360,13 +383,7 @@ export default function ListingDetail() {
                   <span className="text-xs text-muted-foreground">{timeAgo(c.createdAt)}</span>
                 </div>
                 <p className="text-sm text-foreground/90">{c.body}</p>
-                <button
-                  onClick={() => voteCommentMut.mutate(c.id)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground mt-1.5 hover:text-primary transition-colors"
-                >
-                  <ThumbsUp className="size-3" />
-                  {c._count?.votes || 0}
-                </button>
+                <CommentVote commentId={c.id} initialVotes={c._count?.votes || 0} />
               </div>
             </div>
           ))}

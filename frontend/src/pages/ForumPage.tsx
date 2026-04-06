@@ -14,8 +14,8 @@ import {
   MessageCircle,
   CalendarDays,
   Home as HomeIcon,
-  ArrowBigUp,
-  ArrowBigDown,
+  ThumbsUp,
+  ThumbsDown,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
@@ -117,6 +117,66 @@ function mockToApiThreads(): ApiThread[] {
   }));
 }
 
+/* ── VoteButtons component ────────────────────────────────── */
+
+function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVotes: number }) {
+  const [votes, setVotes] = useState(initialVotes);
+  const [userVote, setUserVote] = useState<1 | -1 | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function vote(value: 1 | -1) {
+    setLoading(true);
+    try {
+      await apiFetch(`/api/forum/${threadId}/vote`, {
+        method: "POST",
+        body: JSON.stringify({ value }),
+      });
+      // Toggle logic
+      if (userVote === value) {
+        setVotes(v => v - value);
+        setUserVote(null);
+      } else {
+        setVotes(v => v + value - (userVote || 0));
+        setUserVote(value);
+      }
+    } catch {
+      toast.error("Ошибка голосования");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={(e) => { e.stopPropagation(); vote(1); }}
+        disabled={loading}
+        className={cn(
+          "flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors",
+          userVote === 1
+            ? "bg-primary/20 text-primary"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        )}
+      >
+        <ThumbsUp className="size-3" />
+        <span>{votes > 0 ? votes : ""}</span>
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); vote(-1); }}
+        disabled={loading}
+        className={cn(
+          "flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors",
+          userVote === -1
+            ? "bg-red-500/20 text-red-400"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        )}
+      >
+        <ThumbsDown className="size-3" />
+      </button>
+    </div>
+  );
+}
+
 /* ── page ─────────────────────────────────────────────────── */
 
 export default function ForumPage() {
@@ -153,15 +213,6 @@ export default function ForumPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const voteMutation = useMutation({
-    mutationFn: async ({ threadId, value }: { threadId: string; value: number }) =>
-      apiFetch<{ action: string; value: number }>(`/api/forum/${threadId}/vote`, {
-        method: "POST",
-        body: JSON.stringify({ value }),
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forum"] }),
-    onError: (err: Error) => toast.error(err.message),
-  });
 
   const items = threads ?? mockToApiThreads();
   const filtered = items.filter(
@@ -304,7 +355,7 @@ export default function ForumPage() {
                 className="group cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/50 ck-animate-in"
               >
                 {/* title row */}
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
                       {thread.isPinned && (
@@ -327,23 +378,6 @@ export default function ForumPage() {
                       {thread.title}
                     </h3>
                   </div>
-
-                  {/* Vote buttons */}
-                  <div className="flex shrink-0 flex-col items-center gap-0.5">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); voteMutation.mutate({ threadId: thread.id, value: 1 }); }}
-                      className="rounded p-0.5 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <ArrowBigUp className="size-4" />
-                    </button>
-                    <span className="text-xs font-semibold text-foreground">{thread.upvotes}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); voteMutation.mutate({ threadId: thread.id, value: -1 }); }}
-                      className="rounded p-0.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <ArrowBigDown className="size-4" />
-                    </button>
-                  </div>
                 </div>
 
                 {/* meta row */}
@@ -360,6 +394,7 @@ export default function ForumPage() {
                     <MessageSquare className="size-3.5" />
                     {thread.replyCount}
                   </span>
+                  <VoteButtons threadId={thread.id} initialVotes={thread.upvotes || 0} />
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="size-3" />
                     {timeAgo(thread.createdAt)}

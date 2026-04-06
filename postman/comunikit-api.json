@@ -28,7 +28,25 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/health",
             "description": "Returns server status and timestamp."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});",
+                  "pm.test(\"Status is ok\", () => {",
+                  "  pm.expect(pm.response.json().status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "DB health check",
@@ -36,7 +54,22 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/health/db",
             "description": "Runs a SELECT 1 against the database."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -59,7 +92,25 @@
               ]
             },
             "description": "Public. Returns all listings with optional filters."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});",
+                  "pm.test(\"Returns array\", () => {",
+                  "  pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get listing by ID",
@@ -73,7 +124,22 @@
               "path": ["api", "listings", ":id"],
               "variable": [{ "key": "id", "value": "LISTING_UUID" }]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create listing",
@@ -125,7 +191,26 @@
               ]
             },
             "description": "Public. Returns all threads with optional category filter."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});",
+                  "pm.test(\"Returns threads\", () => {",
+                  "  pm.expect(pm.response.json().data).to.be.an('array');",
+                  "  pm.expect(pm.response.json().data.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get thread",
@@ -138,7 +223,22 @@
               "variable": [{ "key": "id", "value": "THREAD_UUID" }]
             },
             "description": "Public. Returns thread with its comments."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create thread",
@@ -195,7 +295,22 @@
               ]
             },
             "description": "Public. Returns comments for a listing."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get comments for thread",
@@ -210,7 +325,22 @@
               ]
             },
             "description": "Public. Returns comments for a forum thread."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Add comment",
@@ -279,7 +409,22 @@
             ],
             "url": "{{baseUrl}}/api/notifications",
             "description": "Auth required. Returns authenticated user's notifications."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Mark all as read",
@@ -326,7 +471,22 @@
               ]
             },
             "description": "Public. Returns { valid, name, groupCode } if student is whitelisted."
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has data\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

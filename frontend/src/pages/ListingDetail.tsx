@@ -134,8 +134,8 @@ export default function ListingDetail() {
           <p className="text-sm text-muted-foreground">
             Возможно, оно было удалено или ссылка некорректна.
           </p>
-          <Button variant="outline" onClick={() => navigate("/feed")}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> Вернуться к ленте
+          <Button variant="outline" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/feed")}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Назад
           </Button>
         </div>
       </AppLayout>

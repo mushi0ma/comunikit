@@ -3,7 +3,6 @@
 */
 import { TrendingUp, Plus, MapPin } from "lucide-react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
 import { FORUM_THREADS } from "@/lib/mockData";
 
 export default function TrendingSection() {
@@ -52,31 +51,21 @@ export default function TrendingSection() {
       {/* Quick actions */}
       <div className="bg-card border border-border rounded-xl p-4">
         <h3 className="text-sm font-bold text-foreground mb-3">Быстрые действия</h3>
-        <div className="flex flex-col gap-2">
-          <Button
+        <div className="flex gap-2">
+          <button
             onClick={() => navigate("/create")}
-            className="w-full justify-start gap-2"
-            size="sm"
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            Добавить объявление
-          </Button>
-          <Button
+            <Plus className="size-3" /> Добавить
+          </button>
+          <button
             onClick={() => navigate("/map")}
-            variant="outline"
-            className="w-full justify-start gap-2"
-            size="sm"
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 text-xs font-medium rounded-lg border border-border hover:bg-muted transition-colors"
           >
-            <MapPin className="w-4 h-4" />
-            Карта потерь
-          </Button>
+            <MapPin className="size-3" /> Карта
+          </button>
         </div>
       </div>
-
-      {/* Stats */}
-      <p className="text-xs text-muted-foreground text-center px-2">
-        128 студентов · 43 объявления · 6 тем
-      </p>
     </div>
   );
 }

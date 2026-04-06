@@ -13,6 +13,7 @@ import ListingCard from "@/components/ListingCard";
 import { MOCK_USER, MOCK_LISTINGS } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/authStore";
 
 type Tab = "listings" | "favorites" | "reviews";
 
@@ -30,6 +31,7 @@ const MOCK_REVIEWS = [
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>("listings");
+  const user = useAuthStore(s => s.user);
 
   const myListings = MOCK_LISTINGS.filter(l => l.author.id === "u1");
   const favListings = MOCK_LISTINGS.slice(2, 5);
@@ -47,9 +49,11 @@ export default function ProfilePage() {
 
           <div className="flex-1">
             <div className="text-lg sm:text-xl font-bold text-foreground">{MOCK_USER.name}</div>
-            <div className="mt-0.5 font-mono text-sm text-muted-foreground">
-              {MOCK_USER.group}
-            </div>
+            {(user?.user_metadata?.group || MOCK_USER.group) && (
+              <div className="mt-0.5 font-mono text-sm text-muted-foreground">
+                {user?.user_metadata?.group ?? MOCK_USER.group}
+              </div>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge variant="outline">{MOCK_USER.listingsCount} объявлений</Badge>
               <Badge variant="outline">{MOCK_USER.rating}★ ({MOCK_USER.reviewCount} отзывов)</Badge>

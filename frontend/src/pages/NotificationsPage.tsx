@@ -1,9 +1,8 @@
 /* comunikit — NotificationsPage
    Grouped notifications list (Новые / Прочитанные) with real API.
 */
-import { Bell, MessageCircle, MapPin, MessageSquare, Check, Loader2 } from "lucide-react";
+import { Bell, MessageCircle, MapPin, MessageSquare, CheckCheck, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -126,20 +125,18 @@ export default function NotificationsPage() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-foreground">Уведомления</h2>
           {unread.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
+            <button
+              title="Отметить все прочитанными"
               disabled={markAllReadMut.isPending}
               onClick={() => markAllReadMut.mutate()}
+              className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
             >
               {markAllReadMut.isPending ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
               ) : (
-                <Check className="size-3.5" />
+                <CheckCheck className="size-4 text-muted-foreground" />
               )}
-              Отметить все прочитанными
-            </Button>
+            </button>
           )}
         </div>
 
@@ -215,8 +212,10 @@ function NotificationItem({
     <button
       onClick={onClick}
       className={cn(
-        "flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-accent/50",
-        !notification.isRead && "border-primary/30",
+        "flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-300 w-full",
+        notification.isRead
+          ? "bg-muted/20 border-border opacity-60"
+          : "bg-card border-primary/30 hover:border-primary/50 hover:bg-accent/50",
       )}
     >
       <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", colorClass)}>

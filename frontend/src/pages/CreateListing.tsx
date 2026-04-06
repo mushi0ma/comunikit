@@ -7,6 +7,7 @@ import {
   ArrowLeft, Upload, X, MapPin, Loader2, Send,
   ShoppingBag, Search, Banknote, ShoppingCart, Wrench,
 } from "lucide-react";
+import { uploadImage } from "@/lib/upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,7 +48,8 @@ export default function CreateListing() {
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [locationText, setLocationText] = useState("");
   const [publishing, setPublishing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -55,31 +57,38 @@ export default function CreateListing() {
   const isLostFound = mainType === "lostfound";
   const showPrice = subType === "sell" || subType === "service";
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (images.length + files.length > 5) {
+  const handleImageUpload = async (files: File[]) => {
+    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const invalid = files.filter(f => !ALLOWED.includes(f.type));
+    if (invalid.length > 0) {
+      toast.error(`Неподдерживаемый формат: ${invalid.map(f => f.name).join(", ")}`);
+      return;
+    }
+    const tooBig = files.filter(f => f.size > 5 * 1024 * 1024);
+    if (tooBig.length > 0) {
+      toast.error("Файл слишком большой. Максимум 5 МБ");
+      return;
+    }
+    if (imageUrls.length + files.length > 5) {
       toast.error("Максимум 5 фотографий");
       return;
     }
-    files.forEach(f => {
-      const reader = new FileReader();
-      reader.onload = ev => setImages(prev => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(f);
-    });
+    setUploading(true);
+    try {
+      const urls = await Promise.all(
+        files.map(f => uploadImage(f, "listing_images", "listings"))
+      );
+      setImageUrls(prev => [...prev, ...urls]);
+    } catch {
+      toast.error("Ошибка загрузки фото");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    if (images.length + files.length > 5) {
-      toast.error("Максимум 5 фотографий");
-      return;
-    }
-    files.forEach(f => {
-      const reader = new FileReader();
-      reader.onload = ev => setImages(prev => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(f);
-    });
+    void handleImageUpload(Array.from(e.dataTransfer.files));
   };
 
   const canPublish =
@@ -105,7 +114,7 @@ export default function CreateListing() {
         type: subType,
         category,
         ...(showPrice && price && Number(price) > 0 ? { price: Number(price) } : {}),
-        ...(images.length > 0 ? { images } : {}),
+        ...(imageUrls.length > 0 ? { images: imageUrls } : {}),
       };
 
       const res = await fetch(`${API_URL}/api/listings`, {
@@ -285,36 +294,43 @@ export default function CreateListing() {
               accept="image/*"
               multiple
               className="hidden"
-              onChange={handleImageUpload}
+              onChange={e => void handleImageUpload(Array.from(e.target.files || []))}
             />
 
-            <div
-              onClick={() => fileRef.current?.click()}
-              onDragOver={e => e.preventDefault()}
-              onDrop={handleDrop}
-              className="group border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5"
-            >
-              <Upload className="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
-              <p className="text-sm font-semibold text-foreground">
-                Перетащите фото или нажмите
-              </p>
-              <p className="text-xs text-muted-foreground">
-                PNG, JPG до 5 МБ — максимум 5 файлов
-              </p>
+            <div className="relative">
+              {uploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-xl z-10">
+                  <Loader2 className="size-6 text-primary animate-spin" />
+                </div>
+              )}
+              <div
+                onClick={() => fileRef.current?.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={handleDrop}
+                className="group border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5"
+              >
+                <Upload className="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                <p className="text-sm font-semibold text-foreground">
+                  Перетащите фото или нажмите
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  PNG, JPG до 5 МБ — максимум 5 файлов
+                </p>
+              </div>
             </div>
 
-            {images.length > 0 && (
+            {imageUrls.length > 0 && (
               <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-                {images.map((img, i) => (
+                {imageUrls.map((url, i) => (
                   <div
                     key={i}
                     className="relative aspect-square rounded-xl overflow-hidden border border-border"
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={url} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={e => {
                         e.stopPropagation();
-                        setImages(prev => prev.filter((_, j) => j !== i));
+                        setImageUrls(prev => prev.filter((_, j) => j !== i));
                       }}
                       className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black/90"
                     >

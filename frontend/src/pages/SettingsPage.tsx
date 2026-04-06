@@ -4,18 +4,20 @@
 */
 import { useState } from "react";
 import {
-  Bell, Moon, Sun, Monitor, ChevronRight, Github, LogOut, Mail, Shield,
+  Bell, Moon, Sun, Monitor, ChevronRight, Github, LogOut, Mail, Shield, Camera, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_USER } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
+import { supabase } from "@/lib/supabase";
+import { uploadImage } from "@/lib/upload";
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
@@ -23,6 +25,25 @@ export default function SettingsPage() {
   const [telegram, setTelegram] = useState(MOCK_USER.telegramHandle || "");
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const url = await uploadImage(file, "avatars", user?.id);
+      setAvatarUrl(url);
+      await supabase.auth.updateUser({ data: { avatar_url: url } });
+      toast.success("Фото профиля обновлено");
+    } catch {
+      toast.error("Ошибка загрузки фото");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const themeOptions = [
     { value: "dark", label: "Тёмная", Icon: Moon },
@@ -36,20 +57,26 @@ export default function SettingsPage() {
         {/* ── Профиль ────────────────────────────────────── */}
         <Section title="Профиль">
           <FormRow label="Аватар">
-            <div className="flex items-center gap-3">
+            <label className="relative cursor-pointer group inline-block">
               <Avatar className="size-16 rounded-xl">
+                <AvatarImage src={avatarUrl ?? undefined} className="rounded-xl object-cover" />
                 <AvatarFallback className="rounded-xl bg-primary/10 text-xl font-black text-primary">
                   {MOCK_USER.name[0]}
                 </AvatarFallback>
               </Avatar>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toast.info("Загрузка аватара в разработке")}
-              >
-                Загрузить фото
-              </Button>
-            </div>
+              <div className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                {avatarUploading
+                  ? <Loader2 className="size-5 text-white animate-spin" />
+                  : <Camera className="size-5 text-white" />
+                }
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => void handleAvatarUpload(e)}
+              />
+            </label>
           </FormRow>
 
           <FormRow label="Имя">

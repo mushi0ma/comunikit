@@ -1,56 +1,61 @@
-import { test, expect, devices } from "@playwright/test";
+import { test, expect } from '@playwright/test'
 
-const BASE_URL = "http://localhost:3000";
+test.describe('AppLayout', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:3000/login')
+  })
 
-// ─── AppLayout loads correctly ──────────────────────────────────────────────
-test("AppLayout renders header and layout shell", async ({ page }) => {
-  await page.goto(`${BASE_URL}/feed`);
+  test('Login page renders correctly', async ({ page }) => {
+    // Logo icon (Boxes icon from lucide — rendered as SVG, check nearby text)
+    await expect(page.getByText('Войти в Comunikit')).toBeVisible()
 
-  // Sticky header is present
-  const header = page.locator("header");
-  await expect(header).toBeVisible();
+    // Email input
+    await expect(page.locator('input[type="email"]')).toBeVisible()
 
-  // Brand name renders
-  await expect(page.getByText("comunikit")).toBeVisible();
-});
+    // Password input
+    await expect(page.locator('input[type="password"]')).toBeVisible()
 
-// ─── Mobile Bottom Navigation ────────────────────────────────────────────────
-test("Mobile bottom navigation is visible on mobile viewport", async ({
-  browser,
-}) => {
-  const ctx = await browser.newContext({
-    ...devices["iPhone 14"],
-  });
-  const page = await ctx.newPage();
+    // Submit button — "Продолжить"
+    await expect(page.getByRole('button', { name: /продолжить/i })).toBeVisible()
 
-  await page.goto(`${BASE_URL}/feed`);
+    // GitHub OAuth button
+    await expect(page.getByRole('button', { name: /github/i })).toBeVisible()
 
-  // Bottom nav has class ck-bottom-nav and is rendered (not hidden via lg:hidden at 390px)
-  const bottomNav = page.locator("nav.ck-bottom-nav");
-  await expect(bottomNav).toBeVisible();
+    // Telegram OAuth button
+    await expect(page.getByRole('button', { name: /telegram/i })).toBeVisible()
 
-  // All 5 nav items present: Лента, Карта, Добавить, Форум, Профиль
-  for (const label of ["Лента", "Карта", "Добавить", "Форум", "Профиль"]) {
-    await expect(bottomNav.getByText(label)).toBeVisible();
-  }
+    // Register link
+    await expect(page.getByText(/зарегистрироваться/i)).toBeVisible()
 
-  await ctx.close();
-});
+    // "или" divider
+    await expect(page.getByText('или')).toBeVisible()
+  })
 
-// ─── HomeFeed Bento Grid ─────────────────────────────────────────────────────
-test("HomeFeed renders 4-card Bento quick-categories grid", async ({ page }) => {
-  await page.goto(`${BASE_URL}/feed`);
+  test('Register page renders correctly', async ({ page }) => {
+    await page.goto('http://localhost:3000/register')
 
-  // Default state: activeTab=all, no search — grid should be visible
-  const bentoGrid = page.locator(".ck-animate-in").first();
-  await expect(bentoGrid).toBeVisible();
+    // Title
+    await expect(page.getByText('Создать аккаунт')).toBeVisible()
 
-  // Verify all 4 category buttons
-  for (const label of ["Продажа", "Покупка", "Услуги", "Форум"]) {
-    await expect(page.getByRole("button", { name: label })).toBeVisible();
-  }
+    // Student ID input with placeholder "12345"
+    await expect(page.locator('input[placeholder="12345"]')).toBeVisible()
 
-  // Clicking "Продажа" switches tab and hides the bento grid
-  await page.getByRole("button", { name: "Продажа" }).click();
-  await expect(bentoGrid).not.toBeVisible();
-});
+    // AITU-only disclaimer
+    await expect(page.getByText(/только для студентов/i)).toBeVisible()
+
+    // GitHub registration button
+    await expect(page.getByRole('button', { name: /github/i })).toBeVisible()
+
+    // Telegram registration button
+    await expect(page.getByRole('button', { name: /telegram/i })).toBeVisible()
+
+    // Login link
+    await expect(page.getByText(/войти/i).first()).toBeVisible()
+  })
+
+  test('Protected route redirects to login', async ({ page }) => {
+    // Navigating to /feed without auth should redirect to /login
+    await page.goto('http://localhost:3000/feed')
+    await expect(page).toHaveURL(/login/)
+  })
+})

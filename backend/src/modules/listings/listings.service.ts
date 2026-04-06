@@ -76,6 +76,17 @@ export class ListingsService {
     },
     authorId: string,
   ) {
+    // Upsert user from Supabase auth data — ensure FK target exists
+    await this.prisma.user.upsert({
+      where: { id: authorId },
+      update: {},
+      create: {
+        id: authorId,
+        studentId: authorId.slice(0, 8),
+        name: 'Студент AITU',
+      },
+    });
+
     return this.prisma.listing.create({
       data: {
         title: data.title,

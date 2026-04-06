@@ -18,9 +18,9 @@ import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 
 const createCommentSchema = z.object({
   body: z.string().min(1).max(2000),
-  listingId: z.string().uuid().optional(),
-  threadId: z.string().uuid().optional(),
-  parentId: z.string().uuid().optional(),
+  listingId: z.string().optional(),
+  threadId: z.string().optional(),
+  parentId: z.string().optional(),
 });
 
 const voteSchema = z.object({

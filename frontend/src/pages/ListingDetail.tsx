@@ -1,5 +1,6 @@
 /* comunikit — ListingDetail
    Design: RunPod-inspired settings layout — two-column gallery + details + comments
+   Fixed: now fetches real listing from API by ID instead of MOCK_LISTINGS lookup
 */
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
@@ -12,11 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
-import { MOCK_LISTINGS, formatPrice, getTypeLabel, getTypeColor } from "@/lib/mockData";
+import { type Listing, formatPrice, getTypeLabel, getTypeColor } from "@/lib/mockData";
 import { apiFetch } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
+import LoadingScreen from "@/components/LoadingScreen";
 
 /* ── types ─────────────────────────────────────────────────── */
 interface CommentAuthor {
@@ -36,15 +38,11 @@ interface ApiComment {
   replies?: ApiComment[];
 }
 
-/* ── helpers ──────────────────────────────────────────────── */
-// timeAgo imported from @/lib/utils
-
 /* ── page ─────────────────────────────────────────────────── */
 
 export default function ListingDetail() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const listing = MOCK_LISTINGS.find(l => l.id === params.id) || MOCK_LISTINGS[0];
 
   const [imgIdx, setImgIdx] = useState(0);
   const [liked, setLiked] = useState(false);
@@ -53,31 +51,45 @@ export default function ListingDetail() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const queryClient = useQueryClient();
 
-  const images = listing.images.length > 0 ? listing.images : [""];
-  const related = MOCK_LISTINGS.filter(l => l.id !== listing.id && l.category === listing.category).slice(0, 3);
+  /* ── Fetch listing from API by ID ──────────────────────── */
+  const { data: listing, isLoading: listingLoading } = useQuery<Listing>({
+    queryKey: ["listing", params.id],
+    queryFn: () => apiFetch<Listing>(`/api/listings/${params.id}`),
+    retry: false,
+  });
 
-  const isLostFound = listing.type === "lost" || listing.type === "found";
+  /* ── Fetch related listings by category ────────────────── */
+  const { data: relatedListings = [] } = useQuery<Listing[]>({
+    queryKey: ["listings", "related", listing?.category, params.id],
+    queryFn: async () => {
+      if (!listing?.category) return [];
+      const all = await apiFetch<Listing[]>(`/api/listings?category=${encodeURIComponent(listing.category)}&limit=4`);
+      return all.filter(l => l.id !== listing.id).slice(0, 3);
+    },
+    enabled: !!listing?.category,
+  });
 
   /* ── Comments API ──────────────────────────────────────── */
   const { data: comments = [], isLoading: commentsLoading } = useQuery<ApiComment[]>({
-    queryKey: ["comments", "listing", listing.id],
+    queryKey: ["comments", "listing", params.id],
     queryFn: async () => {
       try {
-        return await apiFetch<ApiComment[]>(`/api/comments?listingId=${listing.id}`);
+        return await apiFetch<ApiComment[]>(`/api/comments?listingId=${params.id}`);
       } catch {
         return [];
       }
     },
+    enabled: !!listing,
   });
 
   const createCommentMut = useMutation({
     mutationFn: (body: string) =>
       apiFetch<ApiComment>("/api/comments", {
         method: "POST",
-        body: JSON.stringify({ body, listingId: listing.id }),
+        body: JSON.stringify({ body, listingId: params.id }),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["comments", "listing", listing.id] });
+      queryClient.invalidateQueries({ queryKey: ["comments", "listing", params.id] });
       setCommentText("");
       toast.success("Комментарий добавлен");
     },
@@ -91,7 +103,7 @@ export default function ListingDetail() {
         body: JSON.stringify({ value: 1 }),
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["comments", "listing", listing.id] }),
+      queryClient.invalidateQueries({ queryKey: ["comments", "listing", params.id] }),
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -103,6 +115,35 @@ export default function ListingDetail() {
     if (commentText.trim().length === 0) return;
     createCommentMut.mutate(commentText.trim());
   }
+
+  /* ── Loading / Not found states ────────────────────────── */
+  if (listingLoading) {
+    return (
+      <AppLayout title="Объявление">
+        <LoadingScreen />
+      </AppLayout>
+    );
+  }
+
+  if (!listing) {
+    return (
+      <AppLayout title="Объявление">
+        <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
+          <Package className="w-16 h-16 mx-auto text-muted-foreground opacity-40" />
+          <h1 className="text-xl font-bold text-foreground">Объявление не найдено</h1>
+          <p className="text-sm text-muted-foreground">
+            Возможно, оно было удалено или ссылка некорректна.
+          </p>
+          <Button variant="outline" onClick={() => navigate("/feed")}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Вернуться к ленте
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const images = listing.images && listing.images.length > 0 ? listing.images : [""];
+  const isLostFound = listing.type === "lost" || listing.type === "found";
 
   return (
     <AppLayout title="Объявление">
@@ -208,17 +249,21 @@ export default function ListingDetail() {
             </p>
 
             {/* Author block */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                {listing.author.name[0]}
+            {listing.author && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                  {listing.author.name[0]}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{listing.author.name}</p>
+                  {listing.author.group && (
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {listing.author.group}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">{listing.author.name}</p>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {listing.author.group}
-                </p>
-              </div>
-            </div>
+            )}
 
             {/* Posted time */}
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -231,7 +276,7 @@ export default function ListingDetail() {
               <Button
                 className="w-full gap-2"
                 onClick={() => {
-                  if (listing.author.telegramHandle) {
+                  if (listing.author?.telegramHandle) {
                     toast.info(`Открываем Telegram: ${listing.author.telegramHandle}`);
                   } else {
                     toast.info("Контакт продавца не указан");
@@ -328,11 +373,11 @@ export default function ListingDetail() {
         </div>
 
         {/* Related listings */}
-        {related.length > 0 && (
+        {relatedListings.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-base font-bold text-foreground">Похожие объявления</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {related.map(l => <ListingCard key={l.id} listing={l} />)}
+              {relatedListings.map(l => <ListingCard key={l.id} listing={l} />)}
             </div>
           </div>
         )}

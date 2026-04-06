@@ -148,13 +148,13 @@ export default function MapPage() {
         </div>
 
         {/* Map with vertical floor switcher (right side, like aitumap) */}
-        <div className="relative">
+        <div className="relative" style={{ height: "calc(100vh - 200px)" }}>
           <AituMap
             floor={floorKey}
             markers={visibleMarkers}
             onRoomClick={handleRoomClick}
             onMapClick={handleMapClick}
-            className="aspect-[16/9] lg:aspect-[21/9]"
+            className="w-full h-full"
           >
             {pendingMarker && (
               <div

@@ -233,7 +233,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
           Glassmorphism bar, FAB for create action.
           ═══════════════════════════════════════════════════════ */}
       <nav
-        className="ck-bottom-nav ck-glass lg:hidden"
+        className="ck-bottom-nav ck-glass fixed bottom-0 left-0 right-0 z-50 lg:hidden"
         aria-label="Основная навигация"
       >
         {MOBILE_NAV_ITEMS.map(({ href, icon: Icon, label }) => {

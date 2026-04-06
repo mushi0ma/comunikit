@@ -15,13 +15,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useListings } from "@/hooks/useListings";
 
-const TABS: { label: string; value: string; dot?: "red" | "green" }[] = [
+const TABS: { label: string; value: string }[] = [
   { label: "Все", value: "all" },
   { label: "Продажа", value: "sell" },
   { label: "Покупка", value: "buy" },
   { label: "Услуги", value: "service" },
-  { label: "Потеряно", value: "lost", dot: "red" },
-  { label: "Найдено", value: "found", dot: "green" },
+  { label: "Потеряно", value: "lost" },
+  { label: "Найдено", value: "found" },
 ];
 
 function ListingCardSkeleton() {
@@ -183,7 +183,6 @@ export default function HomeFeed() {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
-              {tab.dot && <span className={cn("w-2 h-2 rounded-full shrink-0", tab.dot === "red" ? "bg-red-500" : "bg-green-500")} />}
               {tab.label}
             </button>
           ))}

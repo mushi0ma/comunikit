@@ -1,7 +1,7 @@
 /* comunikit — ListingCard component
    Design: RunPod-inspired compact card with left type stripe
 */
-import { cn } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 import { Listing, formatPrice, getTypeLabel, getTypeColor, getStripeColor } from "@/lib/mockData";
 import { useLocation } from "wouter";
 
@@ -30,7 +30,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
           <span className="ck-price text-xs sm:text-sm">
             {listing.price ? formatPrice(listing.price) : "Договорная"}
           </span>
-          <span className="text-xs font-mono text-muted-foreground">{listing.createdAt}</span>
+          <span className="text-xs font-mono text-muted-foreground">{timeAgo(listing.createdAt)}</span>
         </div>
       </div>
     </div>

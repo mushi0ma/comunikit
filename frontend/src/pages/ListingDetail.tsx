@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, MapPin, Package, Heart, Bookmark, Clock,
+  ArrowLeft, MapPin, Package, Heart, Bookmark, BookmarkCheck, Clock,
   MessageCircle, Flag, Send, Loader2, ThumbsUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
 import { MOCK_LISTINGS, formatPrice, getTypeLabel, getTypeColor } from "@/lib/mockData";
 import { apiFetch } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 
@@ -37,20 +37,7 @@ interface ApiComment {
 }
 
 /* ── helpers ──────────────────────────────────────────────── */
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const d = new Date(dateStr).getTime();
-  if (isNaN(d)) return dateStr;
-  const diff = now - d;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "только что";
-  if (mins < 60) return `${mins} мин`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} ч`;
-  const days = Math.floor(hours / 24);
-  return `${days} д`;
-}
+// timeAgo imported from @/lib/utils
 
 /* ── page ─────────────────────────────────────────────────── */
 
@@ -61,6 +48,7 @@ export default function ListingDetail() {
 
   const [imgIdx, setImgIdx] = useState(0);
   const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const queryClient = useQueryClient();
@@ -227,7 +215,7 @@ export default function ListingDetail() {
               <div>
                 <p className="text-sm font-semibold text-foreground">{listing.author.name}</p>
                 <p className="font-mono text-xs text-muted-foreground">
-                  Student ID: {listing.author.group}
+                  {listing.author.group}
                 </p>
               </div>
             </div>
@@ -235,7 +223,7 @@ export default function ListingDetail() {
             {/* Posted time */}
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
-              {listing.createdAt}
+              {timeAgo(listing.createdAt)}
             </div>
 
             {/* CTA buttons */}
@@ -255,11 +243,14 @@ export default function ListingDetail() {
               </Button>
               <Button
                 variant="outline"
-                className="w-full gap-2"
-                onClick={() => toast.success("Объявление сохранено")}
+                className={cn("w-full gap-2 transition-all duration-200", saved && "scale-[1.02]")}
+                onClick={() => {
+                  setSaved(!saved);
+                  toast.success(saved ? "Убрано из сохранённых" : "Сохранено");
+                }}
               >
-                <Bookmark className="w-4 h-4" />
-                Сохранить
+                {saved ? <BookmarkCheck className="w-4 h-4 text-green-400" /> : <Bookmark className="w-4 h-4" />}
+                {saved ? "Сохранено" : "Сохранить"}
               </Button>
             </div>
           </div>

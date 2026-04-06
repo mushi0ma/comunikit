@@ -1,16 +1,11 @@
 /* comunikit — ProfilePage
-   Design: RunPod settings pattern — profile header card, tabbed sections, settings cards
+   Design: RunPod settings pattern — profile header card, tabbed sections
 */
 import { useState } from "react";
 import {
-  Star, LogOut, Bell, Moon, Sun, Monitor,
-  MessageCircle, Shield, ChevronRight, Edit3, Package,
-  Send,
+  Star, LogOut, Edit3, Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import AppLayout from "@/components/AppLayout";
@@ -18,15 +13,13 @@ import ListingCard from "@/components/ListingCard";
 import { MOCK_USER, MOCK_LISTINGS } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useTheme } from "@/contexts/ThemeContext";
 
-type Tab = "listings" | "favorites" | "reviews" | "settings";
+type Tab = "listings" | "favorites" | "reviews";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "listings", label: "Мои объявления" },
   { value: "favorites", label: "Избранное" },
   { value: "reviews", label: "Отзывы" },
-  { value: "settings", label: "Настройки" },
 ];
 
 const MOCK_REVIEWS = [
@@ -37,9 +30,6 @@ const MOCK_REVIEWS = [
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>("listings");
-  const [telegramHandle, setTelegramHandle] = useState(MOCK_USER.telegramHandle || "");
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const { theme, toggleTheme } = useTheme();
 
   const myListings = MOCK_LISTINGS.filter(l => l.author.id === "u1");
   const favListings = MOCK_LISTINGS.slice(2, 5);
@@ -48,17 +38,17 @@ export default function ProfilePage() {
     <AppLayout title="Профиль">
       <div className="mx-auto max-w-3xl px-4 py-6 lg:px-0">
         {/* ── Profile header card ─────────────────────────── */}
-        <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:gap-6">
-          <Avatar className="size-20 rounded-xl">
-            <AvatarFallback className="rounded-xl bg-primary/10 text-2xl font-black text-primary">
+        <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:p-6 sm:flex-row sm:items-center sm:gap-6">
+          <Avatar className="size-16 sm:size-20 rounded-xl">
+            <AvatarFallback className="rounded-xl bg-primary/10 text-xl sm:text-2xl font-black text-primary">
               {MOCK_USER.name[0]}
             </AvatarFallback>
           </Avatar>
 
           <div className="flex-1">
-            <div className="text-xl font-bold text-foreground">{MOCK_USER.name}</div>
+            <div className="text-lg sm:text-xl font-bold text-foreground">{MOCK_USER.name}</div>
             <div className="mt-0.5 font-mono text-sm text-muted-foreground">
-              {MOCK_USER.group} · ID: {MOCK_USER.studentId}
+              {MOCK_USER.group}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge variant="outline">{MOCK_USER.listingsCount} объявлений</Badge>
@@ -100,32 +90,21 @@ export default function ProfilePage() {
           {activeTab === "listings" && <ListingsTab listings={myListings} />}
           {activeTab === "favorites" && <FavoritesTab listings={favListings} />}
           {activeTab === "reviews" && <ReviewsTab />}
-          {activeTab === "settings" && (
-            <SettingsTab
-              telegramHandle={telegramHandle}
-              onTelegramChange={setTelegramHandle}
-              notificationsEnabled={notificationsEnabled}
-              onNotificationsChange={setNotificationsEnabled}
-              theme={theme}
-              onToggleTheme={toggleTheme}
-            />
-          )}
         </div>
+
+        {/* ── Logout ────────────────────────────────────── */}
+        <Button
+          variant="outline"
+          className="h-11 w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/5 mt-6"
+          onClick={() => {
+            toast.success("Вы вышли из аккаунта");
+            window.location.href = "/login";
+          }}
+        >
+          <LogOut className="size-4" /> Выйти из аккаунта
+        </Button>
       </div>
     </AppLayout>
-  );
-}
-
-/* ── Section wrapper (RunPod card style) ──────────────────── */
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-4 border-b border-border pb-2 text-lg font-bold text-foreground">
-        {title}
-      </h3>
-      {children}
-    </div>
   );
 }
 
@@ -143,7 +122,7 @@ function ListingsTab({ listings }: { listings: typeof MOCK_LISTINGS }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 ck-animate-in lg:grid-cols-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ck-animate-in lg:grid-cols-3">
       {listings.map(l => (
         <ListingCard key={l.id} listing={l} />
       ))}
@@ -155,7 +134,7 @@ function ListingsTab({ listings }: { listings: typeof MOCK_LISTINGS }) {
 
 function FavoritesTab({ listings }: { listings: typeof MOCK_LISTINGS }) {
   return (
-    <div className="grid grid-cols-2 gap-3 ck-animate-in lg:grid-cols-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ck-animate-in lg:grid-cols-3">
       {listings.map(l => (
         <ListingCard key={l.id} listing={l} />
       ))}
@@ -196,154 +175,6 @@ function ReviewsTab() {
           <p className="text-xs text-muted-foreground">{r.time}</p>
         </div>
       ))}
-    </div>
-  );
-}
-
-/* ── Settings tab (RunPod settings style) ─────────────────── */
-
-function SettingsTab({
-  telegramHandle,
-  onTelegramChange,
-  notificationsEnabled,
-  onNotificationsChange,
-  theme,
-  onToggleTheme,
-}: {
-  telegramHandle: string;
-  onTelegramChange: (v: string) => void;
-  notificationsEnabled: boolean;
-  onNotificationsChange: (v: boolean) => void;
-  theme: string;
-  onToggleTheme?: () => void;
-}) {
-  const themeOptions = [
-    { value: "dark", label: "Тёмная", Icon: Moon },
-    { value: "light", label: "Светлая", Icon: Sun },
-    { value: "system", label: "Системная", Icon: Monitor },
-  ] as const;
-
-  return (
-    <div className="flex flex-col gap-4 ck-animate-in">
-      {/* ── Theme ─────────────────────────────────────── */}
-      <Section title="Оформление">
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-semibold">Тема интерфейса</Label>
-          <div className="flex gap-2">
-            {themeOptions.map(opt => {
-              const isActive =
-                (opt.value === "dark" && theme === "dark") ||
-                (opt.value === "light" && theme === "light") ||
-                (opt.value === "system" && false);
-
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    if (opt.value === "system") {
-                      toast.info("Системная тема в разработке");
-                      return;
-                    }
-                    if (theme !== opt.value && onToggleTheme) onToggleTheme();
-                  }}
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground"
-                  )}
-                >
-                  <opt.Icon className="size-4" />
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </Section>
-
-      {/* ── Telegram connection card ──────────────────── */}
-      <Section title="Интеграции">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex items-start gap-3 sm:flex-1">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#229ED9]/10">
-              <Send className="size-5 text-[#229ED9]" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-foreground">Telegram</span>
-                {telegramHandle ? (
-                  <Badge variant="outline" className="text-xs text-green-600">Подключён</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs text-muted-foreground">Не подключён</Badge>
-                )}
-              </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Покупатели смогут связаться с вами через Telegram
-              </p>
-              <div className="mt-2">
-                <Input
-                  placeholder="@username"
-                  value={telegramHandle}
-                  onChange={e => onTelegramChange(e.target.value)}
-                  className="max-w-xs"
-                />
-              </div>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => toast.success("Telegram сохранён")}
-          >
-            Сохранить
-          </Button>
-        </div>
-      </Section>
-
-      {/* ── Notifications ─────────────────────────────── */}
-      <Section title="Уведомления">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-              <Bell className="size-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Push-уведомления</p>
-              <p className="text-xs text-muted-foreground">Новые сообщения и ответы</p>
-            </div>
-          </div>
-          <Switch checked={notificationsEnabled} onCheckedChange={onNotificationsChange} />
-        </div>
-      </Section>
-
-      {/* ── Security ──────────────────────────────────── */}
-      <Section title="Безопасность">
-        <div className="flex flex-col divide-y divide-border">
-          {["Сменить пароль", "Привязанные устройства", "История входов"].map(item => (
-            <button
-              key={item}
-              onClick={() => toast.info("Функция в разработке")}
-              className="flex items-center justify-between py-3 text-sm text-foreground transition-colors first:pt-0 last:pb-0 hover:text-primary"
-            >
-              {item}
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      {/* ── Logout ────────────────────────────────────── */}
-      <Button
-        variant="outline"
-        className="h-11 w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/5"
-        onClick={() => {
-          toast.success("Вы вышли из аккаунта");
-          window.location.href = "/login";
-        }}
-      >
-        <LogOut className="size-4" /> Выйти из аккаунта
-      </Button>
     </div>
   );
 }

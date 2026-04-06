@@ -6,21 +6,13 @@ import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useAuthStore } from "./store/authStore";
-import { Boxes } from "lucide-react";
+import LoadingScreen from "./components/LoadingScreen";
 
 const queryClient = new QueryClient();
 
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <Boxes className="w-10 h-10 text-fuchsia-500 animate-spin" />
-    </div>
-  );
-}
-
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuthStore();
-  if (isLoading) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen fullPage />;
   if (!isAuthenticated) return <Redirect to="/login" />;
   return <Component />;
 }

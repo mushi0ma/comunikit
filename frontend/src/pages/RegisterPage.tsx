@@ -33,8 +33,8 @@ import { initTelegramWidget } from "@/lib/telegram-auth";
 const registerSchema = z.object({
   studentId: z
     .string()
-    .min(5, "Student ID должен содержать 5–8 цифр")
-    .max(8, "Student ID должен содержать 5–8 цифр")
+    .min(5, "Код доступа должен содержать 5–8 цифр")
+    .max(8, "Код доступа должен содержать 5–8 цифр")
     .regex(/^\d+$/, "Только цифры"),
   name: z.string().min(1, "Введите имя"),
   email: z
@@ -151,7 +151,7 @@ export default function RegisterPage() {
       );
       const json = await res.json();
       if (!json.data?.valid) {
-        toast.error("Student ID не найден в базе AITUC");
+        toast.error("Код доступа не найден в базе AITUC");
         return;
       }
       await signUp(data.email, data.password, data.studentId, data.name);
@@ -278,14 +278,14 @@ export default function RegisterPage() {
             {/* Student ID */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="studentId" className="text-sm font-medium">
-                Student ID
+                Код доступа
               </Label>
               <div className="relative">
                 <Input
                   id="studentId"
                   type="text"
                   inputMode="numeric"
-                  placeholder="12345"
+                  placeholder="Введите код"
                   autoComplete="off"
                   className={
                     verifyState === "invalid"
@@ -314,7 +314,7 @@ export default function RegisterPage() {
               </div>
               {verifyState === "invalid" && (
                 <p className="text-xs text-destructive">
-                  Student ID не найден в базе AITUC
+                  Код доступа не найден в базе AITUC
                 </p>
               )}
               {errors.studentId && verifyState === "idle" && (
@@ -498,7 +498,7 @@ export default function RegisterPage() {
 
           {/* Disclaimer */}
           <p className="text-center text-xs text-muted-foreground">
-            Только для студентов AITU. Ваш Student ID будет проверен.
+            Только для студентов AITU. Ваш код доступа будет проверен.
           </p>
         </div>
       </div>

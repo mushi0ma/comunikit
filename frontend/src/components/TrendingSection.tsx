@@ -22,7 +22,7 @@ export default function TrendingSection() {
           {topThreads.map((thread, i) => (
             <li key={thread.id}>
               <button
-                onClick={() => navigate(`/forum/${thread.id}`)}
+                onClick={() => navigate("/forum")}
                 className="w-full text-left group"
               >
                 <div className="flex items-start gap-2">

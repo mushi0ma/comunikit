@@ -3,6 +3,7 @@
    Data: real API + mock fallback
 */
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   MessageSquare,
@@ -180,6 +181,7 @@ function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVote
 /* ── page ─────────────────────────────────────────────────── */
 
 export default function ForumPage() {
+  const [, navigate] = useLocation();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -352,6 +354,7 @@ export default function ForumPage() {
             {filtered.map(thread => (
               <div
                 key={thread.id}
+                onClick={() => navigate(`/forum/${thread.id}`)}
                 className="group cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/50 ck-animate-in"
               >
                 {/* title row */}
@@ -382,14 +385,18 @@ export default function ForumPage() {
 
                 {/* meta row */}
                 <div className="mt-2.5 flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/profile/${thread.author.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                  >
                     <div className="flex size-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
                       {thread.author.name[0]}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {thread.author.name}
                     </span>
-                  </div>
+                  </Link>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <MessageSquare className="size-3.5" />
                     {thread.replyCount}

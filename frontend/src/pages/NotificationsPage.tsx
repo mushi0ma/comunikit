@@ -1,6 +1,7 @@
 /* comunikit — NotificationsPage
    Grouped notifications list (Новые / Прочитанные) with real API.
 */
+import { useEffect } from "react";
 import { Bell, MessageCircle, MapPin, MessageSquare, CheckCheck, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
@@ -113,6 +114,13 @@ export default function NotificationsPage() {
       apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
+
+  /* Auto-mark all as read on page mount */
+  useEffect(() => {
+    apiFetch('/api/notifications/read', { method: 'PATCH' })
+      .then(() => queryClient.invalidateQueries({ queryKey: ["notifications"] }))
+      .catch(() => {});
+  }, [queryClient]);
 
   const notifications = items ?? MOCK_NOTIFICATIONS;
   const unread = notifications.filter(n => !n.isRead);

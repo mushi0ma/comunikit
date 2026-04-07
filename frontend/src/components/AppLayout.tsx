@@ -108,7 +108,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex overflow-x-hidden">
       {/* ═══════════════════════════════════════════════════════
           DESKTOP SIDEBAR  (≥ lg / 1024px)
           Icon-only, w-16 = 64px, sticky full-height.
@@ -168,7 +168,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
       {/* ═══════════════════════════════════════════════════════
           MAIN CONTENT AREA
           ═══════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         {/* ── Header ─────────────────────────────────────────── */}
         <header className="sticky top-0 z-40 h-14 bg-background/95 backdrop-blur-sm border-b border-border">
           <div className="flex items-center gap-3 px-4 h-full">
@@ -224,7 +224,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
         </header>
 
         {/* ── Page content ───────────────────────────────────── */}
-        <main className="flex-1 pb-20 lg:pb-6">
+        <main className="flex-1 pb-20 lg:pb-6 overflow-x-hidden">
           {children}
         </main>
       </div>

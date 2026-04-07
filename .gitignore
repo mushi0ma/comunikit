@@ -77,35 +77,28 @@ Thumbs.db
 tmp/
 temp/
 
-# ─── Claude ────────────────────────────────────────────────────────────────────
+# ─── AI Agent Configs (local only) ────────────────────────────────────────────
 .claude/
 .agents/
+.agent/
+.mcp.json
 skills-lock.json
 CLAUDE.md
-.mcp.json
 ideas.md
-INTERACTIONS.md
-
-# ─── Agent / AI local overrides (keep all *.md tracked) ───────────────────────
-**/*.local.md
-**/*.local.json
+*.local.json
+*.local.md
+.cursorignore
+.windsurfrules
 
 # ─── Misc ──────────────────────────────────────────────────────────────────────
 .webdev/
+.manus-logs/
+.vercel
 frontend/public/__manus__/version.json
-
 userflow.mmd
 userflow.png
-
-.manus-logs/
-.agent/
-ACTIVE_TASK.md
-node_modules/
-**/node_modules/
-backend/node_modules/
 backend/.env
-.vercel
 backend/generated/
 
-# ─── Claude Agent Logs ──────────────────────────────────────────────────────────
-.claude/brain/AGENT_ACTIVITY.md
+DESIGN.md
+INTERACTIONS.md

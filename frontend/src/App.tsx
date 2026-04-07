@@ -30,6 +30,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import MapPage from "./pages/MapPage";
 import SearchPage from "./pages/SearchPage";
 import ForumPage from "./pages/ForumPage";
+import ForumThreadPage from "./pages/ForumThreadPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ComponentsShowcase from "./pages/ComponentsShowcase";
 import NotFound from "./pages/NotFound";
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/map">{() => <ProtectedRoute component={MapPage} />}</Route>
       <Route path="/search">{() => <ProtectedRoute component={SearchPage} />}</Route>
       <Route path="/forum">{() => <ProtectedRoute component={ForumPage} />}</Route>
+      <Route path="/forum/:id">{() => <ProtectedRoute component={ForumThreadPage} />}</Route>
       <Route path="/admin">{() => <ProtectedRoute component={AdminDashboard} />}</Route>
       <Route path="/components">{() => <ProtectedRoute component={ComponentsShowcase} />}</Route>
       <Route component={NotFound} />

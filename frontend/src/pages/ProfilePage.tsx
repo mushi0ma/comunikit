@@ -4,15 +4,17 @@
 */
 import { useState } from "react";
 import {
-  Star, LogOut, Edit3, Package,
+  Star, LogOut, Edit3, Package, Bookmark,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
-import { MOCK_USER, MOCK_LISTINGS } from "@/lib/mockData";
+import { MOCK_USER, MOCK_LISTINGS, type Listing } from "@/lib/mockData";
+import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -81,7 +83,6 @@ export default function ProfilePage() {
 
   const displayName = (user?.user_metadata?.name as string) || MOCK_USER.name;
   const myListings = MOCK_LISTINGS.filter(l => l.author.id === "u1");
-  const favListings = MOCK_LISTINGS.slice(2, 5);
 
   return (
     <AppLayout title="Профиль">
@@ -154,7 +155,7 @@ export default function ProfilePage() {
         {/* ── Tab content ──────────────────────────────────── */}
         <div className="mt-4">
           {activeTab === "listings" && <ListingsTab listings={myListings} />}
-          {activeTab === "favorites" && <FavoritesTab listings={favListings} />}
+          {activeTab === "favorites" && <FavoritesTab />}
           {activeTab === "reviews" && <ReviewsTab />}
         </div>
 
@@ -234,10 +235,45 @@ function ListingsTab({ listings }: { listings: typeof MOCK_LISTINGS }) {
 
 /* ── Favorites tab ────────────────────────────────────────── */
 
-function FavoritesTab({ listings }: { listings: typeof MOCK_LISTINGS }) {
+function FavoritesTab() {
+  const { data: bookmarks, isLoading } = useQuery<Listing[]>({
+    queryKey: ["bookmarks"],
+    queryFn: async () => {
+      try {
+        return await apiFetch<Listing[]>("/api/bookmarks");
+      } catch {
+        // Fallback: fetch all listings and filter bookmarked
+        try {
+          const all = await apiFetch<Listing[]>("/api/listings");
+          return all.filter((l) => (l as Listing & { bookmarked?: boolean }).bookmarked === true);
+        } catch {
+          return [];
+        }
+      }
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Package className="size-8 animate-pulse text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!bookmarks || bookmarks.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card py-16 text-center text-muted-foreground ck-animate-in">
+        <Bookmark className="mx-auto mb-3 size-12 opacity-30" />
+        <p className="font-semibold">Нет сохранённых объявлений</p>
+        <p className="mt-1 text-sm">Добавляйте объявления в избранное, чтобы они появились здесь</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ck-animate-in lg:grid-cols-3">
-      {listings.map(l => (
+      {bookmarks.map(l => (
         <ListingCard key={l.id} listing={l} />
       ))}
     </div>

@@ -3,7 +3,7 @@
    Fixed: now fetches real listing from API by ID instead of MOCK_LISTINGS lookup
 */
 import { useState } from "react";
-import { useLocation, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, MapPin, Package, Heart, Bookmark, BookmarkCheck, Clock,
@@ -273,7 +273,7 @@ export default function ListingDetail() {
 
             {/* Author block */}
             {listing.author && (
-              <div className="flex items-center gap-3">
+              <Link href={`/profile/${listing.author.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
                   {listing.author.name[0]}
                 </div>
@@ -285,7 +285,7 @@ export default function ListingDetail() {
                     </p>
                   )}
                 </div>
-              </div>
+              </Link>
             )}
 
             {/* Posted time */}

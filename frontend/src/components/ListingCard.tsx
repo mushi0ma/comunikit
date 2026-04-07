@@ -1,9 +1,12 @@
 /* comunikit — ListingCard component
    Design: RunPod-inspired compact card with left type stripe
 */
+import { useState } from "react";
 import { cn, timeAgo } from "@/lib/utils";
 import { Listing, formatPrice, getTypeLabel, getTypeColor, getStripeColor } from "@/lib/mockData";
 import { useLocation } from "wouter";
+import { Heart, Bookmark } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 interface ListingCardProps {
   listing: Listing;
@@ -12,7 +15,38 @@ interface ListingCardProps {
 
 export default function ListingCard({ listing }: ListingCardProps) {
   const [, navigate] = useLocation();
+  const [liked, setLiked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+
   const handleClick = () => navigate(`/listing/${listing.id}`);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await apiFetch(`/api/listings/${listing.id}/vote`, {
+        method: "POST",
+        body: JSON.stringify({ value: 1 }),
+      });
+      setLiked((prev) => !prev);
+    } catch {
+      // optimistic toggle even on error for now
+      setLiked((prev) => !prev);
+    }
+  };
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await apiFetch("/api/bookmarks", {
+        method: "POST",
+        body: JSON.stringify({ listingId: listing.id }),
+      });
+      setBookmarked((prev) => !prev);
+    } catch {
+      // optimistic toggle even on error for now
+      setBookmarked((prev) => !prev);
+    }
+  };
 
   return (
     <div
@@ -31,6 +65,22 @@ export default function ListingCard({ listing }: ListingCardProps) {
             {listing.price ? formatPrice(listing.price) : "Договорная"}
           </span>
           <span className="text-xs font-mono text-muted-foreground">{timeAgo(listing.createdAt)}</span>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <button
+            onClick={handleLike}
+            className="p-1 rounded-md hover:bg-accent transition-colors"
+            aria-label="Нравится"
+          >
+            <Heart className={cn("w-4 h-4", liked ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
+          </button>
+          <button
+            onClick={handleBookmark}
+            className="p-1 rounded-md hover:bg-accent transition-colors"
+            aria-label="В закладки"
+          >
+            <Bookmark className={cn("w-4 h-4", bookmarked ? "fill-primary text-primary" : "text-muted-foreground")} />
+          </button>
         </div>
       </div>
     </div>

@@ -1,7 +1,4 @@
-/* comunikit — LoginPage v3
-   RunPod-inspired: pure black bg, single centered dark card,
-   OAuth row, divider, email+password form, fuchsia CTA.
-*/
+/* comunikit — LoginPage (Two-column, AITU-themed) */
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
@@ -11,14 +8,19 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Boxes,
   Github,
   Send,
-  ArrowRight,
+  Mail,
+  Lock,
+  ArrowLeft,
+  Shield,
+  MessageSquare,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
@@ -39,6 +41,14 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+/* ── Features for right panel ────────────────────────────────── */
+
+const FEATURES = [
+  { icon: Shield, text: "Только верифицированные студенты" },
+  { icon: MessageSquare, text: "Форум, маркетплейс и Lost & Found" },
+  { icon: Star, text: "Карма и рейтинг участников" },
+];
+
 /* ── Component ───────────────────────────────────────────────── */
 
 export default function LoginPage() {
@@ -58,7 +68,7 @@ export default function LoginPage() {
   async function onSubmit(data: LoginValues) {
     try {
       await signIn(data.email, data.password);
-      navigate("/feed");
+      navigate("/forum");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Ошибка входа");
     }
@@ -68,7 +78,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {
-        redirectTo: `${window.location.origin}/feed`,
+        redirectTo: `${window.location.origin}/forum`,
       },
     });
     if (error) toast.error(error.message);
@@ -100,7 +110,7 @@ export default function LoginPage() {
             refresh_token: data.refresh_token,
           });
           toast.success("Добро пожаловать!");
-          navigate("/feed");
+          navigate("/forum");
         } catch (e) {
           toast.error((e as Error).message);
         }
@@ -108,7 +118,6 @@ export default function LoginPage() {
       "telegram-widget-container",
     );
 
-    // Programmatically click the rendered Telegram button after short delay
     setTimeout(() => {
       const iframe = document.querySelector(
         "#telegram-widget-container iframe",
@@ -118,157 +127,214 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* ── Card ──────────────────────────────────────────── */}
-        <div className="bg-card border border-border rounded-xl p-8 flex flex-col gap-6">
-          {/* Logo */}
-          <div className="flex justify-center">
-            <Boxes className="w-8 h-8 text-primary" />
-          </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header className="flex items-center justify-between p-6">
+        <Link
+          href="/"
+          className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-4" />
+          <span className="text-base font-bold text-foreground">comunikit</span>
+        </Link>
+        <Link href="/register">
+          <Button variant="ghost" size="sm">
+            Регистрация
+          </Button>
+        </Link>
+      </header>
 
-          {/* Title block */}
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-foreground">
-              Войти в Comunikit
+      {/* ── Main ───────────────────────────────────────────────── */}
+      <main className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-12 items-center">
+          {/* ── Left column: form ──────────────────────────────── */}
+          <div className="w-full max-w-sm mx-auto lg:mx-0">
+            {/* Pill badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+              <span className="text-xs text-primary font-medium">
+                👋 Добро пожаловать
+              </span>
+            </div>
+
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Войти в аккаунт
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Добро пожаловать! Войдите чтобы продолжить
+            <p className="text-sm text-muted-foreground mb-6">
+              Продолжи работу в студенческом сообществе
+            </p>
+
+            {/* Form card */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              {/* OAuth buttons — side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleGithubAuth}
+                  className="flex items-center justify-center gap-2 h-10 rounded-lg bg-background border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                >
+                  <Github className="size-4" />
+                  GitHub
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTelegramAuth}
+                  className="flex items-center justify-center gap-2 h-10 rounded-lg bg-background border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                >
+                  <Send className="size-4" />
+                  Telegram
+                </button>
+              </div>
+
+              <div id="telegram-widget-container" className="hidden" />
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                  или
+                </span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Form */}
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="flex flex-col gap-4"
+              >
+                {/* Email */}
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="student@aitu.edu.kz"
+                      autoComplete="email"
+                      className={cn(
+                        "pl-10 bg-background border-border",
+                        errors.email &&
+                          "border-destructive focus-visible:ring-destructive",
+                      )}
+                      {...register("email")}
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-xs text-destructive">
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium">
+                      Пароль
+                    </Label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toast.info("Восстановление пароля в разработке")
+                      }
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Забыли пароль?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPass ? "text" : "password"}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      className={cn(
+                        "pl-10 pr-10 bg-background border-border",
+                        errors.password &&
+                          "border-destructive focus-visible:ring-destructive",
+                      )}
+                      {...register("password")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={
+                        showPass ? "Скрыть пароль" : "Показать пароль"
+                      }
+                    >
+                      {showPass ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-xs text-destructive">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Submit */}
+                <Button
+                  type="submit"
+                  className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90 mt-1"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                      Входим...
+                    </>
+                  ) : (
+                    "Войти"
+                  )}
+                </Button>
+              </form>
+            </div>
+
+            {/* Register link */}
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              Нет аккаунта?{" "}
+              <Link
+                href="/register"
+                className="text-primary font-semibold hover:underline"
+              >
+                Зарегистрироваться
+              </Link>
             </p>
           </div>
 
-          {/* OAuth buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={handleGithubAuth}
-              className="flex items-center justify-center gap-2 h-10 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              <Github className="w-4 h-4" />
-              GitHub
-            </button>
-            <button
-              type="button"
-              onClick={handleTelegramAuth}
-              className="flex items-center justify-center gap-2 h-10 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              <Send className="w-4 h-4" />
-              Telegram
-            </button>
-          </div>
-
-          {/* Hidden Telegram widget container */}
-          <div id="telegram-widget-container" className="hidden" />
-
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">или</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* Form */}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-4"
-          >
-            {/* Email */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="student@aitu.edu.kz"
-                autoComplete="email"
-                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
-              )}
+          {/* ── Right column: preview (desktop only) ───────────── */}
+          <div className="hidden lg:block">
+            {/* Stats card */}
+            <div className="rounded-2xl border border-border bg-card p-6 mb-6 text-center">
+              <p className="text-4xl font-bold text-primary mb-1">847</p>
+              <p className="text-sm text-muted-foreground">студентов AITU</p>
             </div>
 
-            {/* Password */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Пароль
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => toast.info("Восстановление пароля в разработке")}
-                  className="text-xs text-primary hover:underline"
+            {/* Feature bullets */}
+            <div className="flex flex-col gap-3">
+              {FEATURES.map((feature, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card"
                 >
-                  Забыли пароль?
-                </button>
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPass ? "text" : "password"}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className={
-                    errors.password
-                      ? "border-destructive focus-visible:ring-destructive pr-10"
-                      : "pr-10"
-                  }
-                  {...register("password")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPass ? "Скрыть пароль" : "Показать пароль"}
-                >
-                  {showPass ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">
-                  {errors.password.message}
-                </p>
-              )}
+                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <feature.icon className="size-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground">{feature.text}</span>
+                </div>
+              ))}
             </div>
-
-            {/* CTA */}
-            <Button
-              type="submit"
-              className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Входим...
-                </>
-              ) : (
-                <>
-                  Продолжить
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </form>
+          </div>
         </div>
-
-        {/* Register link — outside card */}
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Нет аккаунта?{" "}
-          <Link
-            href="/register"
-            className="text-primary font-semibold hover:underline"
-          >
-            Зарегистрироваться
-          </Link>
-        </p>
-      </div>
+      </main>
     </div>
   );
 }

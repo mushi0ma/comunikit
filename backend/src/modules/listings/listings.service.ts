@@ -110,6 +110,26 @@ export class ListingsService {
     });
   }
 
+  async search(query: string) {
+    return this.prisma.listing.findMany({
+      where: {
+        status: 'active',
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { category: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+  }
+
   async delete(id: string, authorId: string) {
     const listing = await this.prisma.listing.findUnique({
       where: { id },

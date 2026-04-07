@@ -39,6 +39,14 @@ export class ForumController {
     return { success: true, data };
   }
 
+  /** GET /api/forum/search?q=... — public keyword search */
+  @Get('search')
+  async search(@Query('q') q: string) {
+    if (!q || q.trim().length < 2) return { success: true, data: [] };
+    const data = await this.forum.search(q.trim());
+    return { success: true, data };
+  }
+
   /** GET /api/forum/:id — public, thread + comments */
   @Get(':id')
   async findOne(@Param('id') id: string) {

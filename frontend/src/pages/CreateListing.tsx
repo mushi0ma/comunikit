@@ -132,7 +132,7 @@ export default function CreateListing() {
       }
 
       toast.success("Объявление опубликовано!");
-      navigate(result.data?.id ? `/listing/${result.data.id}` : "/feed");
+      navigate(result.data?.id ? `/listing/${result.data.id}` : "/marketplace");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Ошибка при публикации");
     } finally {
@@ -145,7 +145,7 @@ export default function CreateListing() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Back */}
         <button
-          onClick={() => navigate("/feed")}
+          onClick={() => navigate("/marketplace")}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Назад к ленте

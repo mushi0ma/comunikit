@@ -5,7 +5,6 @@
 */
 import { useLocation, Link } from "wouter";
 import {
-  Home,
   MapPin,
   Plus,
   MessageSquare,
@@ -15,6 +14,7 @@ import {
   Settings,
   Bell,
   Search,
+  ShoppingBag,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -33,17 +33,17 @@ interface NavItem {
 }
 
 const SIDEBAR_TOP_ITEMS: NavItem[] = [
-  { href: "/feed", icon: Home, label: "Лента" },
-  { href: "/map", icon: MapPin, label: "Карта" },
   { href: "/forum", icon: MessageSquare, label: "Форум" },
-  { href: "/create", icon: Plus, label: "Добавить" },
+  { href: "/marketplace", icon: ShoppingBag, label: "Маркетплейс" },
+  { href: "/map", icon: MapPin, label: "Карта" },
+  { href: "/create", icon: Plus, label: "Создать" },
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
-  { href: "/feed", icon: Home, label: "Лента" },
-  { href: "/map", icon: MapPin, label: "Карта" },
-  { href: "/create", icon: Plus, label: "Добавить" },
   { href: "/forum", icon: MessageSquare, label: "Форум" },
+  { href: "/marketplace", icon: ShoppingBag, label: "Маркетплейс" },
+  { href: "/create", icon: Plus, label: "Создать" },
+  { href: "/map", icon: MapPin, label: "Карта" },
   { href: "/profile", icon: User, label: "Профиль" },
 ];
 
@@ -116,7 +116,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
       <aside className="hidden lg:flex flex-col w-16 xl:w-48 shrink-0 bg-sidebar border-r border-sidebar-border sticky top-0 h-screen">
         {/* Logo — Boxes icon + brand name */}
         <div className="flex items-center justify-center xl:justify-start h-14 border-b border-sidebar-border shrink-0 xl:px-3">
-          <Link href="/feed" className="flex items-center gap-2">
+          <Link href="/forum" className="flex items-center gap-2">
             <Boxes className="w-6 h-6 text-primary shrink-0" />
             <span className="text-sm font-bold tracking-tight hidden xl:block">comunikit</span>
           </Link>
@@ -174,7 +174,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
           <div className="flex items-center gap-3 px-4 h-full">
             {/* Mobile: logo + title */}
             <div className="lg:hidden flex items-center gap-2 flex-1 min-w-0">
-              <Link href="/feed">
+              <Link href="/forum">
                 <Boxes className="w-6 h-6 text-primary shrink-0" />
               </Link>
               <span className="text-sm font-semibold text-foreground truncate">

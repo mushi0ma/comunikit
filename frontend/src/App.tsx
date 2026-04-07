@@ -42,7 +42,7 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       <Route path="/dashboard">{() => <ProtectedRoute component={Home} />}</Route>
-      <Route path="/feed">{() => <ProtectedRoute component={HomeFeed} />}</Route>
+      <Route path="/marketplace">{() => <ProtectedRoute component={HomeFeed} />}</Route>
       <Route path="/listing/:id">{() => <ProtectedRoute component={ListingDetail} />}</Route>
       <Route path="/create">{() => <ProtectedRoute component={CreateListing} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>

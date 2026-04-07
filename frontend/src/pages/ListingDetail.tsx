@@ -157,7 +157,7 @@ export default function ListingDetail() {
           <p className="text-sm text-muted-foreground">
             Возможно, оно было удалено или ссылка некорректна.
           </p>
-          <Button variant="outline" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/feed")}>
+          <Button variant="outline" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/marketplace")}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Назад
           </Button>
         </div>
@@ -173,7 +173,7 @@ export default function ListingDetail() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Back */}
         <button
-          onClick={() => navigate("/feed")}
+          onClick={() => navigate("/marketplace")}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Назад к ленте
@@ -296,19 +296,29 @@ export default function ListingDetail() {
 
             {/* CTA buttons */}
             <div className="flex flex-col gap-2 pt-2">
-              <Button
-                className="w-full gap-2"
-                onClick={() => {
-                  if (listing.author?.telegramHandle) {
-                    toast.info(`Открываем Telegram: ${listing.author.telegramHandle}`);
-                  } else {
-                    toast.info("Контакт продавца не указан");
-                  }
-                }}
-              >
-                <MessageCircle className="w-4 h-4" />
-                Написать продавцу
-              </Button>
+              {(() => {
+                const telegramHandle = listing?.author?.telegramHandle;
+                const contactUrl = telegramHandle
+                  ? `https://t.me/${telegramHandle.replace('@', '')}`
+                  : null;
+                return (
+                  <a
+                    href={contactUrl || '#'}
+                    target={contactUrl ? "_blank" : undefined}
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "inline-flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg font-medium text-sm transition-colors",
+                      contactUrl
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-muted text-muted-foreground cursor-not-allowed",
+                    )}
+                    onClick={(e) => !contactUrl && e.preventDefault()}
+                  >
+                    <Send className="w-4 h-4" />
+                    {contactUrl ? "Написать продавцу" : "Telegram не указан"}
+                  </a>
+                );
+              })()}
               <Button
                 variant="outline"
                 className={cn("w-full gap-2 transition-all duration-200", saved && "scale-[1.02]")}

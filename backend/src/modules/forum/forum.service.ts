@@ -81,6 +81,25 @@ export class ForumService {
     return thread;
   }
 
+  async search(query: string) {
+    return this.prisma.forumThread.findMany({
+      where: {
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { body: { contains: query, mode: 'insensitive' } },
+          { category: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+  }
+
   async create(
     data: { title: string; body: string; category: string },
     authorId: string,

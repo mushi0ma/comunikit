@@ -137,7 +137,7 @@ export default function Home() {
                     Сообщить о потере
                   </Button>
                 </Link>
-                <Link href="/feed">
+                <Link href="/marketplace">
                   <Button variant="outline" className="w-full justify-start gap-2 rounded-lg" size="default">
                     <Search data-icon="inline-start" />
                     Поиск по объявлениям
@@ -159,7 +159,7 @@ export default function Home() {
                   </CardTitle>
                   <CardDescription>Самые просматриваемые объявления</CardDescription>
                 </CardHeader>
-                <Link href="/feed">
+                <Link href="/marketplace">
                   <Button variant="ghost" size="sm" className="text-primary">
                     Все
                     <ArrowRight data-icon="inline-end" />

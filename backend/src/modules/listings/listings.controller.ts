@@ -47,6 +47,14 @@ export class ListingsController {
     return { success: true, data };
   }
 
+  /** GET /api/listings/search?q=... — public keyword search */
+  @Get('search')
+  async search(@Query('q') q: string) {
+    if (!q || q.trim().length < 2) return { success: true, data: [] };
+    const data = await this.listings.search(q.trim());
+    return { success: true, data };
+  }
+
   /** GET /api/listings/:id — public */
   @Get(':id')
   async findOne(@Param('id') id: string) {

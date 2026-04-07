@@ -101,4 +101,5 @@ backend/.env
 backend/generated/
 
 DESIGN.md
-INTERACTIONS.md
+INTERACTIONS.md.env.production
+test-results/

@@ -1,7 +1,6 @@
 /* comunikit — NotificationsPage
    Grouped notifications list (Новые / Прочитанные) with real API.
 */
-import { useEffect } from "react";
 import { Bell, MessageCircle, MapPin, MessageSquare, CheckCheck, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
@@ -103,7 +102,9 @@ export default function NotificationsPage() {
     mutationFn: () =>
       apiFetch("/api/notifications/read", { method: "PATCH" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.setQueryData<Notification[]>(["notifications"], old =>
+        (old ?? []).map(n => ({ ...n, isRead: true })),
+      );
       toast.success("Все уведомления прочитаны");
     },
     onError: () => toast.error("Ошибка при отметке"),
@@ -112,15 +113,12 @@ export default function NotificationsPage() {
   const markOneReadMut = useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: (_data, id) => {
+      queryClient.setQueryData<Notification[]>(["notifications"], old =>
+        (old ?? []).map(n => n.id === id ? { ...n, isRead: true } : n),
+      );
+    },
   });
-
-  /* Auto-mark all as read on page mount */
-  useEffect(() => {
-    apiFetch('/api/notifications/read', { method: 'PATCH' })
-      .then(() => queryClient.invalidateQueries({ queryKey: ["notifications"] }))
-      .catch(() => {});
-  }, [queryClient]);
 
   const notifications = items ?? MOCK_NOTIFICATIONS;
   const unread = notifications.filter(n => !n.isRead);

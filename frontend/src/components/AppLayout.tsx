@@ -113,12 +113,11 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
           DESKTOP SIDEBAR  (≥ lg / 1024px)
           Icon-only, w-16 = 64px, sticky full-height.
           ═══════════════════════════════════════════════════════ */}
-      <aside className="hidden lg:flex flex-col w-16 xl:w-48 shrink-0 bg-sidebar border-r border-sidebar-border sticky top-0 h-screen">
-        {/* Logo — Boxes icon + brand name */}
-        <div className="flex items-center justify-center xl:justify-start h-14 border-b border-sidebar-border shrink-0 xl:px-3">
-          <Link href="/forum" className="flex items-center gap-2">
+      <aside className="hidden lg:flex flex-col w-16 shrink-0 bg-sidebar border-r border-sidebar-border sticky top-0 h-screen">
+        {/* Logo — Boxes icon */}
+        <div className="flex items-center justify-center h-14 border-b border-sidebar-border shrink-0">
+          <Link href="/forum">
             <Boxes className="w-6 h-6 text-primary shrink-0" />
-            <span className="text-sm font-bold tracking-tight hidden xl:block">comunikit</span>
           </Link>
         </div>
 

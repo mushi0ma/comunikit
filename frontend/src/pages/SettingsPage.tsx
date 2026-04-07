@@ -186,7 +186,7 @@ export default function SettingsPage() {
             </div>
             <div className="h-px bg-border my-2" />
             <a
-              href="https://github.com/"
+              href="https://github.com/mushi0ma/comunikit"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between py-2 text-foreground transition-colors hover:text-primary"

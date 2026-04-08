@@ -10,10 +10,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
-import { MOCK_USER, MOCK_LISTINGS, type Listing } from "@/lib/mockData";
+import type { Listing } from "@/lib/mockData";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -58,11 +59,21 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>("listings");
   const user = useAuthStore(s => s.user);
 
-  /* ── Edit modal state ───────────────────────────────── */
+  const displayName = (user?.user_metadata?.name as string) || "Студент AITU";
+  const userGroup = (user?.user_metadata?.group as string) || "";
+  const userEmail = user?.email ?? "";
+  const karma = (user?.user_metadata?.karma as number) ?? 0;
+
+  /* ── My listings query ────────────────────────────── */
+  const { data: myListings, isLoading: listingsLoading } = useQuery<Listing[]>({
+    queryKey: ["my-listings", user?.id],
+    queryFn: () => apiFetch<Listing[]>(`/api/listings?authorId=${user!.id}`),
+    enabled: !!user?.id,
+  });
+
+  /* ── Edit modal state ───────────────────────────── */
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(
-    (user?.user_metadata?.name as string) || MOCK_USER.name
-  );
+  const [editName, setEditName] = useState(displayName);
   const [saving, setSaving] = useState(false);
 
   async function saveProfile() {
@@ -81,9 +92,6 @@ export default function ProfilePage() {
     }
   }
 
-  const displayName = (user?.user_metadata?.name as string) || MOCK_USER.name;
-  const myListings = MOCK_LISTINGS.filter(l => l.author.id === "u1");
-
   return (
     <AppLayout title="Профиль">
       <div className="mx-auto max-w-3xl px-4 py-6 lg:px-0">
@@ -97,27 +105,26 @@ export default function ProfilePage() {
 
           <div className="flex-1">
             <div className="text-lg sm:text-xl font-bold text-foreground">{displayName}</div>
-            {(user?.user_metadata?.group || MOCK_USER.group) && (
+            {userGroup && (
               <div className="mt-0.5 font-mono text-sm text-muted-foreground">
-                {(user?.user_metadata?.group as string) ?? MOCK_USER.group}
+                {userGroup}
               </div>
             )}
+            {userEmail && (
+              <div className="mt-0.5 text-xs text-muted-foreground">{userEmail}</div>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{MOCK_USER.listingsCount} объявлений</Badge>
-              <Badge variant="outline">{MOCK_USER.rating}★ ({MOCK_USER.reviewCount} отзывов)</Badge>
-              {(() => {
-                const karma = (user?.user_metadata?.karma as number) ?? MOCK_USER.karma;
-                return (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      karma > 0 ? "text-primary border-primary/30" : karma < 0 ? "text-red-400 border-red-400/30" : ""
-                    )}
-                  >
-                    {karma > 100 ? "🔥 " : ""}Карма: {karma}
-                  </Badge>
-                );
-              })()}
+              <Badge variant="outline">{myListings?.length ?? 0} объявлений</Badge>
+              {(() => (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    karma > 0 ? "text-primary border-primary/30" : karma < 0 ? "text-red-400 border-red-400/30" : ""
+                  )}
+                >
+                  Карма: {karma}
+                </Badge>
+              ))()}
             </div>
           </div>
 
@@ -154,7 +161,7 @@ export default function ProfilePage() {
 
         {/* ── Tab content ──────────────────────────────────── */}
         <div className="mt-4">
-          {activeTab === "listings" && <ListingsTab listings={myListings} />}
+          {activeTab === "listings" && <ListingsTab listings={myListings ?? []} isLoading={listingsLoading} />}
           {activeTab === "favorites" && <FavoritesTab />}
           {activeTab === "reviews" && <ReviewsTab />}
         </div>
@@ -213,7 +220,21 @@ export default function ProfilePage() {
 
 /* ── Listings tab ─────────────────────────────────────────── */
 
-function ListingsTab({ listings }: { listings: typeof MOCK_LISTINGS }) {
+function ListingsTab({ listings, isLoading }: { listings: Listing[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (listings.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card py-16 text-center text-muted-foreground ck-animate-in">

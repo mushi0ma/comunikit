@@ -16,6 +16,7 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
 
 # ─── Logs ──────────────────────────────────────────────────────────────────────
 logs/
@@ -84,6 +85,7 @@ temp/
 .mcp.json
 skills-lock.json
 CLAUDE.md
+
 ideas.md
 *.local.json
 *.local.md

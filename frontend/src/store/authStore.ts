@@ -15,6 +15,8 @@ interface AuthState {
     name: string,
   ) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   initAuth: () => void;
 }
 
@@ -34,13 +36,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((event, session) => {
       set({
         session,
         user: session?.user ?? null,
         isAuthenticated: !!session,
         isLoading: false,
       });
+      if (event === "PASSWORD_RECOVERY") {
+        // Session is active from the reset link — redirect handled by redirectTo URL
+      }
     });
   },
 
@@ -66,5 +71,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     await supabase.auth.signOut();
     set({ user: null, session: null, isAuthenticated: false });
+  },
+
+  resetPassword: async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+  },
+
+  updatePassword: async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
   },
 }));

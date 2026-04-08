@@ -8,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 export interface ListingsFilter {
   type?: string;
   category?: string;
+  authorId?: string;
   limit?: number;
   offset?: number;
 }
@@ -20,6 +21,7 @@ export class ListingsService {
     const where: Record<string, unknown> = { status: 'active' };
     if (filters.type) where.type = filters.type;
     if (filters.category) where.category = filters.category;
+    if (filters.authorId) where.authorId = filters.authorId;
 
     return this.prisma.listing.findMany({
       where,

@@ -35,12 +35,14 @@ export class ListingsController {
   async findAll(
     @Query('type') type?: string,
     @Query('category') category?: string,
+    @Query('authorId') authorId?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
     const data = await this.listings.findAll({
       type,
       category,
+      authorId,
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
     });

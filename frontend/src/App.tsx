@@ -33,6 +33,8 @@ import ForumPage from "./pages/ForumPage";
 import ForumThreadPage from "./pages/ForumThreadPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ComponentsShowcase from "./pages/ComponentsShowcase";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -41,6 +43,8 @@ function Router() {
       <Route path="/" component={LoginPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/dashboard">{() => <ProtectedRoute component={Home} />}</Route>
       <Route path="/marketplace">{() => <ProtectedRoute component={HomeFeed} />}</Route>
       <Route path="/listing/:id">{() => <ProtectedRoute component={ListingDetail} />}</Route>

@@ -7,6 +7,7 @@ import { Listing, formatPrice, getTypeLabel, getTypeColor, getStripeColor } from
 import { useLocation } from "wouter";
 import { Heart, Bookmark } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ListingCardProps {
   listing: Listing;
@@ -17,6 +18,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
   const [, navigate] = useLocation();
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleClick = () => navigate(`/listing/${listing.id}`);
 
@@ -42,6 +44,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
         body: JSON.stringify({ listingId: listing.id }),
       });
       setBookmarked((prev) => !prev);
+      void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
     } catch {
       // optimistic toggle even on error for now
       setBookmarked((prev) => !prev);

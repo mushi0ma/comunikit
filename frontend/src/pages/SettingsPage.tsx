@@ -3,6 +3,7 @@
    Design: RunPod-style two-column form cards on desktop.
 */
 import { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Bell, Moon, Sun, Monitor, ChevronRight, Github, LogOut, Mail, Shield, Camera, Loader2,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { supabase } from "@/lib/supabase";
 import { uploadImage } from "@/lib/upload";
 
 export default function SettingsPage() {
+  const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [name, setName] = useState(MOCK_USER.name);
   const [telegram, setTelegram] = useState(MOCK_USER.telegramHandle || "");
@@ -83,9 +85,7 @@ export default function SettingsPage() {
             <Input value={name} onChange={e => setName(e.target.value)} />
           </FormRow>
 
-          <FormRow label="Студенческий ID">
-            <Input value={MOCK_USER.studentId} readOnly className="font-mono text-muted-foreground" />
-          </FormRow>
+
 
           <FormRow label="Telegram">
             <Input
@@ -162,7 +162,7 @@ export default function SettingsPage() {
               Icon={Shield}
               title="Сменить пароль"
               description="Последняя смена: 3 месяца назад"
-              onClick={() => toast.info("Смена пароля в разработке")}
+              onClick={() => navigate("/reset-password")}
             />
             <LinkRow
               Icon={Shield}

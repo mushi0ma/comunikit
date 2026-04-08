@@ -318,7 +318,13 @@ export default function MapPage() {
                 </button>
               </div>
               <Button
-                onClick={() => navigate("/create")}
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  params.set("mapX", String(pendingMarker.x));
+                  params.set("mapY", String(pendingMarker.y));
+                  params.set("type", pendingMarker.type);
+                  navigate(`/create?${params.toString()}`);
+                }}
                 className="w-full text-sm"
               >
                 Добавить объявление

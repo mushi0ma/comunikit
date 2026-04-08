@@ -1,5 +1,5 @@
 /* comunikit — LoginPage (Two-column, AITU-themed) */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +16,9 @@ import {
   Shield,
   MessageSquare,
   Star,
+  Sparkles,
+  TrendingUp,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,9 +47,15 @@ type LoginValues = z.infer<typeof loginSchema>;
 /* ── Features for right panel ────────────────────────────────── */
 
 const FEATURES = [
-  { icon: Shield, text: "Только верифицированные студенты" },
-  { icon: MessageSquare, text: "Форум, маркетплейс и Lost & Found" },
-  { icon: Star, text: "Карма и рейтинг участников" },
+  { icon: Shield, text: "Только верифицированные студенты", color: "text-emerald-400" },
+  { icon: MessageSquare, text: "Форум, маркетплейс и Lost & Found", color: "text-sky-400" },
+  { icon: Star, text: "Карма и рейтинг участников", color: "text-amber-400" },
+];
+
+const ACTIVITY = [
+  { user: "Аслан К.", action: "создал тему", target: "Стипендия весна 2026", time: "2м" },
+  { user: "Дана М.", action: "продаёт", target: "MacBook Air M3", time: "15м" },
+  { user: "Ерболат Т.", action: "нашёл", target: "AirPods Pro", time: "1ч" },
 ];
 
 /* ── Component ───────────────────────────────────────────────── */
@@ -54,6 +63,7 @@ const FEATURES = [
 export default function LoginPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
+  const [activeActivity, setActiveActivity] = useState(0);
   const signIn = useAuthStore((s) => s.signIn);
 
   const {
@@ -64,6 +74,13 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveActivity((prev) => (prev + 1) % ACTIVITY.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
 
   async function onSubmit(data: LoginValues) {
     try {
@@ -307,27 +324,102 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* ── Right column: preview (desktop only) ───────────── */}
-          <div className="hidden lg:block">
-            {/* Stats card */}
-            <div className="rounded-2xl border border-border bg-card p-6 mb-6 text-center">
-              <p className="text-4xl font-bold text-primary mb-1">847</p>
-              <p className="text-sm text-muted-foreground">студентов AITU</p>
+          {/* ── Right column: premium hero (desktop only) ─────── */}
+          <div className="hidden lg:flex flex-col gap-6">
+            {/* Hero card with gradient accents */}
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
+              {/* Background decorations */}
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/8 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -left-20 w-52 h-52 bg-sky-500/8 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="size-4 text-primary" />
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+                    Comunikit в цифрах
+                  </span>
+                </div>
+
+                {/* Big stat */}
+                <div className="flex items-end gap-3 mb-1">
+                  <span className="text-5xl font-black text-foreground tracking-tight">847</span>
+                  <div className="flex items-center gap-1 mb-2">
+                    <TrendingUp className="size-4 text-emerald-400" />
+                    <span className="text-sm font-semibold text-emerald-400">+12%</span>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-6">
+                  студентов AITU уже используют платформу
+                </p>
+
+                {/* Mini stat row */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: "1.2K", label: "объявлений" },
+                    { value: "340", label: "тем в форуме" },
+                    { value: "56", label: "вещей найдено" },
+                  ].map((s, i) => (
+                    <div key={i} className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-lg font-bold text-foreground">{s.value}</p>
+                      <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Feature bullets */}
-            <div className="flex flex-col gap-3">
+            {/* Feature list */}
+            <div className="flex flex-col gap-2.5">
               {FEATURES.map((feature, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card"
+                  className="flex items-center gap-3.5 p-3.5 rounded-xl border border-border bg-card hover:bg-accent/30 transition-colors"
                 >
-                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <feature.icon className="size-4 text-primary" />
+                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <feature.icon className={cn("size-4", feature.color)} />
                   </div>
-                  <span className="text-sm text-foreground">{feature.text}</span>
+                  <span className="text-sm font-medium text-foreground">{feature.text}</span>
+                  <CheckCircle2 className="size-4 text-emerald-400 ml-auto opacity-60" />
                 </div>
               ))}
+            </div>
+
+            {/* Live activity feed */}
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="relative flex size-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Прямо сейчас
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {ACTIVITY.map((item, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-2 text-sm transition-all duration-500",
+                      activeActivity === i
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-40 scale-[0.98]",
+                    )}
+                  >
+                    <div className="size-6 rounded-full bg-primary/15 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                      {item.user[0]}
+                    </div>
+                    <span className="text-foreground/80 truncate">
+                      <strong className="text-foreground">{item.user}</strong>
+                      {" "}{item.action}{" "}
+                      <span className="text-primary">{item.target}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0 ml-auto">
+                      {item.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

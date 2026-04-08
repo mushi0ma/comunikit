@@ -37,8 +37,8 @@ test.describe('AppLayout', () => {
     // Title
     await expect(page.getByText('Создать аккаунт')).toBeVisible()
 
-    // Student ID input with placeholder "Введите код"
-    await expect(page.locator('input[placeholder="Введите код"]')).toBeVisible()
+    // Name input
+    await expect(page.locator('input[placeholder="Алиев Арман"]')).toBeVisible()
 
     // AITU-only disclaimer
     await expect(page.getByText(/только для студентов/i)).toBeVisible()

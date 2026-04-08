@@ -322,9 +322,19 @@ export default function ListingDetail() {
               <Button
                 variant="outline"
                 className={cn("w-full gap-2 transition-all duration-200", saved && "scale-[1.02]")}
-                onClick={() => {
-                  setSaved(!saved);
-                  toast.success(saved ? "Убрано из сохранённых" : "Сохранено");
+                onClick={async () => {
+                  try {
+                    await apiFetch("/api/bookmarks", {
+                      method: "POST",
+                      body: JSON.stringify({ listingId: listing.id }),
+                    });
+                    setSaved(!saved);
+                    void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+                    toast.success(saved ? "Убрано из сохранённых" : "Сохранено");
+                  } catch {
+                    setSaved(!saved);
+                    toast.success(saved ? "Убрано из сохранённых" : "Сохранено");
+                  }
                 }}
               >
                 {saved ? <BookmarkCheck className="w-4 h-4 text-green-400" /> : <Bookmark className="w-4 h-4" />}

@@ -1,8 +1,8 @@
 /* comunikit — CreateListing (RunPod-inspired single-page form)
    Design: clean card sections, option cards, dashed upload zone
 */
-import { useState, useRef } from "react";
-import { useLocation } from "wouter";
+import { useState, useRef, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 import {
   ArrowLeft, Upload, X, MapPin, Loader2, Send,
   ShoppingBag, Search, Banknote, ShoppingCart, Wrench,
@@ -53,6 +53,22 @@ export default function CreateListing() {
   const [locationText, setLocationText] = useState("");
   const [publishing, setPublishing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /* ── Pre-fill from map query params ─────────────────────── */
+  const searchString = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const mapType = params.get("type");
+    const mapX = params.get("mapX");
+    const mapY = params.get("mapY");
+    if (mapType === "lost" || mapType === "found") {
+      setMainType("lostfound");
+      setSubType(mapType);
+    }
+    if (mapX && mapY) {
+      setLocationText(`Карта: x=${Number(mapX).toFixed(1)}, y=${Number(mapY).toFixed(1)}`);
+    }
+  }, [searchString]);
 
   const isLostFound = mainType === "lostfound";
   const showPrice = subType === "sell" || subType === "service";

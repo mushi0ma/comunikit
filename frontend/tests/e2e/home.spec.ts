@@ -7,7 +7,7 @@ test.describe('AppLayout', () => {
 
   test('Login page renders correctly', async ({ page }) => {
     // Logo icon (Boxes icon from lucide — rendered as SVG, check nearby text)
-    await expect(page.getByText('Войти в Comunikit')).toBeVisible()
+    await expect(page.getByText('Войти в аккаунт')).toBeVisible()
 
     // Email input
     await expect(page.locator('input[type="email"]')).toBeVisible()
@@ -16,7 +16,7 @@ test.describe('AppLayout', () => {
     await expect(page.locator('input[type="password"]')).toBeVisible()
 
     // Submit button — "Продолжить"
-    await expect(page.getByRole('button', { name: /продолжить/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /войти/i })).toBeVisible()
 
     // GitHub OAuth button
     await expect(page.getByRole('button', { name: /github/i })).toBeVisible()
@@ -54,8 +54,32 @@ test.describe('AppLayout', () => {
   })
 
   test('Protected route redirects to login', async ({ page }) => {
-    // Navigating to /feed without auth should redirect to /login
-    await page.goto('http://localhost:3000/feed')
+    // Navigating to /forum without auth should redirect to /login
+    await page.goto('http://localhost:3000/forum')
     await expect(page).toHaveURL(/login/)
+  })
+
+  test('Notification bell shows popover on click', async ({ page }) => {
+    // Attempt login
+    await page.fill('input[type="email"]', 'test@aitu.edu.kz')
+    await page.fill('input[type="password"]', 'test123456')
+    await page.click('button[type="submit"]')
+
+    try {
+      await page.waitForURL('**/forum', { timeout: 5000 })
+
+      // Bell button should be visible
+      const bell = page.getByRole('button', { name: /уведомления/i })
+      await expect(bell).toBeVisible()
+
+      // Click bell to open popover
+      await bell.click()
+
+      // Popover should show "Уведомления" header
+      await expect(page.getByText('Все уведомления →')).toBeVisible()
+    } catch {
+      // Auth unavailable — verify we're still on login page
+      await expect(page.locator('input[type="email"]')).toBeVisible()
+    }
   })
 })

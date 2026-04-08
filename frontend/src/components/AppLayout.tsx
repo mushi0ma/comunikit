@@ -3,6 +3,7 @@
    - Desktop (lg+): icon-only sidebar 64px + top header
    - Mobile (<lg):  top header + bottom nav bar
 */
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import {
   MapPin,
@@ -12,10 +13,10 @@ import {
   Shield,
   Boxes,
   Settings,
-  Bell,
   Search,
   ShoppingBag,
 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -100,8 +101,6 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
   const [location, navigate] = useLocation();
   // TODO: replace with auth store value
   const isAdmin = false;
-  // TODO: replace with real unread count from notifications store
-  const unreadCount = 2;
 
   function isActive(href: string) {
     return location === href || location.startsWith(href + "/");
@@ -199,16 +198,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
               </button>
 
               {/* Notification bell */}
-              <button
-                className="relative flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                onClick={() => navigate("/notifications")}
-                aria-label="Уведомления"
-              >
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
-                )}
-              </button>
+              <NotificationBell />
 
               {/* Avatar */}
               <Link href="/profile">
@@ -232,31 +222,84 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
           MOBILE BOTTOM NAVIGATION  (< lg / 1024px)
           Glassmorphism bar, FAB for create action.
           ═══════════════════════════════════════════════════════ */}
-      <nav
-        className="ck-bottom-nav ck-glass fixed bottom-0 left-0 right-0 z-50 lg:hidden"
-        aria-label="Основная навигация"
-      >
-        {MOBILE_NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-          const active = isActive(href);
-          const isCreate = href === "/create";
-          return (
-            <Link key={href} href={href}>
-              <div className={cn("ck-bottom-nav-item", active && "active")}>
-                {isCreate ? (
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground ck-primary-glow -mt-1">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                ) : (
-                  <>
-                    <Icon className="w-5 h-5" />
-                    <span className="text-[10px] font-semibold">{label}</span>
-                  </>
-                )}
-              </div>
-            </Link>
-          );
-        })}
-      </nav>
+      <MobileBottomNav location={location} isActive={isActive} />
     </div>
+  );
+}
+
+/* ── Mobile bottom nav with sliding indicator ─────────────── */
+
+function MobileBottomNav({
+  location,
+  isActive,
+}: {
+  location: string;
+  isActive: (href: string) => boolean;
+}) {
+  const navRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+
+  const setItemRef = useCallback((href: string, el: HTMLDivElement | null) => {
+    if (el) itemRefs.current.set(href, el);
+    else itemRefs.current.delete(href);
+  }, []);
+
+  useEffect(() => {
+    const activeHref = MOBILE_NAV_ITEMS.find(
+      (item) => item.href !== "/create" && isActive(item.href),
+    )?.href;
+    if (!activeHref || !navRef.current) {
+      setIndicator(null);
+      return;
+    }
+    const el = itemRefs.current.get(activeHref);
+    if (!el) return;
+    const navRect = navRef.current.getBoundingClientRect();
+    const itemRect = el.getBoundingClientRect();
+    setIndicator({
+      left: itemRect.left - navRect.left,
+      width: itemRect.width,
+    });
+  }, [location, isActive]);
+
+  return (
+    <nav
+      ref={navRef}
+      className="ck-bottom-nav ck-glass fixed bottom-0 left-0 right-0 z-50 lg:hidden"
+      aria-label="Основная навигация"
+    >
+      {/* Sliding pill indicator */}
+      {indicator && (
+        <div
+          className="absolute top-1.5 h-[calc(100%-12px)] rounded-2xl bg-primary/10 transition-all duration-300 ease-out pointer-events-none"
+          style={{ left: indicator.left, width: indicator.width }}
+        />
+      )}
+
+      {MOBILE_NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+        const active = isActive(href);
+        const isCreate = href === "/create";
+        return (
+          <Link key={href} href={href}>
+            <div
+              ref={(el) => setItemRef(href, el)}
+              className={cn("ck-bottom-nav-item relative z-10", active && "active")}
+            >
+              {isCreate ? (
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground ck-primary-glow -mt-1">
+                  <Icon className="w-5 h-5" />
+                </div>
+              ) : (
+                <>
+                  <Icon className="w-5 h-5" />
+                  <span className="text-[10px] font-semibold">{label}</span>
+                </>
+              )}
+            </div>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

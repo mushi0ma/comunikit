@@ -135,31 +135,14 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
 
         {/* Bottom: Settings + Profile */}
         <div className="flex flex-col items-center py-3 border-t border-sidebar-border gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link href="/settings">
-                <div className="ck-sidebar-icon">
-                  <Settings className="w-5 h-5" />
-                </div>
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              Настройки
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link href="/profile">
-                <div className={cn("ck-sidebar-icon", isActive("/profile") && "active")}>
-                  <User className="w-5 h-5" />
-                </div>
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              Профиль
-            </TooltipContent>
-          </Tooltip>
+          <SidebarIconBtn
+            item={{ href: "/settings", icon: Settings, label: "Настройки" }}
+            active={isActive("/settings")}
+          />
+          <SidebarIconBtn
+            item={{ href: "/profile", icon: User, label: "Профиль" }}
+            active={isActive("/profile")}
+          />
         </div>
       </aside>
 

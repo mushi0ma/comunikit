@@ -84,9 +84,7 @@ Respond ONLY with valid JSON, no markdown:
 
     let parsed: OcrParsed = {};
     try {
-      parsed = JSON.parse(
-        text.replace(/```json|```/g, '').trim(),
-      ) as OcrParsed;
+      parsed = JSON.parse(text.replace(/```json|```/g, '').trim()) as OcrParsed;
     } catch {
       return { valid: false, reason: 'Failed to parse OCR response' };
     }

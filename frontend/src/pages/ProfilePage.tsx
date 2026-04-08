@@ -58,6 +58,8 @@ function StarRating({ rating }: { rating: number }) {
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>("listings");
   const user = useAuthStore(s => s.user);
+  const refreshUser = useAuthStore(s => s.refreshUser);
+  const signOut = useAuthStore(s => s.signOut);
 
   const displayName = (user?.user_metadata?.name as string) || "Студент AITU";
   const userGroup = (user?.user_metadata?.group as string) || "";
@@ -74,15 +76,18 @@ export default function ProfilePage() {
   /* ── Edit modal state ───────────────────────────── */
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(displayName);
+  const [editGroup, setEditGroup] = useState(userGroup);
   const [saving, setSaving] = useState(false);
 
   async function saveProfile() {
     setSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        data: { name: editName },
+        data: { name: editName.trim(), group: editGroup.trim() },
       });
       if (error) throw error;
+      // Explicitly refresh user in the store so UI updates instantly
+      await refreshUser();
       toast.success("Профиль обновлён");
       setEditing(false);
     } catch {
@@ -134,6 +139,7 @@ export default function ProfilePage() {
             className="gap-1.5 self-start"
             onClick={() => {
               setEditName(displayName);
+              setEditGroup(userGroup);
               setEditing(true);
             }}
           >
@@ -170,7 +176,8 @@ export default function ProfilePage() {
         <Button
           variant="outline"
           className="h-11 w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/5 mt-6"
-          onClick={() => {
+          onClick={async () => {
+            await signOut();
             toast.success("Вы вышли из аккаунта");
             window.location.href = "/login";
           }}
@@ -191,6 +198,15 @@ export default function ProfilePage() {
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
                 placeholder="Ваше имя"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">Группа</label>
+              <Input
+                value={editGroup}
+                onChange={e => setEditGroup(e.target.value)}
+                placeholder="IT-23-A"
               />
             </div>
 

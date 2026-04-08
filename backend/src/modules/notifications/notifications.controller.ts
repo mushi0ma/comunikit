@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -16,7 +17,7 @@ import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
 
-  /** GET /api/notifications — user's notifications */
+  /** GET /api/notifications — user's notifications (last 50) */
   @Get()
   async findAll(@Req() req: Request) {
     const user = (req as Request & { user: User }).user;
@@ -24,7 +25,15 @@ export class NotificationsController {
     return { success: true, data };
   }
 
-  /** PATCH /api/notifications/read — mark all as read */
+  /** GET /api/notifications/unread-count — lightweight unread badge count */
+  @Get('unread-count')
+  async unreadCount(@Req() req: Request) {
+    const user = (req as Request & { user: User }).user;
+    const count = await this.notifications.unreadCount(user.id);
+    return { success: true, data: { count } };
+  }
+
+  /** PATCH /api/notifications/read — mark ALL as read */
   @Patch('read')
   async markAllRead(@Req() req: Request) {
     const user = (req as Request & { user: User }).user;
@@ -32,7 +41,7 @@ export class NotificationsController {
     return { success: true, data };
   }
 
-  /** PATCH /api/notifications/:id/read — mark one as read */
+  /** PATCH /api/notifications/:id/read — mark one notification as read */
   @Patch(':id/read')
   async markOneRead(@Param('id') id: string, @Req() req: Request) {
     const user = (req as Request & { user: User }).user;

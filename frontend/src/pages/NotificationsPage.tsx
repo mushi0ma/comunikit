@@ -1,5 +1,9 @@
 /* comunikit — NotificationsPage
-   Grouped notifications list (Новые / Прочитанные) with real API.
+   Full-page notifications list (Новые / Прочитанные) with real API.
+   - Loads notifications from DB.
+   - Mark all read via explicit button.
+   - Mark one read by clicking a notification.
+   - No mock fallback — shows empty state when DB has no notifications.
 */
 import { Bell, MessageCircle, MapPin, MessageSquare, CheckCheck, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,35 +23,6 @@ interface Notification {
   relatedId?: string | null;
   createdAt: string;
 }
-
-/* ── Mock fallback ──────────────────────────────────────────── */
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    type: "reply",
-    title: "Ответ на ваше объявление",
-    body: "Алиев А. интересуется MacBook Air",
-    isRead: false,
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-  },
-  {
-    id: "2",
-    type: "found",
-    title: "Найден предмет рядом с вашей меткой",
-    body: "В библиотеке найдены ключи",
-    isRead: false,
-    createdAt: new Date(Date.now() - 60 * 60000).toISOString(),
-  },
-  {
-    id: "3",
-    type: "forum",
-    title: "Новый ответ в теме",
-    body: "Как сдать экзамен по алгоритмам",
-    isRead: true,
-    createdAt: new Date(Date.now() - 2 * 60 * 60000).toISOString(),
-  },
-];
 
 const ICON_BY_TYPE: Record<string, React.ComponentType<{ className?: string }>> = {
   reply: MessageCircle,
@@ -86,24 +61,17 @@ function timeAgo(dateStr: string): string {
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
 
-  const { data: items, isLoading } = useQuery<Notification[]>({
+  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["notifications"],
-    queryFn: async () => {
-      try {
-        const data = await apiFetch<Notification[]>("/api/notifications");
-        return data.length > 0 ? data : MOCK_NOTIFICATIONS;
-      } catch {
-        return MOCK_NOTIFICATIONS;
-      }
-    },
+    queryFn: () => apiFetch<Notification[]>("/api/notifications"),
   });
 
   const markAllReadMut = useMutation({
     mutationFn: () =>
       apiFetch("/api/notifications/read", { method: "PATCH" }),
     onSuccess: () => {
-      queryClient.setQueryData<Notification[]>(["notifications"], old =>
-        (old ?? []).map(n => ({ ...n, isRead: true })),
+      queryClient.setQueryData<Notification[]>(["notifications"], (old) =>
+        (old ?? []).map((n) => ({ ...n, isRead: true })),
       );
       toast.success("Все уведомления прочитаны");
     },
@@ -114,15 +82,14 @@ export default function NotificationsPage() {
     mutationFn: (id: string) =>
       apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" }),
     onSuccess: (_data, id) => {
-      queryClient.setQueryData<Notification[]>(["notifications"], old =>
-        (old ?? []).map(n => n.id === id ? { ...n, isRead: true } : n),
+      queryClient.setQueryData<Notification[]>(["notifications"], (old) =>
+        (old ?? []).map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
     },
   });
 
-  const notifications = items ?? MOCK_NOTIFICATIONS;
-  const unread = notifications.filter(n => !n.isRead);
-  const read = notifications.filter(n => n.isRead);
+  const unread = notifications.filter((n) => !n.isRead);
+  const read = notifications.filter((n) => n.isRead);
 
   return (
     <AppLayout title="Уведомления">
@@ -156,7 +123,7 @@ export default function NotificationsPage() {
           <div className="flex flex-col gap-6 ck-animate-in">
             {unread.length > 0 && (
               <Group title="Новые" count={unread.length}>
-                {unread.map(n => (
+                {unread.map((n) => (
                   <NotificationItem
                     key={n.id}
                     notification={n}
@@ -168,8 +135,8 @@ export default function NotificationsPage() {
 
             {read.length > 0 && (
               <Group title="Прочитанные" count={read.length}>
-                {read.map(n => (
-                  <NotificationItem key={n.id} notification={n} onClick={() => {}} />
+                {read.map((n) => (
+                  <NotificationItem key={n.id} notification={n} />
                 ))}
               </Group>
             )}
@@ -209,7 +176,7 @@ function NotificationItem({
   onClick,
 }: {
   notification: Notification;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const Icon = ICON_BY_TYPE[notification.type] ?? MessageCircle;
   const colorClass = COLOR_BY_TYPE[notification.type] ?? "bg-muted text-muted-foreground";
@@ -217,11 +184,13 @@ function NotificationItem({
   return (
     <button
       onClick={onClick}
+      disabled={!onClick}
       className={cn(
         "flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-300 w-full",
         notification.isRead
           ? "bg-muted/20 border-border opacity-60"
           : "bg-card border-primary/30 hover:border-primary/50 hover:bg-accent/50",
+        !onClick && "cursor-default",
       )}
     >
       <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", colorClass)}>

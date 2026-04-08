@@ -8,7 +8,11 @@ export class WhitelistController {
   @Get('check')
   async check(@Query('studentId') studentId: string) {
     if (!studentId) {
-      throw new BadRequestException({ success: false, data: null, error: 'studentId is required' });
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'studentId is required',
+      });
     }
 
     const entry = await this.prisma.whitelist.findUnique({

@@ -50,6 +50,7 @@ export class ForumService {
               },
             },
             replies: {
+              orderBy: { createdAt: 'asc' },
               include: {
                 author: {
                   select: {
@@ -59,10 +60,10 @@ export class ForumService {
                     karma: true,
                   },
                 },
-                _count: { select: { votes: true } },
+                _count: { select: { votes: true, replies: true } },
               },
             },
-            _count: { select: { votes: true } },
+            _count: { select: { votes: true, replies: true } },
           },
           where: { parentId: null }, // top-level comments only
         },

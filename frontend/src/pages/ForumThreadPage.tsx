@@ -10,10 +10,13 @@ import {
   Loader2,
   MessageSquare,
   Pin,
+  Reply,
   Send,
   ThumbsUp,
   ThumbsDown,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
@@ -35,7 +38,10 @@ interface ThreadComment {
   id: string;
   body: string;
   createdAt: string;
+  parentId?: string | null;
   author: ThreadAuthor;
+  replies?: ThreadComment[];
+  _count?: { votes: number; replies: number };
 }
 
 interface ThreadDetail {
@@ -131,6 +137,198 @@ function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVote
       >
         <ThumbsDown className="size-4" />
       </button>
+    </div>
+  );
+}
+
+/* ── CommentVote ─────────────────────────────────────────── */
+
+function CommentVote({ commentId, initialVotes }: { commentId: string; initialVotes: number }) {
+  const [votes, setVotes] = useState(initialVotes);
+  const [voted, setVoted] = useState(false);
+
+  async function toggle() {
+    try {
+      await apiFetch(`/api/comments/${commentId}/vote`, {
+        method: "POST",
+        body: JSON.stringify({ value: voted ? -1 : 1 }),
+      });
+      setVotes(v => voted ? v - 1 : v + 1);
+      setVoted(!voted);
+    } catch {
+      toast.error("Ошибка голосования");
+    }
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      className={cn(
+        "flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors",
+        voted
+          ? "text-primary bg-primary/10"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted",
+      )}
+    >
+      <ThumbsUp className="size-3" />
+      <span>{votes > 0 ? votes : ""}</span>
+    </button>
+  );
+}
+
+/* ── CommentItem (recursive) ─────────────────────────────── */
+
+function CommentItem({
+  comment,
+  threadId,
+  depth = 0,
+  onReplyAdded,
+}: {
+  comment: ThreadComment;
+  threadId: string;
+  depth?: number;
+  onReplyAdded: () => void;
+}) {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [showReplies, setShowReplies] = useState(true);
+
+  const maxDepth = 3;
+  const hasReplies = (comment.replies?.length ?? 0) > 0;
+
+  async function handleReply() {
+    if (!replyBody.trim()) return;
+    setSubmitting(true);
+    try {
+      await apiFetch("/api/comments", {
+        method: "POST",
+        body: JSON.stringify({ body: replyBody.trim(), threadId, parentId: comment.id }),
+      });
+      setReplyBody("");
+      setShowReplyForm(false);
+      onReplyAdded();
+      toast.success("Ответ добавлен");
+    } catch {
+      toast.error("Ошибка отправки");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="rounded-2xl border border-border bg-card overflow-hidden transition-all duration-200 hover:border-border/80">
+        {/* Author header */}
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
+          <Link href={`/profile/${comment.author.id}`}>
+            <div className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+              {comment.author.avatarUrl ? (
+                <img
+                  src={comment.author.avatarUrl}
+                  alt={comment.author.name}
+                  className="size-7 rounded-full object-cover border border-border"
+                />
+              ) : (
+                <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
+                  {comment.author.name[0]}
+                </div>
+              )}
+              <span className="text-sm font-medium text-foreground">
+                {comment.author.name}
+              </span>
+            </div>
+          </Link>
+          <span className="text-[10px] text-muted-foreground">
+            · {timeAgo(comment.createdAt)}
+          </span>
+        </div>
+
+        {/* Body */}
+        <div className="px-4 py-3">
+          <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+            {comment.body}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 px-4 pb-3">
+          <CommentVote commentId={comment.id} initialVotes={comment._count?.votes ?? 0} />
+
+          {depth < maxDepth && isAuthenticated && (
+            <button
+              onClick={() => setShowReplyForm(!showReplyForm)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors",
+                showReplyForm
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+              )}
+            >
+              <Reply className="size-3" />
+              Ответить
+            </button>
+          )}
+
+          {hasReplies && (
+            <button
+              onClick={() => setShowReplies(!showReplies)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              {showReplies ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+              {comment.replies!.length}
+            </button>
+          )}
+        </div>
+
+        {/* Inline reply form */}
+        {showReplyForm && (
+          <div className="px-4 pb-4 border-t border-border pt-3">
+            <textarea
+              placeholder={`Ответить ${comment.author.name}...`}
+              value={replyBody}
+              onChange={e => setReplyBody(e.target.value)}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[60px] resize-none"
+              disabled={submitting}
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-xl text-xs"
+                onClick={() => { setShowReplyForm(false); setReplyBody(""); }}
+              >
+                Отмена
+              </Button>
+              <Button
+                size="sm"
+                disabled={submitting || replyBody.trim().length < 2}
+                className="gap-1.5 rounded-xl text-xs"
+                onClick={handleReply}
+              >
+                {submitting ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" strokeWidth={1.5} />}
+                Ответить
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Nested replies */}
+      {hasReplies && showReplies && (
+        <div className="ml-6 pl-4 border-l-2 border-border mt-2 flex flex-col gap-2">
+          {comment.replies!.map(reply => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              threadId={threadId}
+              depth={depth + 1}
+              onReplyAdded={onReplyAdded}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -315,41 +513,12 @@ export default function ForumThreadPage() {
 
           <div className="flex flex-col gap-3">
             {thread.comments.map(comment => (
-              <div
+              <CommentItem
                 key={comment.id}
-                className="rounded-2xl border border-border bg-card overflow-hidden transition-all duration-200 hover:border-border"
-              >
-                {/* Comment author header */}
-                <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-                  <Link href={`/profile/${comment.author.id}`}>
-                    <div className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                      {comment.author.avatarUrl ? (
-                        <img
-                          src={comment.author.avatarUrl}
-                          alt={comment.author.name}
-                          className="size-7 rounded-full object-cover border border-border"
-                        />
-                      ) : (
-                        <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
-                          {comment.author.name[0]}
-                        </div>
-                      )}
-                      <span className="text-sm font-medium text-foreground">
-                        {comment.author.name}
-                      </span>
-                    </div>
-                  </Link>
-                  <span className="text-[10px] text-muted-foreground">
-                    · {timeAgo(comment.createdAt)}
-                  </span>
-                </div>
-                {/* Comment body */}
-                <div className="px-4 py-3">
-                  <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                    {comment.body}
-                  </p>
-                </div>
-              </div>
+                comment={comment}
+                threadId={thread.id}
+                onReplyAdded={() => queryClient.invalidateQueries({ queryKey: ["forum", threadId] })}
+              />
             ))}
           </div>
         </section>

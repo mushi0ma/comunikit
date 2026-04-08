@@ -19,12 +19,13 @@ export class CommentsService {
       include: {
         author: { select: this.authorSelect },
         replies: {
+          orderBy: { createdAt: 'asc' },
           include: {
             author: { select: this.authorSelect },
-            _count: { select: { votes: true } },
+            _count: { select: { votes: true, replies: true } },
           },
         },
-        _count: { select: { votes: true } },
+        _count: { select: { votes: true, replies: true } },
       },
     });
   }
@@ -36,12 +37,13 @@ export class CommentsService {
       include: {
         author: { select: this.authorSelect },
         replies: {
+          orderBy: { createdAt: 'asc' },
           include: {
             author: { select: this.authorSelect },
-            _count: { select: { votes: true } },
+            _count: { select: { votes: true, replies: true } },
           },
         },
-        _count: { select: { votes: true } },
+        _count: { select: { votes: true, replies: true } },
       },
     });
   }
@@ -65,6 +67,8 @@ export class CommentsService {
       },
       include: {
         author: { select: this.authorSelect },
+        replies: true,
+        _count: { select: { votes: true, replies: true } },
       },
     });
 
@@ -108,6 +112,25 @@ export class CommentsService {
             title: 'Новый ответ в теме',
             body: `Ответ в "${thread.title}"`,
             relatedId: data.threadId,
+          },
+        });
+      }
+    }
+
+    // Notify parent comment author about reply
+    if (data.parentId) {
+      const parent = await this.prisma.comment.findUnique({
+        where: { id: data.parentId },
+        select: { authorId: true },
+      });
+      if (parent && parent.authorId !== authorId) {
+        await this.prisma.notification.create({
+          data: {
+            userId: parent.authorId,
+            type: 'reply',
+            title: 'Ответ на ваш комментарий',
+            body: data.body.slice(0, 100),
+            relatedId: data.threadId ?? data.listingId ?? null,
           },
         });
       }

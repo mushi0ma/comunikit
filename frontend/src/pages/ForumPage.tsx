@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AppLayout from "@/components/AppLayout";
+import TrendingSection from "@/components/TrendingSection";
 import { FORUM_THREADS } from "@/lib/mockData";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -228,7 +229,8 @@ export default function ForumPage() {
 
   return (
     <AppLayout title="Форум">
-      <div className="mx-auto max-w-2xl px-4 py-6">
+      <div className="container py-4 flex gap-6">
+      <div className="flex-1 min-w-0 flex flex-col gap-0 max-w-2xl">
         {/* ── Header ───────────────────────────────────── */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -463,6 +465,12 @@ export default function ForumPage() {
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Side section — desktop only */}
+      <aside className="hidden xl:block w-80 shrink-0">
+        <TrendingSection />
+      </aside>
       </div>
     </AppLayout>
   );

@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
-import TrendingSection from "@/components/TrendingSection";
 import { CATEGORIES } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -232,10 +231,6 @@ export default function HomeFeed() {
         )}
         </div>
 
-        {/* Side section — desktop only */}
-        <aside className="hidden xl:block w-80 shrink-0">
-          <TrendingSection />
-        </aside>
       </div>
 
       {/* FAB */}

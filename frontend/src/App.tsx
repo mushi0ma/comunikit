@@ -35,6 +35,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ComponentsShowcase from "./pages/ComponentsShowcase";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import LostAndFoundPage from "./pages/LostAndFoundPage";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/notifications">{() => <ProtectedRoute component={NotificationsPage} />}</Route>
       <Route path="/map">{() => <ProtectedRoute component={MapPage} />}</Route>
       <Route path="/search">{() => <ProtectedRoute component={SearchPage} />}</Route>
+      <Route path="/lost-and-found">{() => <ProtectedRoute component={LostAndFoundPage} />}</Route>
       <Route path="/forum">{() => <ProtectedRoute component={ForumPage} />}</Route>
       <Route path="/forum/:id">{() => <ProtectedRoute component={ForumThreadPage} />}</Route>
       <Route path="/admin">{() => <ProtectedRoute component={AdminDashboard} />}</Route>

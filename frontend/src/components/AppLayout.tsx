@@ -15,6 +15,7 @@ import {
   Settings,
   Search,
   ShoppingBag,
+  SearchCheck,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -36,6 +37,7 @@ interface NavItem {
 const SIDEBAR_TOP_ITEMS: NavItem[] = [
   { href: "/forum", icon: MessageSquare, label: "Форум" },
   { href: "/marketplace", icon: ShoppingBag, label: "Маркетплейс" },
+  { href: "/lost-and-found", icon: SearchCheck, label: "Бюро находок" },
   { href: "/map", icon: MapPin, label: "Карта" },
   { href: "/create", icon: Plus, label: "Создать" },
 ];
@@ -44,7 +46,7 @@ const MOBILE_NAV_ITEMS: NavItem[] = [
   { href: "/forum", icon: MessageSquare, label: "Форум" },
   { href: "/marketplace", icon: ShoppingBag, label: "Маркетплейс" },
   { href: "/create", icon: Plus, label: "Создать" },
-  { href: "/map", icon: MapPin, label: "Карта" },
+  { href: "/lost-and-found", icon: SearchCheck, label: "Находки" },
   { href: "/profile", icon: User, label: "Профиль" },
 ];
 

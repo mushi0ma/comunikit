@@ -78,11 +78,29 @@ export default function ListingDetail() {
   const [, navigate] = useLocation();
 
   const [imgIdx, setImgIdx] = useState(0);
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const queryClient = useQueryClient();
+
+  /* ── Fetch interaction status (liked/saved) from API ──── */
+  const { data: interactionStatus } = useQuery<{ saved: boolean; liked: boolean }>({
+    queryKey: ["interaction-status", params.id, "listing"],
+    queryFn: () => apiFetch<{ saved: boolean; liked: boolean }>(
+      `/api/users/me/status?targetId=${params.id}&targetType=listing`,
+    ),
+    enabled: isAuthenticated && !!params.id,
+    staleTime: 30_000,
+  });
+
+  const liked = interactionStatus?.liked ?? false;
+  const saved = interactionStatus?.saved ?? false;
+
+  const invalidateStatus = () => {
+    void queryClient.invalidateQueries({ queryKey: ["interaction-status", params.id, "listing"] });
+    void queryClient.invalidateQueries({ queryKey: ["users", "saved"] });
+    void queryClient.invalidateQueries({ queryKey: ["users", "liked"] });
+    void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+  };
 
   /* ── Fetch listing from API by ID ──────────────────────── */
   const { data: listing, isLoading: listingLoading } = useQuery<Listing>({
@@ -198,7 +216,12 @@ export default function ListingDetail() {
               )}
               {/* Like overlay */}
               <button
-                onClick={() => setLiked(!liked)}
+                onClick={async () => {
+                  try {
+                    await apiFetch(`/api/users/me/like/listing/${params.id}`, { method: "POST" });
+                  } catch { /* ignore */ }
+                  invalidateStatus();
+                }}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
               >
                 <Heart className={cn("w-4 h-4", liked ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
@@ -324,17 +347,12 @@ export default function ListingDetail() {
                 className={cn("w-full gap-2 transition-all duration-200", saved && "scale-[1.02]")}
                 onClick={async () => {
                   try {
-                    await apiFetch("/api/bookmarks", {
-                      method: "POST",
-                      body: JSON.stringify({ listingId: listing.id }),
-                    });
-                    setSaved(!saved);
-                    void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+                    await apiFetch(`/api/users/me/save/listing/${listing.id}`, { method: "POST" });
                     toast.success(saved ? "Убрано из сохранённых" : "Сохранено");
                   } catch {
-                    setSaved(!saved);
-                    toast.success(saved ? "Убрано из сохранённых" : "Сохранено");
+                    toast.error("Ошибка сохранения");
                   }
+                  invalidateStatus();
                 }}
               >
                 {saved ? <BookmarkCheck className="w-4 h-4 text-green-400" /> : <Bookmark className="w-4 h-4" />}

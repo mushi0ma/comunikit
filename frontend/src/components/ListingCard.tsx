@@ -1,54 +1,69 @@
 /* comunikit — ListingCard component
    Design: RunPod-inspired compact card with left type stripe
 */
-import { useState } from "react";
 import { cn, timeAgo } from "@/lib/utils";
 import { Listing, formatPrice, getTypeLabel, getTypeColor, getStripeColor } from "@/lib/mockData";
 import { useLocation } from "wouter";
 import { Heart, Bookmark } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/authStore";
 
 interface ListingCardProps {
   listing: Listing;
   view?: "grid" | "list";
 }
 
+interface InteractionStatus {
+  saved: boolean;
+  liked: boolean;
+}
+
 export default function ListingCard({ listing }: ListingCardProps) {
   const [, navigate] = useLocation();
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
   const queryClient = useQueryClient();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  const { data: status } = useQuery<InteractionStatus>({
+    queryKey: ["interaction-status", listing.id, "listing"],
+    queryFn: () =>
+      apiFetch<InteractionStatus>(
+        `/api/users/me/status?targetId=${listing.id}&targetType=listing`,
+      ),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  });
+
+  const liked = status?.liked ?? false;
+  const bookmarked = status?.saved ?? false;
 
   const handleClick = () => navigate(`/listing/${listing.id}`);
+
+  const invalidateStatus = () => {
+    void queryClient.invalidateQueries({ queryKey: ["interaction-status", listing.id, "listing"] });
+    void queryClient.invalidateQueries({ queryKey: ["users", "saved"] });
+    void queryClient.invalidateQueries({ queryKey: ["users", "liked"] });
+    void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+  };
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await apiFetch(`/api/listings/${listing.id}/vote`, {
-        method: "POST",
-        body: JSON.stringify({ value: 1 }),
-      });
-      setLiked((prev) => !prev);
+      await apiFetch(`/api/users/me/like/listing/${listing.id}`, { method: "POST" });
     } catch {
-      // optimistic toggle even on error for now
-      setLiked((prev) => !prev);
+      // ignore
     }
+    invalidateStatus();
   };
 
   const handleBookmark = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await apiFetch("/api/bookmarks", {
-        method: "POST",
-        body: JSON.stringify({ listingId: listing.id }),
-      });
-      setBookmarked((prev) => !prev);
-      void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+      await apiFetch(`/api/users/me/save/listing/${listing.id}`, { method: "POST" });
     } catch {
-      // optimistic toggle even on error for now
-      setBookmarked((prev) => !prev);
+      // ignore
     }
+    invalidateStatus();
   };
 
   return (

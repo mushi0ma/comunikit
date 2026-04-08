@@ -16,6 +16,8 @@ import {
   Search,
   ShoppingBag,
   SearchCheck,
+  Bookmark,
+  Heart,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,6 +41,8 @@ const SIDEBAR_TOP_ITEMS: NavItem[] = [
   { href: "/marketplace", icon: ShoppingBag, label: "Маркетплейс" },
   { href: "/lost-and-found", icon: SearchCheck, label: "Бюро находок" },
   { href: "/map", icon: MapPin, label: "Карта" },
+  { href: "/saved", icon: Bookmark, label: "Сохранённое" },
+  { href: "/liked", icon: Heart, label: "Понравилось" },
   { href: "/create", icon: Plus, label: "Создать" },
 ];
 

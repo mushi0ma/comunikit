@@ -107,12 +107,12 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background flex overflow-x-hidden">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* ═══════════════════════════════════════════════════════
           DESKTOP SIDEBAR  (≥ lg / 1024px)
-          Icon-only, w-16 = 64px, sticky full-height.
+          Icon-only, w-16 = 64px, fixed full-height.
           ═══════════════════════════════════════════════════════ */}
-      <aside className="hidden lg:flex flex-col w-16 shrink-0 bg-sidebar border-r border-sidebar-border sticky top-0 h-screen">
+      <aside className="hidden lg:flex flex-col w-16 shrink-0 bg-sidebar border-r border-sidebar-border h-full">
         {/* Logo — Boxes icon */}
         <div className="flex items-center justify-center h-14 border-b border-sidebar-border shrink-0">
           <Link href="/forum">
@@ -149,9 +149,9 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
       {/* ═══════════════════════════════════════════════════════
           MAIN CONTENT AREA
           ═══════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* ── Header ─────────────────────────────────────────── */}
-        <header className="sticky top-0 z-40 h-14 bg-background/95 backdrop-blur-sm border-b border-border">
+        <header className="shrink-0 z-40 h-14 bg-background/95 backdrop-blur-sm border-b border-border">
           <div className="flex items-center gap-3 px-4 h-full">
             {/* Mobile: logo + title */}
             <div className="lg:hidden flex items-center gap-2 flex-1 min-w-0">
@@ -196,7 +196,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
         </header>
 
         {/* ── Page content ───────────────────────────────────── */}
-        <main className="flex-1 pb-20 lg:pb-6 overflow-x-hidden">
+        <main className="flex-1 pb-20 lg:pb-6 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>

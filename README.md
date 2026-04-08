@@ -1,116 +1,84 @@
 # Comunikit
 
-> Closed ecosystem marketplace for AITUC students.
-> Buy/sell, lost & found, forum — all in one place.
+Закрытая студенческая платформа для AITU — форум, маркетплейс и Lost & Found.
 
-## Live
-- **Frontend:** https://comunikit.vercel.app
-- **Backend API:** https://comunikit-production.up.railway.app/api
+## О проекте
 
-## Tech Stack
-| Layer | Technology |
+Comunikit — внутренняя платформа Astana IT University, доступная только студентам.
+Объединяет форум для общения, торговую площадку и систему поиска потерянных вещей
+с интерактивной картой кампуса. Мобильный интерфейс с тёмной темой по умолчанию.
+
+## Функциональность
+
+- **Форум** — темы, категории, голосование (upvote/downvote), вложенные комментарии, карма
+- **Маркетплейс** — объявления типов: продажа, покупка, услуги, lost & found
+- **Карта кампуса** — интерактивная SVG-карта AITU C1 (3 этажа), метки и фильтрация
+- **Уведомления** — центр уведомлений с отметкой прочитанных
+- **Поиск** — поиск по объявлениям и форуму
+- **Авторизация** — email, GitHub OAuth, Telegram; восстановление пароля
+- **Избранное** — сохранение объявлений с мгновенным обновлением
+
+## Стек
+
+| Слой | Технология |
 |---|---|
-| Frontend | React 19, Vite, Tailwind CSS v4, Shadcn UI |
-| Backend | NestJS, Prisma ORM |
-| Database | PostgreSQL (Supabase) |
-| Auth | Supabase Auth (email + GitHub OAuth + Telegram) |
-| Deployment | Vercel (frontend) + Railway (backend) |
+| Frontend | React 19, Vite 7, Tailwind CSS 4, shadcn/ui, TanStack Query 5, Wouter 3, Zustand 5 |
+| Backend | NestJS 11, Prisma 7 (ORM) |
+| База данных | PostgreSQL — Supabase |
+| Авторизация | Supabase Auth (email + GitHub OAuth + Telegram) |
+| Деплой | Vercel (frontend) + Railway (backend) |
+| Тестирование | Playwright 1.59, Postman |
 
-## Project Structure
-```
-comunikit/
-├── frontend/          # React SPA
-│   └── src/
-│       ├── pages/     # Route pages
-│       ├── components/# UI components
-│       ├── features/  # Feature modules (map, etc.)
-│       ├── hooks/     # TanStack Query hooks
-│       └── lib/       # Utils, API, Supabase client
-├── backend/           # NestJS API
-│   └── src/
-│       └── modules/   # Feature modules
-├── shared/            # Shared TypeScript types
-└── scripts/           # Dev tooling
-```
-
-## Quick Start
+## Локальный запуск
 
 ```bash
-# Clone
 git clone https://github.com/mushi0ma/comunikit.git
 cd comunikit
-
-# Install
 pnpm install
-
-# Frontend dev (port 3000)
-pnpm dev
-
-# Backend dev (port 3001)
-cd backend && pnpm dev
 ```
 
-## Environment Variables
-
-**Frontend** (`frontend/.env`):
+**Frontend** — создать `frontend/.env`:
 ```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=...
 VITE_API_URL=http://localhost:3001
 VITE_TELEGRAM_BOT_USERNAME=
 ```
 
-**Backend** (`backend/.env`):
+**Backend** — создать `backend/.env`:
 ```
-DATABASE_URL=
-DIRECT_URL=
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-JWT_SECRET=
+DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+JWT_SECRET=...
 TELEGRAM_BOT_TOKEN=
 OPENROUTER_API_KEY=
 ```
 
-## Testing
-
 ```bash
-# E2E tests (Playwright)
-cd frontend && npx playwright test
+# Запустить frontend (порт 3000)
+pnpm dev --port 3000
 
-# API tests — import postman/comunikit-api.json into Postman
+# Запустить backend (порт 3001)
+cd backend && pnpm start:dev
 ```
 
-## API Endpoints
+## Деплой
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| GET | /api/health | Health check | No |
-| GET | /api/health/db | DB health check | No |
-| GET | /api/listings | List listings (filter: type, category, limit, offset) | No |
-| GET | /api/listings/:id | Get listing by ID | No |
-| POST | /api/listings | Create listing | Yes |
-| DELETE | /api/listings/:id | Delete listing (owner only) | Yes |
-| GET | /api/forum | List threads (filter: category) | No |
-| GET | /api/forum/:id | Get thread with comments | No |
-| POST | /api/forum | Create thread | Yes |
-| POST | /api/forum/:id/vote | Upvote/downvote thread | Yes |
-| GET | /api/comments | Get comments (query: listingId or threadId) | No |
-| POST | /api/comments | Add comment | Yes |
-| POST | /api/comments/:id/vote | Vote on comment | Yes |
-| GET | /api/notifications | My notifications | Yes |
-| PATCH | /api/notifications/read | Mark all notifications read | Yes |
-| PATCH | /api/notifications/:id/read | Mark one notification read | Yes |
-| GET | /api/whitelist/check | Check student ID whitelist | No |
-| POST | /api/auth/telegram | Telegram login | No |
-| POST | /api/auth/verify-id-card | ID card OCR verification | No |
+- **Frontend:** Vercel — [comunikit.vercel.app](https://comunikit.vercel.app)
+- **Backend:** Railway — [comunikit-production.up.railway.app/api](https://comunikit-production.up.railway.app/api)
+- **Database:** Supabase PostgreSQL
 
-## Features
-- **Marketplace** — buy, sell, services
-- **Lost & Found** — with AITU campus map
-- **Forum** — threads, comments, karma voting
-- **Auth** — email, GitHub OAuth, Telegram, ID card OCR
-- **Mobile-first** — PWA-ready responsive design
-- **Interactive Map** — AITU C1 building, all 3 blocks, zoom/pan
+## Тестирование
+
+```bash
+# E2E тесты (Playwright) — 8/8 pass
+pnpm exec playwright test
+
+# API тесты — импортировать postman/comunikit-api.json в Postman
+```
 
 ## Credits
-- Campus map: [github.com/Yuujiso/aitumap](https://github.com/Yuujiso/aitumap)
+
+Карта кампуса: [github.com/Yuujiso/aitumap](https://github.com/Yuujiso/aitumap)

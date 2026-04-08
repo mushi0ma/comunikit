@@ -87,6 +87,7 @@
               "query": [
                 { "key": "type", "value": "sell", "disabled": true, "description": "sell | buy | service | lost | found" },
                 { "key": "category", "value": "electronics", "disabled": true },
+                { "key": "authorId", "value": "USER_UUID", "disabled": true, "description": "Filter by author" },
                 { "key": "limit", "value": "20", "disabled": true },
                 { "key": "offset", "value": "0", "disabled": true }
               ]
@@ -104,6 +105,35 @@
                   "  const json = pm.response.json();",
                   "  pm.expect(json).to.have.property('data').or.have.property('status');",
                   "});",
+                  "pm.test(\"Returns array\", () => {",
+                  "  pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search listings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/listings/search?q=macbook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "listings", "search"],
+              "query": [
+                { "key": "q", "value": "macbook", "description": "Search keyword (min 2 chars)" }
+              ]
+            },
+            "description": "Public. Full-text search across listing titles and descriptions."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Returns array\", () => {",
                   "  pm.expect(pm.response.json().data).to.be.an('array');",
                   "});"
@@ -234,6 +264,35 @@
                   "pm.test(\"Has data\", () => {",
                   "  const json = pm.response.json();",
                   "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search threads",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/forum/search?q=campus",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forum", "search"],
+              "query": [
+                { "key": "q", "value": "campus", "description": "Search keyword (min 2 chars)" }
+              ]
+            },
+            "description": "Public. Full-text search across forum thread titles and bodies."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returns array\", () => {",
+                  "  pm.expect(pm.response.json().data).to.be.an('array');",
                   "});"
                 ]
               }
@@ -420,6 +479,31 @@
                   "pm.test(\"Has data\", () => {",
                   "  const json = pm.response.json();",
                   "  pm.expect(json).to.have.property('data').or.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get unread count",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/notifications/unread-count",
+            "description": "Auth required. Returns { count } of unread notifications for the badge."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has count\", () => {",
+                  "  pm.expect(pm.response.json().data).to.have.property('count');",
                   "});"
                 ]
               }

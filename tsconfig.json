@@ -1,6 +1,6 @@
 {
   "include": ["frontend/src/**/*", "shared/**/*", "backend/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "**/*.spec.ts", "backend/test"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "**/*.spec.ts", "backend/test", "backend/prisma.config.ts"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",

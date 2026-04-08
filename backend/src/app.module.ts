@@ -11,6 +11,7 @@ import { ListingsModule } from './modules/listings/listings.module.js';
 import { ForumModule } from './modules/forum/forum.module.js';
 import { CommentsModule } from './modules/comments/comments.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ForumModule,
     CommentsModule,
     NotificationsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

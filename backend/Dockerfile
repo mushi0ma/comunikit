@@ -1,23 +1,26 @@
 FROM node:20-alpine
 
-RUN npm install -g @nestjs/cli
+RUN npm install -g pnpm @nestjs/cli
 
 WORKDIR /app
 
-COPY backend/package.json ./
-
-RUN npm install --include=dev --legacy-peer-deps
-
+# Копируем весь исходный код
 COPY backend/ .
 
-# Generate Prisma client before compiling TypeScript
-RUN npx prisma generate --schema=./prisma/schema.prisma
+# КРИТИЧЕСКИ ВАЖНО: Удаляем локальные node_modules и dist, если они скопировались с хоста (защита от отсутствующего .dockerignore)
+RUN rm -rf node_modules dist
 
-# Build NestJS (output: dist/main.js per tsconfig rootDir=src outDir=dist)
-RUN npm run build
+# Устанавливаем зависимости через pnpm (соответствует локальному pnpm-lock.yaml)
+RUN pnpm install
 
-# Fail the build immediately if main.js wasn't produced
-RUN ls dist/main.js || (echo "BUILD FAILED: dist/main.js not found" && find dist -name "*.js" 2>/dev/null | head -10 && exit 1)
+# Генерируем Prisma Client строго в чистой среде
+RUN pnpm prisma generate
+
+# Собираем NestJS
+RUN pnpm run build
+
+# Проверка успешной сборки
+RUN ls dist/main.js || (echo "BUILD FAILED: dist/main.js not found" && exit 1)
 
 EXPOSE 3001
 

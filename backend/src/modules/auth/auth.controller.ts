@@ -12,9 +12,12 @@ import {
   Post,
   Req,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Request } from 'express';
 import { z } from 'zod';
@@ -23,11 +26,6 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { IdCardService, type IdCardResult } from './id-card.service.js';
 import { SessionsService } from './sessions.service.js';
 import { verifyTelegramAuth } from './telegram.strategy.js';
-
-const verifyIdCardSchema = z.object({
-  image: z.string().min(1),
-  mimeType: z.string().min(1),
-});
 
 const telegramPayloadSchema = z.object({
   id: z.number(),
@@ -180,16 +178,36 @@ export class AuthController {
 
   @Post('verify-id-card')
   @HttpCode(HttpStatus.OK)
-  async verifyIdCard(@Body() body: unknown): Promise<IdCardResult> {
-    const parsed = verifyIdCardSchema.safeParse(body);
-    if (!parsed.success) {
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }),
+  )
+  async verifyIdCard(
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+  ): Promise<IdCardResult> {
+    if (!file || !file.buffer.length) {
       throw new BadRequestException({
         success: false,
         data: null,
-        error: 'Invalid payload: expected { image, mimeType }',
+        error: 'No file uploaded',
       });
     }
-    return this.idCardService.verify(parsed.data.image, parsed.data.mimeType);
+
+    const allowedMimes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+    ];
+    if (!allowedMimes.includes(file.mimetype)) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'Unsupported image format. Use JPEG, PNG, or WebP.',
+      });
+    }
+
+    const base64 = file.buffer.toString('base64');
+    return this.idCardService.verify(base64, file.mimetype);
   }
 
   @Get('sessions')

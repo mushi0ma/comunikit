@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { SessionInfo } from '../../../../shared/types.js';
+import type { SessionInfo } from './types.js';
 
 interface ParsedUA {
   browser: string;

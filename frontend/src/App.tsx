@@ -38,6 +38,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import LostAndFoundPage from "./pages/LostAndFoundPage";
 import SavedPage from "./pages/SavedPage";
 import LikedPage from "./pages/LikedPage";
+import VerifyIdPage from "./pages/VerifyIdPage";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/" component={LoginPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/verify-id" component={VerifyIdPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/dashboard">{() => <ProtectedRoute component={Home} />}</Route>

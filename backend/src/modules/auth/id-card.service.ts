@@ -2,20 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface IdCardResult {
-  valid: boolean;
-  name?: string;
-  validUntil?: string;
-  reason?: string;
-}
-
-interface OcrParsed {
-  name?: string;
-  validUntil?: string;
-  cardType?: string;
-  university?: string;
-  address?: string;
-  isAituCard?: boolean;
-  isExpired?: boolean;
+  isValid: boolean;
+  extractedData: {
+    name: string | null;
+    studentId: string | null;
+    expiryDate: string | null;
+  };
+  reason: string | null;
 }
 
 @Injectable()
@@ -25,28 +18,33 @@ export class IdCardService {
   async verify(base64Image: string, mimeType: string): Promise<IdCardResult> {
     const apiKey = this.config.get<string>('OPENROUTER_API_KEY');
     if (!apiKey) {
-      return { valid: false, reason: 'OCR service not configured' };
+      return {
+        isValid: false,
+        extractedData: { name: null, studentId: null, expiryDate: null },
+        reason: 'OCR service not configured',
+      };
     }
 
-    const prompt = `You are verifying a student ID card from Astana IT University (AITUC/AITU), Kazakhstan.
+    const prompt = `You are a strict OCR verifier for Astana IT University (AITU) student ID cards.
 
-Extract the following fields from the image:
-- name: full name in Latin letters (two words, first name + last name)
-- validUntil: expiry date in format DD.MM.YYYY
-- cardType: should contain "STUDENT ID CARD"
-- university: should contain "ASTANA IT"
-- address: should contain "EXPO" or "Mangilik"
+The card is a HORIZONTAL plastic card. It may appear rotated in the photo — analyze it regardless of orientation.
 
-Respond ONLY with valid JSON, no markdown:
-{
-  "name": "...",
-  "validUntil": "DD.MM.YYYY",
-  "cardType": "...",
-  "university": "...",
-  "address": "...",
-  "isAituCard": true/false,
-  "isExpired": true/false
-}`;
+Look for these elements:
+1. Text "STUDENT ID CARD" on a green/teal side strip.
+2. The logo and text "ASTANA IT UNIVERSITY" (or "AITU").
+3. Student's full name in LATIN letters (e.g. "Sagyndyk Ramazan").
+4. Expiry date in format "Valid until: DD.MM.YYYY" (e.g. "Valid until: 31.06.2027").
+5. Address line containing "Astana" and keywords like "Mangilik El", "EXPO Pavilion", "block C1".
+6. A student photo on the card.
+
+Validation rules:
+- The card MUST contain the AITU logo/text AND "STUDENT ID CARD" text to be valid.
+- The expiry date must NOT be in the past (today is ${new Date().toISOString().split('T')[0]}).
+- The name must be readable in Latin script.
+- If there is a student ID number visible anywhere on the card, extract it. If not, return null for studentId.
+
+Respond ONLY with this exact JSON structure, no markdown, no extra text:
+{"isValid": true/false, "extractedData": {"name": "First Last", "studentId": "123456" or null, "expiryDate": "DD.MM.YYYY"}, "reason": null or "explanation if invalid"}`;
 
     const response = await fetch(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -57,8 +55,8 @@ Respond ONLY with valid JSON, no markdown:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-3.5-sonnet',
-          max_tokens: 300,
+          model: 'google/gemini-2.0-flash-001',
+          max_tokens: 400,
           messages: [
             {
               role: 'user',
@@ -77,42 +75,43 @@ Respond ONLY with valid JSON, no markdown:
       },
     );
 
+    if (!response.ok) {
+      return {
+        isValid: false,
+        extractedData: { name: null, studentId: null, expiryDate: null },
+        reason: `OCR API error: ${response.status}`,
+      };
+    }
+
     const data = (await response.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
-    const text = data.choices?.[0]?.message?.content ?? '{}';
+    const text = data.choices?.[0]?.message?.content ?? '';
 
-    let parsed: OcrParsed = {};
+    let parsed: IdCardResult;
     try {
-      parsed = JSON.parse(text.replace(/```json|```/g, '').trim()) as OcrParsed;
+      const cleaned = text.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(cleaned) as IdCardResult;
     } catch {
-      return { valid: false, reason: 'Failed to parse OCR response' };
+      return {
+        isValid: false,
+        extractedData: { name: null, studentId: null, expiryDate: null },
+        reason: 'Failed to parse OCR response',
+      };
     }
 
-    let isExpired = false;
-    if (parsed.validUntil) {
-      const [day, month, year] = parsed.validUntil.split('.');
-      const expiry = new Date(+year, +month - 1, +day);
-      isExpired = expiry < new Date();
+    // Server-side expiry re-check
+    if (parsed.isValid && parsed.extractedData.expiryDate) {
+      const parts = parsed.extractedData.expiryDate.split('.');
+      if (parts.length === 3) {
+        const expiry = new Date(+parts[2], +parts[1] - 1, +parts[0]);
+        if (expiry < new Date()) {
+          parsed.isValid = false;
+          parsed.reason = 'Student ID card has expired';
+        }
+      }
     }
 
-    const valid =
-      parsed.isAituCard === true &&
-      !isExpired &&
-      !!parsed.name &&
-      !!parsed.validUntil;
-
-    return {
-      valid,
-      name: parsed.name,
-      validUntil: parsed.validUntil,
-      reason: !parsed.isAituCard
-        ? 'Not an AITU card'
-        : isExpired
-          ? 'Card expired'
-          : !parsed.name
-            ? 'Could not read name'
-            : undefined,
-    };
+    return parsed;
   }
 }

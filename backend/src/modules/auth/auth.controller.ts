@@ -3,15 +3,24 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Param,
   Post,
+  Req,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Request } from 'express';
 import { z } from 'zod';
+import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 import { IdCardService, type IdCardResult } from './id-card.service.js';
+import { SessionsService } from './sessions.service.js';
 import { verifyTelegramAuth } from './telegram.strategy.js';
 
 const verifyIdCardSchema = z.object({
@@ -39,6 +48,7 @@ export class AuthController {
   constructor(
     private readonly config: ConfigService,
     private readonly idCardService: IdCardService,
+    private readonly sessionsService: SessionsService,
   ) {
     const supabaseUrl = this.config.get<string>('SUPABASE_URL');
     const serviceRoleKey = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -53,7 +63,7 @@ export class AuthController {
 
   @Post('telegram')
   @HttpCode(HttpStatus.OK)
-  async telegram(@Body() body: unknown) {
+  async telegram(@Req() req: Request, @Body() body: unknown) {
     const parsed = telegramPayloadSchema.safeParse(body);
     if (!parsed.success) {
       throw new UnauthorizedException({
@@ -142,6 +152,24 @@ export class AuthController {
       });
     }
 
+    // Record the session for device management
+    const userAgent = req.headers['user-agent'] ?? '';
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.ip ??
+      null;
+
+    // Resolve our internal user id from supabase user id
+    const supabaseUserId = session.user?.id;
+    if (supabaseUserId) {
+      // Find or match the internal user — use supabase uid which maps to User.id
+      await this.sessionsService
+        .create(supabaseUserId, session.session.access_token, userAgent, ip)
+        .catch(() => {
+          // Non-critical — don't fail login if session tracking fails
+        });
+    }
+
     return {
       access_token: session.session.access_token,
       refresh_token: session.session.refresh_token,
@@ -160,6 +188,57 @@ export class AuthController {
       });
     }
     return this.idCardService.verify(parsed.data.image, parsed.data.mimeType);
+  }
+
+  @Get('sessions')
+  @UseGuards(SupabaseAuthGuard)
+  async getSessions(@Req() req: Request) {
+    const user = (req as Request & { user: { id: string } }).user;
+    const token = req.headers.authorization?.replace('Bearer ', '') ?? '';
+    const currentHash = this.sessionsService.hashToken(token);
+
+    // Touch current session's lastActiveAt
+    await this.sessionsService.touch(currentHash);
+
+    const sessions = await this.sessionsService.listForUser(
+      user.id,
+      currentHash,
+    );
+    return { success: true, data: sessions };
+  }
+
+  @Delete('sessions/:id')
+  @UseGuards(SupabaseAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async revokeSession(@Req() req: Request, @Param('id') sessionId: string) {
+    const user = (req as Request & { user: { id: string } }).user;
+
+    // Prevent revoking current session
+    const token = req.headers.authorization?.replace('Bearer ', '') ?? '';
+    const currentHash = this.sessionsService.hashToken(token);
+    const sessions = await this.sessionsService.listForUser(
+      user.id,
+      currentHash,
+    );
+    const target = sessions.find((s) => s.id === sessionId);
+
+    if (!target) {
+      throw new NotFoundException({
+        success: false,
+        data: null,
+        error: 'Session not found',
+      });
+    }
+    if (target.isCurrent) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'Cannot revoke current session',
+      });
+    }
+
+    await this.sessionsService.revoke(sessionId, user.id);
+    return { success: true, data: null };
   }
 
   private deterministicPassword(telegramId: number): string {

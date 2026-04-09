@@ -19,7 +19,24 @@ model User {
   votes          Vote[]
   bookmarks      Bookmark[]
   notifications  Notification[]
+  sessions       Session[]
   createdAt      DateTime       @default(now())
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String   @unique
+  browser      String
+  os           String
+  deviceType   String   @default("desktop")
+  ip           String?
+  lastActiveAt DateTime @default(now()) @map("last_active_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("Session")
 }
 
 model Listing {

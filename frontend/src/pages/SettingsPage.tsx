@@ -4,8 +4,10 @@
 */
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Bell, Moon, Sun, Monitor, ChevronRight, Github, LogOut, Mail, Shield, Camera, Loader2,
+  Smartphone, Tablet, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,8 @@ import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/lib/supabase";
 import { uploadImage } from "@/lib/upload";
+import { apiFetch } from "@/lib/api";
+import type { SessionInfo } from "../../../shared/types";
 
 export default function SettingsPage() {
   const [, navigate] = useLocation();
@@ -157,20 +161,14 @@ export default function SettingsPage() {
 
         {/* ── Безопасность ───────────────────────────────── */}
         <Section title="Безопасность">
-          <div className="flex flex-col divide-y divide-border">
-            <LinkRow
-              Icon={Shield}
-              title="Сменить пароль"
-              description="Последняя смена: 3 месяца назад"
-              onClick={() => navigate("/reset-password")}
-            />
-            <LinkRow
-              Icon={Shield}
-              title="Активные сессии"
-              description="2 активных устройства"
-              onClick={() => toast.info("Список устройств в разработке")}
-            />
-          </div>
+          <LinkRow
+            Icon={Shield}
+            title="Сменить пароль"
+            description="Последняя смена: 3 месяца назад"
+            onClick={() => navigate("/reset-password")}
+          />
+          <div className="h-px bg-border my-3" />
+          <SessionsList />
         </Section>
 
         {/* ── О приложении ───────────────────────────────── */}
@@ -224,6 +222,130 @@ export default function SettingsPage() {
         </Button>
       </div>
     </AppLayout>
+  );
+}
+
+/* ── Sessions ────────────────────────────────────────────── */
+
+const DEVICE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  mobile: Smartphone,
+  tablet: Tablet,
+  desktop: Monitor,
+};
+
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "Только что";
+  if (mins < 60) return `${mins} мин. назад`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} ч. назад`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} дн. назад`;
+  return new Date(iso).toLocaleDateString("ru-RU");
+}
+
+function SessionsList() {
+  const queryClient = useQueryClient();
+
+  const { data: sessions, isLoading, isError } = useQuery<SessionInfo[]>({
+    queryKey: ["auth", "sessions"],
+    queryFn: () => apiFetch<SessionInfo[]>("/api/auth/sessions"),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<null>(`/api/auth/sessions/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["auth", "sessions"] });
+      toast.success("Сеанс завершён");
+    },
+    onError: () => {
+      toast.error("Не удалось завершить сеанс");
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError || !sessions) {
+    return (
+      <p className="py-4 text-center text-sm text-muted-foreground">
+        Не удалось загрузить сессии
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-sm font-semibold text-foreground">
+        Активные сессии ({sessions.length})
+      </p>
+      <div className="flex flex-col gap-2">
+        {sessions.map((s) => {
+          const DeviceIcon = DEVICE_ICON[s.deviceType] ?? Monitor;
+          return (
+            <div
+              key={s.id}
+              className={cn(
+                "flex items-center justify-between rounded-lg border p-3",
+                s.isCurrent
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-border bg-background",
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    "flex size-10 items-center justify-center rounded-lg",
+                    s.isCurrent ? "bg-primary/15" : "bg-muted",
+                  )}
+                >
+                  <DeviceIcon
+                    className={cn(
+                      "size-5",
+                      s.isCurrent ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {s.browser} — {s.os}
+                    {s.isCurrent && (
+                      <span className="ml-2 inline-block rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+                        Текущая
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatRelative(s.lastActiveAt)}
+                    {s.ip && ` · ${s.ip}`}
+                  </p>
+                </div>
+              </div>
+
+              {!s.isCurrent && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-muted-foreground hover:text-destructive"
+                  disabled={revokeMutation.isPending}
+                  onClick={() => revokeMutation.mutate(s.id)}
+                  title="Завершить сеанс"
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

@@ -20,6 +20,9 @@ export interface User {
   id: string;
   studentId: string;
   name: string;
+  email?: string;
+  emailVerified?: string | null;
+  bio?: string;
   avatarUrl?: string;
   telegramHandle?: string;
 }

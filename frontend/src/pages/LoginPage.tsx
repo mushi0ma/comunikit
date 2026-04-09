@@ -82,6 +82,16 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-trigger Telegram auth when coming from bot link
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('telegram_login') === 'true') {
+      // Small delay to let the page render first
+      const timer = setTimeout(() => handleTelegramAuth(), 600);
+      return () => clearTimeout(timer);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function onSubmit(data: LoginValues) {
     try {
       await signIn(data.email, data.password);

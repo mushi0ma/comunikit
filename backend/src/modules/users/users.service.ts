@@ -1,6 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
+const profileSelect = {
+  id: true,
+  name: true,
+  email: true,
+  emailVerified: true,
+  bio: true,
+  avatarUrl: true,
+  telegramHandle: true,
+  karma: true,
+  studentId: true,
+  passwordHash: true,
+  createdAt: true,
+} as const;
+
 const authorSelect = {
   id: true,
   name: true,
@@ -11,6 +25,45 @@ const authorSelect = {
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // ─── Profile ────────────────────────────────────────────
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: profileSelect,
+    });
+    if (!user) return null;
+
+    // Return hasPassword flag instead of raw hash
+    const { passwordHash, ...rest } = user;
+    return {
+      ...rest,
+      hasPassword: !!passwordHash,
+    };
+  }
+
+  async updateProfile(
+    userId: string,
+    data: { name?: string; bio?: string; telegramHandle?: string },
+  ) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.bio !== undefined && { bio: data.bio }),
+        ...(data.telegramHandle !== undefined && {
+          telegramHandle: data.telegramHandle,
+        }),
+      },
+      select: {
+        id: true,
+        name: true,
+        bio: true,
+        telegramHandle: true,
+      },
+    });
+  }
 
   // ─── Bookmarks ──────────────────────────────────────────
 

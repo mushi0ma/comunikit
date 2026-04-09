@@ -261,6 +261,104 @@ export class AuthController {
     return { success: true, data: null };
   }
 
+  /** POST /api/auth/send-verification — send a 6-digit OTP to user's email (console.log mock) */
+  @Post('send-verification')
+  @UseGuards(SupabaseAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async sendVerification(@Req() req: Request) {
+    const user = (req as Request & { user: { id: string; email?: string } }).user;
+
+    if (!user.email) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'No email associated with this account',
+      });
+    }
+
+    // Check if already verified
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { emailVerified: true },
+    });
+    if (dbUser?.emailVerified) {
+      return { success: true, data: { message: 'Email уже подтверждён' } };
+    }
+
+    // Generate 6-digit code
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    // Delete old tokens for this user
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Store new token
+    await this.prisma.verificationToken.create({
+      data: { userId: user.id, code, expiresAt },
+    });
+
+    // Mock email sending — log to console
+    console.log(`\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`);
+
+    return {
+      success: true,
+      data: { message: 'Код подтверждения отправлен на почту' },
+    };
+  }
+
+  /** POST /api/auth/verify-email — verify email with OTP code */
+  @Post('verify-email')
+  @UseGuards(SupabaseAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(
+    @Req() req: Request,
+    @Body() body: { code?: string },
+  ) {
+    const user = (req as Request & { user: { id: string } }).user;
+
+    if (!body.code || body.code.length !== 6) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'Введите 6-значный код',
+      });
+    }
+
+    const token = await this.prisma.verificationToken.findFirst({
+      where: {
+        userId: user.id,
+        code: body.code,
+        expiresAt: { gte: new Date() },
+      },
+    });
+
+    if (!token) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'Неверный или просроченный код',
+      });
+    }
+
+    // Mark email as verified
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: new Date() },
+    });
+
+    // Clean up tokens
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    return {
+      success: true,
+      data: { message: 'Email подтверждён!' },
+    };
+  }
+
   private deterministicPassword(telegramId: number): string {
     // Derive a stable high-entropy password from bot token + telegram id so
     // the admin client can re-authenticate the synthetic user on each login.

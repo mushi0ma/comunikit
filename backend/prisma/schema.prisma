@@ -10,6 +10,10 @@ model User {
   id             String         @id @default(uuid())
   studentId      String         @unique
   name           String
+  email          String?        @unique
+  emailVerified  DateTime?      @map("email_verified")
+  passwordHash   String?        @map("password_hash")
+  bio            String?
   avatarUrl      String?
   telegramId     BigInt?        @unique @map("telegram_id")
   telegramHandle String?
@@ -21,7 +25,21 @@ model User {
   bookmarks      Bookmark[]
   notifications  Notification[]
   sessions       Session[]
+  verificationTokens VerificationToken[]
   createdAt      DateTime       @default(now())
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([code])
+  @@map("VerificationToken")
 }
 
 model Session {

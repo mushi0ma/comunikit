@@ -42,7 +42,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
           [
             Markup.button.url(
               '🔑 Войти через Telegram',
-              `${appUrl}/login`,
+              `${appUrl}/login?telegram_login=true`,
             ),
           ],
         ]),

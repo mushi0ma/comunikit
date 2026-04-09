@@ -1,13 +1,14 @@
 /* comunikit — SettingsPage
    Dedicated settings screen (extracted from ProfilePage settings tab).
    Design: RunPod-style two-column form cards on desktop.
+   Features: profile editing (PATCH /api/users/me), email verification, set-password for OAuth users.
 */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Bell, Moon, Sun, Monitor, ChevronRight, Github, LogOut, Mail, Shield, Camera, Loader2,
-  Smartphone, Tablet, X,
+  Smartphone, Tablet, X, CheckCircle, Lock, Send as SendIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,24 +16,83 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import AppLayout from "@/components/AppLayout";
-import { MOCK_USER } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/lib/supabase";
 import { uploadImage } from "@/lib/upload";
 import { apiFetch } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 import type { SessionInfo } from "../../../shared/types";
+
+/* ── Profile types ──────────────────────────────────────────────── */
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string | null;
+  emailVerified: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  telegramHandle: string | null;
+  karma: number;
+  studentId: string;
+  hasPassword: boolean;
+  createdAt: string;
+}
 
 export default function SettingsPage() {
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const [name, setName] = useState(MOCK_USER.name);
-  const [telegram, setTelegram] = useState(MOCK_USER.telegramHandle || "");
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [emailEnabled, setEmailEnabled] = useState(false);
+  const queryClient = useQueryClient();
+  const authUser = useAuthStore((s) => s.user);
+
+  /* ── Profile data from backend ──────────────────────── */
+  const { data: profile, isLoading: profileLoading } = useQuery<UserProfile>({
+    queryKey: ["users", "me"],
+    queryFn: () => apiFetch<UserProfile>("/api/users/me"),
+  });
+
+  /* ── Local form state (initialized from profile) ────── */
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [telegram, setTelegram] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+
+  // Sync form state when profile loads
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name || "");
+      setBio(profile.bio || "");
+      setTelegram(profile.telegramHandle || "");
+      setAvatarUrl(profile.avatarUrl);
+    }
+  }, [profile]);
+
+  /* ── Save profile mutation ──────────────────────────── */
+  const saveProfileMutation = useMutation({
+    mutationFn: (data: { name?: string; bio?: string; telegramHandle?: string }) =>
+      apiFetch("/api/users/me", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
+      toast.success("Профиль сохранён");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка сохранения"),
+  });
+
+  function handleSaveProfile() {
+    saveProfileMutation.mutate({
+      name: name.trim(),
+      bio: bio.trim(),
+      telegramHandle: telegram.trim(),
+    });
+  }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,6 +117,8 @@ export default function SettingsPage() {
     { value: "system", label: "Системная", Icon: Monitor },
   ] as const;
 
+  const displayName = profile?.name || (authUser?.user_metadata?.name as string) || "Студент";
+
   return (
     <AppLayout title="Настройки">
       <div className="mx-auto max-w-3xl px-4 py-6 lg:px-0">
@@ -67,7 +129,7 @@ export default function SettingsPage() {
               <Avatar className="size-16 rounded-xl">
                 <AvatarImage src={avatarUrl ?? undefined} className="rounded-xl object-cover" />
                 <AvatarFallback className="rounded-xl bg-primary/10 text-xl font-black text-primary">
-                  {MOCK_USER.name[0]}
+                  {displayName[0]}
                 </AvatarFallback>
               </Avatar>
               <div className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -86,25 +148,50 @@ export default function SettingsPage() {
           </FormRow>
 
           <FormRow label="Имя">
-            <Input value={name} onChange={e => setName(e.target.value)} />
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Ваше имя"
+              disabled={profileLoading}
+            />
           </FormRow>
 
-
+          <FormRow label="Bio">
+            <Input
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              placeholder="Расскажите о себе"
+              disabled={profileLoading}
+            />
+          </FormRow>
 
           <FormRow label="Telegram">
             <Input
               placeholder="@username"
               value={telegram}
               onChange={e => setTelegram(e.target.value)}
+              disabled={profileLoading}
             />
           </FormRow>
 
           <div className="mt-4 flex justify-end">
-            <Button size="sm" onClick={() => toast.success("Профиль сохранён")}>
-              Сохранить
+            <Button
+              size="sm"
+              onClick={handleSaveProfile}
+              disabled={saveProfileMutation.isPending || profileLoading}
+            >
+              {saveProfileMutation.isPending ? (
+                <><Loader2 className="size-4 mr-1 animate-spin" /> Сохранение...</>
+              ) : "Сохранить"}
             </Button>
           </div>
         </Section>
+
+        {/* ── Почта и верификация ────────────────────────── */}
+        <EmailVerificationSection
+          email={profile?.email ?? authUser?.email ?? null}
+          emailVerified={profile?.emailVerified ?? null}
+        />
 
         {/* ── Внешний вид ────────────────────────────────── */}
         <Section title="Внешний вид">
@@ -161,10 +248,15 @@ export default function SettingsPage() {
 
         {/* ── Безопасность ───────────────────────────────── */}
         <Section title="Безопасность">
+          {/* Set password for OAuth users */}
+          <SetPasswordSection hasPassword={profile?.hasPassword ?? true} />
+
+          <div className="h-px bg-border my-3" />
+
           <LinkRow
             Icon={Shield}
             title="Сменить пароль"
-            description="Последняя смена: 3 месяца назад"
+            description="Обновите пароль для входа по email"
             onClick={() => navigate("/reset-password")}
           />
           <div className="h-px bg-border my-3" />
@@ -222,6 +314,233 @@ export default function SettingsPage() {
         </Button>
       </div>
     </AppLayout>
+  );
+}
+
+/* ── Email Verification Section ──────────────────────────────── */
+
+function EmailVerificationSection({
+  email,
+  emailVerified,
+}: {
+  email: string | null;
+  emailVerified: string | null;
+}) {
+  const queryClient = useQueryClient();
+  const [otpCode, setOtpCode] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
+
+  const sendCodeMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<{ message: string }>("/api/auth/send-verification", { method: "POST" }),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowOtpInput(true);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка отправки кода"),
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: (code: string) =>
+      apiFetch<{ message: string }>("/api/auth/verify-email", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      }),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowOtpInput(false);
+      setOtpCode("");
+      void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Неверный код"),
+  });
+
+  if (!email) return null;
+
+  const isVerified = !!emailVerified;
+
+  return (
+    <Section title="Почта">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "flex size-10 items-center justify-center rounded-lg",
+            isVerified ? "bg-emerald-500/10" : "bg-amber-500/10",
+          )}>
+            {isVerified
+              ? <CheckCircle className="size-5 text-emerald-500" />
+              : <Mail className="size-5 text-amber-500" />
+            }
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">{email}</p>
+            <p className={cn(
+              "text-xs",
+              isVerified ? "text-emerald-500" : "text-amber-500",
+            )}>
+              {isVerified ? "✓ Подтверждён" : "Не подтверждён"}
+            </p>
+          </div>
+        </div>
+
+        {!isVerified && !showOtpInput && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 border-amber-500/30 text-amber-500 hover:bg-amber-500/5"
+            onClick={() => sendCodeMutation.mutate()}
+            disabled={sendCodeMutation.isPending}
+          >
+            {sendCodeMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <><SendIcon className="size-3.5" /> Подтвердить почту</>
+            )}
+          </Button>
+        )}
+      </div>
+
+      {/* OTP input */}
+      {showOtpInput && !isVerified && (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+          <p className="text-sm text-muted-foreground">
+            Код подтверждения отправлен на <strong className="text-foreground">{email}</strong>.
+            Проверьте почту (или консоль бэкенда).
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="000000"
+              value={otpCode}
+              onChange={e => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              maxLength={6}
+              className="max-w-[140px] text-center font-mono text-lg tracking-widest"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              onClick={() => verifyMutation.mutate(otpCode)}
+              disabled={otpCode.length !== 6 || verifyMutation.isPending}
+            >
+              {verifyMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : "Подтвердить"}
+            </Button>
+          </div>
+          <button
+            className="text-xs text-primary hover:underline self-start"
+            onClick={() => sendCodeMutation.mutate()}
+            disabled={sendCodeMutation.isPending}
+          >
+            Отправить код повторно
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/* ── Set Password Section (for OAuth users) ──────────────────── */
+
+function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const setPasswordMutation = useMutation({
+    mutationFn: (pwd: string) =>
+      apiFetch("/api/users/me/set-password", {
+        method: "POST",
+        body: JSON.stringify({ password: pwd }),
+      }),
+    onSuccess: () => {
+      toast.success("Пароль установлен!");
+      setShowForm(false);
+      setPassword("");
+      setConfirmPassword("");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка"),
+  });
+
+  if (hasPassword) return null;
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10">
+          <Lock className="size-5 text-amber-500" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground">Пароль не установлен</p>
+          <p className="text-xs text-muted-foreground">
+            Вы вошли через соцсеть. Установите пароль, чтобы входить по email.
+          </p>
+        </div>
+        {!showForm && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 border-amber-500/30 text-amber-500 hover:bg-amber-500/5"
+            onClick={() => setShowForm(true)}
+          >
+            Установить
+          </Button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="mt-3 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Новый пароль</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Минимум 6 символов"
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Повторите пароль</Label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Повторите пароль"
+            />
+          </div>
+          {password.length > 0 && password.length < 6 && (
+            <p className="text-xs text-destructive">Минимум 6 символов</p>
+          )}
+          {confirmPassword.length > 0 && password !== confirmPassword && (
+            <p className="text-xs text-destructive">Пароли не совпадают</p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => { setShowForm(false); setPassword(""); setConfirmPassword(""); }}
+            >
+              Отмена
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={() => setPasswordMutation.mutate(password)}
+              disabled={
+                password.length < 6 ||
+                password !== confirmPassword ||
+                setPasswordMutation.isPending
+              }
+            >
+              {setPasswordMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : "Установить пароль"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

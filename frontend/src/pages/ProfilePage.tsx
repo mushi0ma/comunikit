@@ -4,8 +4,9 @@
 */
 import { useState } from "react";
 import {
-  Star, LogOut, Edit3, Package, Bookmark,
+  Star, LogOut, Edit3, Package, ShieldCheck, ChevronRight,
 } from "lucide-react";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,11 +22,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 
-type Tab = "listings" | "favorites" | "reviews";
+type Tab = "listings" | "reviews";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "listings", label: "Мои объявления" },
-  { value: "favorites", label: "Избранное" },
   { value: "reviews", label: "Отзывы" },
 ];
 
@@ -147,6 +147,22 @@ export default function ProfilePage() {
           </Button>
         </div>
 
+        {/* ── Verification CTA ─────────────────────────────── */}
+        <Link href="/verify-id">
+          <div className="mt-4 flex items-center gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 cursor-pointer transition-colors hover:bg-amber-500/10">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/25">
+              <ShieldCheck className="size-5 text-amber-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">Аккаунт не верифицирован</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Пройдите верификацию студенческого билета, чтобы получить полный доступ
+              </p>
+            </div>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </div>
+        </Link>
+
         {/* ── Tabs ─────────────────────────────────────────── */}
         <div className="mt-6 flex gap-1 overflow-x-auto pb-1">
           {TABS.map(tab => (
@@ -168,7 +184,6 @@ export default function ProfilePage() {
         {/* ── Tab content ──────────────────────────────────── */}
         <div className="mt-4">
           {activeTab === "listings" && <ListingsTab listings={myListings ?? []} isLoading={listingsLoading} />}
-          {activeTab === "favorites" && <FavoritesTab />}
           {activeTab === "reviews" && <ReviewsTab />}
         </div>
 
@@ -270,54 +285,9 @@ function ListingsTab({ listings, isLoading }: { listings: Listing[]; isLoading: 
   );
 }
 
-/* ── Favorites tab ────────────────────────────────────────── */
-
-function FavoritesTab() {
-  const { data: bookmarks, isLoading } = useQuery<Listing[]>({
-    queryKey: ["bookmarks"],
-    queryFn: async () => {
-      try {
-        return await apiFetch<Listing[]>("/api/bookmarks");
-      } catch {
-        // Fallback: fetch all listings and filter bookmarked
-        try {
-          const all = await apiFetch<Listing[]>("/api/listings");
-          return all.filter((l) => (l as Listing & { bookmarked?: boolean }).bookmarked === true);
-        } catch {
-          return [];
-        }
-      }
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Package className="size-8 animate-pulse text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!bookmarks || bookmarks.length === 0) {
-    return (
-      <div className="rounded-xl border border-border bg-card py-16 text-center text-muted-foreground ck-animate-in">
-        <Bookmark className="mx-auto mb-3 size-12 opacity-30" />
-        <p className="font-semibold">Нет сохранённых объявлений</p>
-        <p className="mt-1 text-sm">Добавляйте объявления в избранное, чтобы они появились здесь</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ck-animate-in lg:grid-cols-3">
-      {bookmarks.map(l => (
-        <ListingCard key={l.id} listing={l} />
-      ))}
-    </div>
-  );
-}
-
 /* ── Reviews tab ──────────────────────────────────────────── */
+// TODO: Replace MOCK_REVIEWS with real API call once backend reviews endpoint is ready
+// TODO: Each review should include author.id from the API to enable profile linking
 
 function ReviewsTab() {
   return (
@@ -326,15 +296,20 @@ function ReviewsTab() {
         <div key={r.id} className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
-                  {r.author[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm font-semibold text-foreground">{r.author}</p>
-                <p className="text-xs text-muted-foreground">{r.group}</p>
-              </div>
+              {/* TODO: replace hardcoded href with /profile/${r.authorId} once API returns author id */}
+              <Link href={`/profile/${r.id}`}>
+                <div className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <Avatar className="size-8">
+                    <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
+                      {r.author[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{r.author}</p>
+                    <p className="text-xs text-muted-foreground">{r.group}</p>
+                  </div>
+                </div>
+              </Link>
             </div>
             <div className="flex flex-col items-end gap-1">
               <StarRating rating={r.rating} />

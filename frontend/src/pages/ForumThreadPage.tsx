@@ -195,16 +195,24 @@ function CommentItem({
   const [submitting, setSubmitting] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
 
-  const maxDepth = 3;
+  const maxDepth = 2;
   const hasReplies = (comment.replies?.length ?? 0) > 0;
 
   async function handleReply() {
     if (!replyBody.trim()) return;
     setSubmitting(true);
     try {
+      // For deeply nested comments, attach reply to the nearest allowed ancestor
+      // but prefix with @mention so the user knows who they're replying to
+      const isDeep = depth >= maxDepth;
+      const body = isDeep
+        ? `@${comment.author.name}, ${replyBody.trim()}`
+        : replyBody.trim();
+      const parentId = isDeep ? (comment.parentId ?? comment.id) : comment.id;
+
       await apiFetch("/api/comments", {
         method: "POST",
-        body: JSON.stringify({ body: replyBody.trim(), threadId, parentId: comment.id }),
+        body: JSON.stringify({ body, threadId, parentId }),
       });
       setReplyBody("");
       setShowReplyForm(false);
@@ -256,7 +264,7 @@ function CommentItem({
         <div className="flex items-center gap-1 px-4 pb-3">
           <CommentVote commentId={comment.id} initialVotes={comment._count?.votes ?? 0} />
 
-          {depth < maxDepth && isAuthenticated && (
+          {isAuthenticated && (
             <button
               onClick={() => setShowReplyForm(!showReplyForm)}
               className={cn(

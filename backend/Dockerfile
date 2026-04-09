@@ -4,23 +4,26 @@ RUN npm install -g pnpm @nestjs/cli
 
 WORKDIR /app
 
-# Копируем весь исходный код
-COPY backend/ .
+# Копируем папки с сохранением оригинальной структуры монорепозитория
 COPY shared/ ./shared/
+COPY backend/ ./backend/
 
-# КРИТИЧЕСКИ ВАЖНО: Удаляем локальные node_modules и dist, если они скопировались с хоста (защита от отсутствующего .dockerignore)
+# Переходим в бэкенд для установки зависимостей и сборки
+WORKDIR /app/backend
+
+# Очищаем мусор, если он скопировался с локальной машины
 RUN rm -rf node_modules dist
 
-# Устанавливаем зависимости через pnpm (соответствует локальному pnpm-lock.yaml)
+# Устанавливаем зависимости
 RUN pnpm install
 
-# Генерируем Prisma Client строго в чистой среде
+# Генерируем Prisma
 RUN pnpm prisma generate
 
 # Собираем NestJS
 RUN pnpm run build
 
-# Проверка успешной сборки
+# Проверка
 RUN ls dist/main.js || (echo "BUILD FAILED: dist/main.js not found" && exit 1)
 
 EXPOSE 3001

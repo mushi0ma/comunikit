@@ -16,6 +16,7 @@ import ListingCard from "@/components/ListingCard";
 import { type Listing, formatPrice, getTypeLabel, getTypeColor } from "@/lib/mockData";
 import { apiFetch } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
+import { resolveLocationText } from "@/lib/locationUtils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -283,7 +284,7 @@ export default function ListingDetail() {
                     {listing.type === "lost" ? "Потеряно" : "Найдено"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Место: {listing.location}
+                    Место: {resolveLocationText(listing.location)}
                   </div>
                 </div>
               </div>

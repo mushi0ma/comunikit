@@ -3,8 +3,9 @@
 */
 import { cn, timeAgo } from "@/lib/utils";
 import { Listing, formatPrice, getTypeLabel, getTypeColor, getStripeColor } from "@/lib/mockData";
+import { resolveLocationText } from "@/lib/locationUtils";
 import { useLocation } from "wouter";
-import { Heart, Bookmark } from "lucide-react";
+import { Heart, Bookmark, MapPin } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
@@ -78,6 +79,12 @@ export default function ListingCard({ listing }: ListingCardProps) {
           <span className={cn(getTypeColor(listing.type), "shrink-0")}>{getTypeLabel(listing.type)}</span>
         </div>
         <p className="hidden sm:block text-xs text-muted-foreground line-clamp-2">{listing.description}</p>
+        {listing.location && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="size-3 shrink-0" />
+            <span className="truncate">{resolveLocationText(listing.location)}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between sm:mt-1">
           <span className="ck-price text-xs sm:text-sm">
             {listing.price ? formatPrice(listing.price) : "Договорная"}

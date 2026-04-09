@@ -29,6 +29,7 @@ model Listing {
   price       Float?
   type        ListingType
   category    String
+  location    String?
   authorId    String
   author      User          @relation(fields: [authorId], references: [id])
   images      String[]

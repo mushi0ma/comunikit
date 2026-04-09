@@ -74,6 +74,7 @@ export class ListingsService {
       price?: number;
       type: string;
       category: string;
+      location?: string;
       images?: string[];
     },
     authorId: string,
@@ -96,6 +97,7 @@ export class ListingsService {
         price: data.price ?? null,
         type: data.type as never,
         category: data.category,
+        location: data.location ?? null,
         images: data.images ?? [],
         authorId,
       },

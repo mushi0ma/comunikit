@@ -23,6 +23,7 @@ const createListingSchema = z.object({
   price: z.number().min(0).optional(),
   type: z.enum(['sell', 'buy', 'service', 'lost', 'found']),
   category: z.string().min(1),
+  location: z.string().max(200).optional(),
   images: z.array(z.string()).max(5).optional().default([]),
 });
 

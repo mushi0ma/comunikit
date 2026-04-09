@@ -16,6 +16,7 @@ import AppLayout from "@/components/AppLayout";
 import { CATEGORIES, formatPrice } from "@/lib/mockData";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { resolveLocation } from "@/lib/locationUtils";
 import { toast } from "sonner";
 
 type MainType = "marketplace" | "lostfound";
@@ -61,12 +62,15 @@ export default function CreateListing() {
     const mapType = params.get("type");
     const mapX = params.get("mapX");
     const mapY = params.get("mapY");
+    const mapFloor = params.get("floor");
     if (mapType === "lost" || mapType === "found") {
       setMainType("lostfound");
       setSubType(mapType);
     }
     if (mapX && mapY) {
-      setLocationText(`Карта: x=${Number(mapX).toFixed(1)}, y=${Number(mapY).toFixed(1)}`);
+      const floor = mapFloor ? Number(mapFloor) : 1;
+      const resolved = resolveLocation(Number(mapX), Number(mapY), floor);
+      setLocationText(resolved.text);
     }
   }, [searchString]);
 
@@ -130,6 +134,7 @@ export default function CreateListing() {
         type: subType,
         category,
         ...(showPrice && price && Number(price) > 0 ? { price: Number(price) } : {}),
+        ...(locationText ? { location: locationText } : {}),
         ...(imageUrls.length > 0 ? { images: imageUrls } : {}),
       };
 

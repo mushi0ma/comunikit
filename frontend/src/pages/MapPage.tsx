@@ -323,6 +323,7 @@ export default function MapPage() {
                   params.set("mapX", String(pendingMarker.x));
                   params.set("mapY", String(pendingMarker.y));
                   params.set("type", pendingMarker.type);
+                  params.set("floor", String(activeFloor));
                   navigate(`/create?${params.toString()}`);
                 }}
                 className="w-full text-sm"

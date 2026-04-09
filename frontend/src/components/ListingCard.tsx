@@ -7,8 +7,9 @@ import { resolveLocationText } from "@/lib/locationUtils";
 import { useLocation } from "wouter";
 import { Heart, Bookmark, MapPin } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
+import { toast } from "sonner";
 
 interface ListingCardProps {
   listing: Listing;
@@ -40,31 +41,59 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
   const handleClick = () => navigate(`/listing/${listing.id}`);
 
-  const invalidateStatus = () => {
-    void queryClient.invalidateQueries({ queryKey: ["interaction-status", listing.id, "listing"] });
-    void queryClient.invalidateQueries({ queryKey: ["users", "saved"] });
-    void queryClient.invalidateQueries({ queryKey: ["users", "liked"] });
-    void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+  const statusKey = ["interaction-status", listing.id, "listing"];
+
+  const likeMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/users/me/like/listing/${listing.id}`, { method: "POST" }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: statusKey });
+      const prev = queryClient.getQueryData<InteractionStatus>(statusKey);
+      queryClient.setQueryData<InteractionStatus>(statusKey, old => ({
+        saved: old?.saved ?? false,
+        liked: !(old?.liked ?? false),
+      }));
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(statusKey, ctx.prev);
+      toast.error("Ошибка");
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: statusKey });
+      void queryClient.invalidateQueries({ queryKey: ["users", "liked"] });
+    },
+  });
+
+  const bookmarkMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/users/me/save/listing/${listing.id}`, { method: "POST" }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: statusKey });
+      const prev = queryClient.getQueryData<InteractionStatus>(statusKey);
+      queryClient.setQueryData<InteractionStatus>(statusKey, old => ({
+        liked: old?.liked ?? false,
+        saved: !(old?.saved ?? false),
+      }));
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(statusKey, ctx.prev);
+      toast.error("Ошибка");
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: statusKey });
+      void queryClient.invalidateQueries({ queryKey: ["users", "saved"] });
+      void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+    },
+  });
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    likeMutation.mutate();
   };
 
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleBookmark = (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await apiFetch(`/api/users/me/like/listing/${listing.id}`, { method: "POST" });
-    } catch {
-      // ignore
-    }
-    invalidateStatus();
-  };
-
-  const handleBookmark = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await apiFetch(`/api/users/me/save/listing/${listing.id}`, { method: "POST" });
-    } catch {
-      // ignore
-    }
-    invalidateStatus();
+    bookmarkMutation.mutate();
   };
 
   return (

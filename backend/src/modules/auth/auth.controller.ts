@@ -20,6 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Request } from 'express';
+import { Resend } from 'resend';
 import { z } from 'zod';
 import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -43,6 +44,7 @@ type TelegramPayload = z.infer<typeof telegramPayloadSchema>;
 export class AuthController {
   private readonly admin: SupabaseClient;
   private readonly botToken: string;
+  private readonly resend: Resend | null;
 
   constructor(
     private readonly config: ConfigService,
@@ -59,6 +61,9 @@ export class AuthController {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     this.botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN') ?? '';
+
+    const resendApiKey = this.config.get<string>('RESEND_API_KEY');
+    this.resend = resendApiKey ? new Resend(resendApiKey) : null;
   }
 
   @Post('telegram')
@@ -299,8 +304,25 @@ export class AuthController {
       data: { userId: user.id, code, expiresAt },
     });
 
-    // Mock email sending — log to console
-    console.log(`\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`);
+    // Send verification email via Resend (or fallback to console)
+    if (this.resend) {
+      const { error: sendError } = await this.resend.emails.send({
+        from: 'Comunikit <onboarding@resend.dev>',
+        to: [user.email],
+        subject: 'Код подтверждения — Comunikit',
+        html: `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
+      });
+      if (sendError) {
+        console.error('[Resend] Failed to send email:', sendError);
+        throw new BadRequestException({
+          success: false,
+          data: null,
+          error: 'Не удалось отправить письмо. Попробуйте позже.',
+        });
+      }
+    } else {
+      console.log(`\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`);
+    }
 
     return {
       success: true,

@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
-import { initTelegramWidget } from "@/lib/telegram-auth";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -82,16 +81,6 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-trigger Telegram auth when coming from bot link
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('telegram_login') === 'true') {
-      // Small delay to let the page render first
-      const timer = setTimeout(() => handleTelegramAuth(), 600);
-      return () => clearTimeout(timer);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   async function onSubmit(data: LoginValues) {
     try {
       await signIn(data.email, data.password);
@@ -109,48 +98,6 @@ export default function LoginPage() {
       },
     });
     if (error) toast.error(error.message);
-  }
-
-  function handleTelegramAuth() {
-    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
-    if (!botUsername) {
-      toast.error("Telegram бот не настроен");
-      return;
-    }
-
-    initTelegramWidget(
-      botUsername,
-      async (telegramUser) => {
-        try {
-          const res = await fetch(
-            `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/auth/telegram`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(telegramUser),
-            },
-          );
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.message ?? data.error ?? "Ошибка");
-          await supabase.auth.setSession({
-            access_token: data.access_token,
-            refresh_token: data.refresh_token,
-          });
-          toast.success("Добро пожаловать!");
-          navigate("/forum");
-        } catch (e) {
-          toast.error((e as Error).message);
-        }
-      },
-      "telegram-widget-container",
-    );
-
-    setTimeout(() => {
-      const iframe = document.querySelector(
-        "#telegram-widget-container iframe",
-      ) as HTMLElement | null;
-      iframe?.click();
-    }, 500);
   }
 
   return (
@@ -202,17 +149,14 @@ export default function LoginPage() {
                   <Github className="size-4" />
                   GitHub
                 </button>
-                <button
-                  type="button"
-                  onClick={handleTelegramAuth}
+                <a
+                  href={`https://t.me/${import.meta.env.VITE_TELEGRAM_BOT_USERNAME}?start=login`}
                   className="flex items-center justify-center gap-2 h-10 rounded-lg bg-background border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
                 >
                   <Send className="size-4" />
                   Telegram
-                </button>
+                </a>
               </div>
-
-              <div id="telegram-widget-container" className="hidden" />
 
               {/* Divider */}
               <div className="flex items-center gap-3 my-5">

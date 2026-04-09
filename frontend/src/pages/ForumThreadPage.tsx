@@ -87,34 +87,36 @@ function timeAgo(dateStr: string): string {
 function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVotes: number }) {
   const [votes, setVotes] = useState(initialVotes);
   const [userVote, setUserVote] = useState<1 | -1 | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  async function vote(value: 1 | -1) {
-    setLoading(true);
-    try {
-      await apiFetch(`/api/forum/${threadId}/vote`, {
-        method: "POST",
-        body: JSON.stringify({ value }),
-      });
-      if (userVote === value) {
-        setVotes(v => v - value);
-        setUserVote(null);
-      } else {
-        setVotes(v => v + value - (userVote || 0));
-        setUserVote(value);
-      }
-    } catch {
-      toast.error("Ошибка голосования");
-    } finally {
-      setLoading(false);
+  function vote(value: 1 | -1) {
+    // Save previous state for rollback
+    const prevVotes = votes;
+    const prevUserVote = userVote;
+
+    // Optimistic update
+    if (userVote === value) {
+      setVotes(v => v - value);
+      setUserVote(null);
+    } else {
+      setVotes(v => v + value - (userVote || 0));
+      setUserVote(value);
     }
+
+    apiFetch(`/api/forum/${threadId}/vote`, {
+      method: "POST",
+      body: JSON.stringify({ value }),
+    }).catch(() => {
+      // Rollback on error
+      setVotes(prevVotes);
+      setUserVote(prevUserVote);
+      toast.error("Ошибка голосования");
+    });
   }
 
   return (
     <div className="flex items-center gap-1">
       <button
         onClick={() => vote(1)}
-        disabled={loading}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
           userVote === 1
@@ -127,7 +129,6 @@ function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVote
       </button>
       <button
         onClick={() => vote(-1)}
-        disabled={loading}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors",
           userVote === -1
@@ -147,17 +148,21 @@ function CommentVote({ commentId, initialVotes }: { commentId: string; initialVo
   const [votes, setVotes] = useState(initialVotes);
   const [voted, setVoted] = useState(false);
 
-  async function toggle() {
-    try {
-      await apiFetch(`/api/comments/${commentId}/vote`, {
-        method: "POST",
-        body: JSON.stringify({ value: voted ? -1 : 1 }),
-      });
-      setVotes(v => voted ? v - 1 : v + 1);
-      setVoted(!voted);
-    } catch {
+  function toggle() {
+    // Optimistic update
+    const wasVoted = voted;
+    setVoted(!wasVoted);
+    setVotes(v => wasVoted ? v - 1 : v + 1);
+
+    apiFetch(`/api/comments/${commentId}/vote`, {
+      method: "POST",
+      body: JSON.stringify({ value: wasVoted ? -1 : 1 }),
+    }).catch(() => {
+      // Rollback on error
+      setVoted(wasVoted);
+      setVotes(v => wasVoted ? v + 1 : v - 1);
       toast.error("Ошибка голосования");
-    }
+    });
   }
 
   return (
@@ -195,24 +200,15 @@ function CommentItem({
   const [submitting, setSubmitting] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
 
-  const maxDepth = 2;
   const hasReplies = (comment.replies?.length ?? 0) > 0;
 
   async function handleReply() {
     if (!replyBody.trim()) return;
     setSubmitting(true);
     try {
-      // For deeply nested comments, attach reply to the nearest allowed ancestor
-      // but prefix with @mention so the user knows who they're replying to
-      const isDeep = depth >= maxDepth;
-      const body = isDeep
-        ? `@${comment.author.name}, ${replyBody.trim()}`
-        : replyBody.trim();
-      const parentId = isDeep ? (comment.parentId ?? comment.id) : comment.id;
-
       await apiFetch("/api/comments", {
         method: "POST",
-        body: JSON.stringify({ body, threadId, parentId }),
+        body: JSON.stringify({ body: replyBody.trim(), threadId, parentId: comment.id }),
       });
       setReplyBody("");
       setShowReplyForm(false);

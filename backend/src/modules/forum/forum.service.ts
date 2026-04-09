@@ -5,6 +5,31 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 export class ForumService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Build a nested include for comments up to `depth` levels deep. */
+  private buildCommentInclude(depth: number): Record<string, unknown> {
+    const authorSelect = {
+      id: true,
+      name: true,
+      avatarUrl: true,
+      karma: true,
+    };
+
+    const base: Record<string, unknown> = {
+      author: { select: authorSelect },
+      _count: { select: { votes: true, replies: true } },
+    };
+
+    if (depth <= 1) return base;
+
+    return {
+      ...base,
+      replies: {
+        orderBy: { createdAt: 'asc' },
+        include: this.buildCommentInclude(depth - 1),
+      },
+    };
+  }
+
   async findAll(category?: string) {
     const where: Record<string, unknown> = {};
     if (category) where.category = category;
@@ -40,32 +65,14 @@ export class ForumService {
         },
         comments: {
           orderBy: { createdAt: 'asc' },
+          where: { parentId: null }, // top-level comments only
           include: {
-            author: {
-              select: {
-                id: true,
-                name: true,
-                avatarUrl: true,
-                karma: true,
-              },
-            },
+            ...this.buildCommentInclude(10),
             replies: {
               orderBy: { createdAt: 'asc' },
-              include: {
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    avatarUrl: true,
-                    karma: true,
-                  },
-                },
-                _count: { select: { votes: true, replies: true } },
-              },
+              include: this.buildCommentInclude(9),
             },
-            _count: { select: { votes: true, replies: true } },
           },
-          where: { parentId: null }, // top-level comments only
         },
         _count: { select: { votes: true } },
       },

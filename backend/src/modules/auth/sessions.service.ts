@@ -26,7 +26,7 @@ export class SessionsService {
     return { browser, os, deviceType };
   }
 
-  /** Record a new session on login. */
+  /** Record a new session on login. Always creates a fresh entry so one user can have multiple active sessions. */
   async create(
     userId: string,
     accessToken: string,
@@ -36,10 +36,8 @@ export class SessionsService {
     const tokenHash = this.hashToken(accessToken);
     const { browser, os, deviceType } = this.parseUserAgent(userAgent);
 
-    return this.prisma.session.upsert({
-      where: { tokenHash },
-      update: { lastActiveAt: new Date() },
-      create: { userId, tokenHash, browser, os, deviceType, ip },
+    return this.prisma.session.create({
+      data: { userId, tokenHash, browser, os, deviceType, ip },
     });
   }
 

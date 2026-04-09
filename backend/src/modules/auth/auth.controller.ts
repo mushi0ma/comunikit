@@ -19,6 +19,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 import { IdCardService, type IdCardResult } from './id-card.service.js';
 import { SessionsService } from './sessions.service.js';
 import { verifyTelegramAuth } from './telegram.strategy.js';
@@ -49,6 +50,7 @@ export class AuthController {
     private readonly config: ConfigService,
     private readonly idCardService: IdCardService,
     private readonly sessionsService: SessionsService,
+    private readonly prisma: PrismaService,
   ) {
     const supabaseUrl = this.config.get<string>('SUPABASE_URL');
     const serviceRoleKey = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -104,39 +106,26 @@ export class AuthController {
     const syntheticEmail = `tg-${payload.id}@telegram.comunikit.local`;
     const password = this.deterministicPassword(payload.id);
 
-    // Attempt to find an existing user by listing with a filter.
-    const { data: list, error: listError } =
-      await this.admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    if (listError) {
+    // Try to create the Supabase user — ignore "already registered" errors.
+    const { error: createError } = await this.admin.auth.admin.createUser({
+      email: syntheticEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        provider: 'telegram',
+        telegram_id: payload.id,
+        username: payload.username,
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        photo_url: payload.photo_url,
+      },
+    });
+    if (createError && !createError.message.includes('already been registered')) {
       throw new UnauthorizedException({
         success: false,
         data: null,
-        error: listError.message,
+        error: createError.message,
       });
-    }
-    const existing = list.users.find((u) => u.email === syntheticEmail);
-
-    if (!existing) {
-      const { error: createError } = await this.admin.auth.admin.createUser({
-        email: syntheticEmail,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          provider: 'telegram',
-          telegram_id: payload.id,
-          username: payload.username,
-          first_name: payload.first_name,
-          last_name: payload.last_name,
-          photo_url: payload.photo_url,
-        },
-      });
-      if (createError) {
-        throw new UnauthorizedException({
-          success: false,
-          data: null,
-          error: createError.message,
-        });
-      }
     }
 
     const { data: session, error: signInError } =
@@ -167,6 +156,19 @@ export class AuthController {
         .create(supabaseUserId, session.session.access_token, userAgent, ip)
         .catch(() => {
           // Non-critical — don't fail login if session tracking fails
+        });
+
+      // Link telegramId to the Prisma User for future bot notifications
+      await this.prisma.user
+        .update({
+          where: { id: supabaseUserId },
+          data: {
+            telegramId: BigInt(payload.id),
+            telegramHandle: payload.username ?? undefined,
+          },
+        })
+        .catch(() => {
+          // Non-critical — user row may not exist yet (pre-verification)
         });
     }
 

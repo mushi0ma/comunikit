@@ -11,6 +11,7 @@ model User {
   studentId      String         @unique
   name           String
   avatarUrl      String?
+  telegramId     BigInt?        @unique @map("telegram_id")
   telegramHandle String?
   karma          Int            @default(0)
   listings       Listing[]

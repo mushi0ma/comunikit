@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Копируем весь исходный код
 COPY backend/ .
+COPY shared/ ./shared/
 
 # КРИТИЧЕСКИ ВАЖНО: Удаляем локальные node_modules и dist, если они скопировались с хоста (защита от отсутствующего .dockerignore)
 RUN rm -rf node_modules dist

@@ -12,6 +12,7 @@ import { ForumModule } from './modules/forum/forum.module.js';
 import { CommentsModule } from './modules/comments/comments.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { UsersModule } from './modules/users/users.module.js';
+import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UsersModule } from './modules/users/users.module.js';
     CommentsModule,
     NotificationsModule,
     UsersModule,
+    TelegramBotModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,7 +9,8 @@ export const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
-  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_BOT_TOKEN: z.string().min(1, 'Required for Telegram auth & bot'),
+  APP_URL: z.string().url().default('https://comunikit.vercel.app'),
   OPENROUTER_API_KEY: z.string().optional(),
 });
 

@@ -2,7 +2,7 @@
   "info": {
     "name": "Comunikit API",
     "_postman_id": "comunikit-api-v1",
-    "description": "API collection for Comunikit — closed ecosystem marketplace for AITUC students.",
+    "description": "Full API collection for Comunikit — closed ecosystem marketplace for AITU students.\n\nSet the {{token}} variable after authenticating via Telegram or email/password.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -28,48 +28,245 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/health",
             "description": "Returns server status and timestamp."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});",
-                  "pm.test(\"Status is ok\", () => {",
-                  "  pm.expect(pm.response.json().status).to.eql('ok');",
-                  "});"
-                ]
-              }
-            }
-          ]
+          }
         },
         {
           "name": "DB health check",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/health/db",
-            "description": "Runs a SELECT 1 against the database."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Runs SELECT 1 against the database."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints: Telegram login, OTP email verification, ID card OCR, sessions management.",
+      "item": [
+        {
+          "name": "Telegram login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/auth/telegram",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 123456789,\n  \"first_name\": \"Aibek\",\n  \"last_name\": \"Nurlanov\",\n  \"username\": \"aibek_aituc\",\n  \"photo_url\": \"https://t.me/i/userpic/320/example.jpg\",\n  \"auth_date\": 1712345678,\n  \"hash\": \"HMAC_SHA256_HASH_FROM_TELEGRAM\"\n}"
+            },
+            "description": "No auth. Payload from Telegram Login Widget. Returns access_token & refresh_token."
+          }
+        },
+        {
+          "name": "Verify ID card (OCR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/auth/verify-id-card",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/student-id.jpg", "description": "AITU student ID card image (max 10 MB)" }
+              ]
+            },
+            "description": "Auth required. Uploads student ID card image for OCR verification. Returns extracted student data."
+          }
+        },
+        {
+          "name": "Send verification code (OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/auth/send-verification",
+            "description": "Auth required. Sends a 6-digit OTP code to the user's registered email via Resend."
+          }
+        },
+        {
+          "name": "Verify email (OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/auth/verify-email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "description": "Auth required. Verifies the 6-digit OTP code sent to email. Sets emailVerified timestamp on success."
+          }
+        },
+        {
+          "name": "List my sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/auth/sessions",
+            "description": "Auth required. Lists all active sessions for the authenticated user. Each session includes browser, OS, device type, and isCurrent flag."
+          }
+        },
+        {
+          "name": "Revoke session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "sessions", ":id"],
+              "variable": [{ "key": "id", "value": "SESSION_UUID" }]
+            },
+            "description": "Auth required. Revokes (deletes) a specific session by ID. Cannot revoke current session."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User profile, password, bookmarks, likes, interaction status.",
+      "item": [
+        {
+          "name": "Get my profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/users/me",
+            "description": "Auth required. Returns current user's full profile."
+          }
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/users/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aibek Nurlanov\",\n  \"bio\": \"CS student @ AITU, 3rd year\",\n  \"telegramHandle\": \"@aibek_aituc\"\n}"
+            },
+            "description": "Auth required. All fields optional."
+          }
+        },
+        {
+          "name": "Set password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/users/me/set-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"securePassword123\"\n}"
+            },
+            "description": "Auth required. Sets a password for OAuth-registered users. Min 6 chars."
+          }
+        },
+        {
+          "name": "Get saved (bookmarks)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/users/me/saved",
+            "description": "Auth required. Returns { listings: [...], threads: [...] } of bookmarked items."
+          }
+        },
+        {
+          "name": "Get liked",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/users/me/liked",
+            "description": "Auth required. Returns { listings: [...], threads: [...] } of liked items."
+          }
+        },
+        {
+          "name": "Get interaction status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/status?targetId=ITEM_UUID&targetType=listing",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "status"],
+              "query": [
+                { "key": "targetId", "value": "ITEM_UUID", "description": "Listing or Thread UUID" },
+                { "key": "targetType", "value": "listing", "description": "listing | thread" }
+              ]
+            },
+            "description": "Auth required. Returns { saved: bool, liked: bool } for a specific item."
+          }
+        },
+        {
+          "name": "Toggle save listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/save/listing/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "save", "listing", ":id"],
+              "variable": [{ "key": "id", "value": "LISTING_UUID" }]
+            },
+            "description": "Auth required. Toggles bookmark on a listing. Returns { action: 'added' | 'removed' }."
+          }
+        },
+        {
+          "name": "Toggle save thread",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/save/thread/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "save", "thread", ":id"],
+              "variable": [{ "key": "id", "value": "THREAD_UUID" }]
+            },
+            "description": "Auth required. Toggles bookmark on a forum thread."
+          }
+        },
+        {
+          "name": "Toggle like listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/like/listing/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "like", "listing", ":id"],
+              "variable": [{ "key": "id", "value": "LISTING_UUID" }]
+            },
+            "description": "Auth required. Toggles like (vote) on a listing. Returns { action: 'added' | 'removed' }."
+          }
         }
       ]
     },
@@ -87,31 +284,13 @@
               "query": [
                 { "key": "type", "value": "sell", "disabled": true, "description": "sell | buy | service | lost | found" },
                 { "key": "category", "value": "electronics", "disabled": true },
-                { "key": "authorId", "value": "USER_UUID", "disabled": true, "description": "Filter by author" },
+                { "key": "authorId", "value": "USER_UUID", "disabled": true },
                 { "key": "limit", "value": "20", "disabled": true },
                 { "key": "offset", "value": "0", "disabled": true }
               ]
             },
             "description": "Public. Returns all listings with optional filters."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});",
-                  "pm.test(\"Returns array\", () => {",
-                  "  pm.expect(pm.response.json().data).to.be.an('array');",
-                  "});"
-                ]
-              }
-            }
-          ]
+          }
         },
         {
           "name": "Search listings",
@@ -122,54 +301,24 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "listings", "search"],
               "query": [
-                { "key": "q", "value": "macbook", "description": "Search keyword (min 2 chars)" }
+                { "key": "q", "value": "macbook", "description": "Min 2 chars" }
               ]
             },
-            "description": "Public. Full-text search across listing titles and descriptions."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Returns array\", () => {",
-                  "  pm.expect(pm.response.json().data).to.be.an('array');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Public. Full-text search across titles and descriptions."
+          }
         },
         {
           "name": "Get listing by ID",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/listings/:id",
-            "description": "Public. Returns a single listing.",
             "url": {
               "raw": "{{baseUrl}}/api/listings/:id",
               "host": ["{{baseUrl}}"],
               "path": ["api", "listings", ":id"],
               "variable": [{ "key": "id", "value": "LISTING_UUID" }]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            },
+            "description": "Public. Returns a single listing with author."
+          }
         },
         {
           "name": "Create listing",
@@ -184,7 +333,7 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"MacBook Pro 14\\\" M3\",\n  \"description\": \"Selling my MacBook Pro in excellent condition. Comes with original charger and box.\",\n  \"price\": 850000,\n  \"type\": \"sell\",\n  \"category\": \"electronics\",\n  \"images\": []\n}"
             },
-            "description": "Auth required. type: sell | buy | service | lost | found"
+            "description": "Auth required. type: sell | buy | service | lost | found."
           }
         },
         {
@@ -207,6 +356,7 @@
     },
     {
       "name": "Forum",
+      "description": "Forum threads: CRUD, search, voting.",
       "item": [
         {
           "name": "List threads",
@@ -217,58 +367,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "forum"],
               "query": [
-                { "key": "category", "value": "general", "disabled": true }
+                { "key": "category", "value": "Учёба", "disabled": true }
               ]
             },
-            "description": "Public. Returns all threads with optional category filter."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});",
-                  "pm.test(\"Returns threads\", () => {",
-                  "  pm.expect(pm.response.json().data).to.be.an('array');",
-                  "  pm.expect(pm.response.json().data.length).to.be.above(0);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get thread",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/api/forum/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "forum", ":id"],
-              "variable": [{ "key": "id", "value": "THREAD_UUID" }]
-            },
-            "description": "Public. Returns thread with its comments."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Public. Returns all threads, optional category filter."
+          }
         },
         {
           "name": "Search threads",
@@ -279,25 +382,24 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "forum", "search"],
               "query": [
-                { "key": "q", "value": "campus", "description": "Search keyword (min 2 chars)" }
+                { "key": "q", "value": "campus" }
               ]
             },
-            "description": "Public. Full-text search across forum thread titles and bodies."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Returns array\", () => {",
-                  "  pm.expect(pm.response.json().data).to.be.an('array');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Public. Keyword search across titles and bodies."
+          }
+        },
+        {
+          "name": "Get thread by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/forum/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forum", ":id"],
+              "variable": [{ "key": "id", "value": "THREAD_UUID" }]
+            },
+            "description": "Public. Returns thread with nested comments."
+          }
         },
         {
           "name": "Create thread",
@@ -310,9 +412,9 @@
             "url": "{{baseUrl}}/api/forum",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Best places to study on campus?\",\n  \"body\": \"Looking for quiet spots in C1 where I can focus. Any recommendations from fellow students?\",\n  \"category\": \"general\"\n}"
+              "raw": "{\n  \"title\": \"Best places to study on campus?\",\n  \"body\": \"Looking for quiet spots in C1 where I can focus. Any recommendations from fellow students?\",\n  \"category\": \"Общее\"\n}"
             },
-            "description": "Auth required. title: 3-200 chars, body: 10-5000 chars."
+            "description": "Auth required. title: 3-200, body: 10-5000, category: required."
           }
         },
         {
@@ -333,13 +435,14 @@
               "mode": "raw",
               "raw": "{\n  \"value\": 1\n}"
             },
-            "description": "Auth required. value: 1 (upvote) or -1 (downvote)."
+            "description": "Auth required. value: 1 (upvote) or -1 (downvote). Same value toggles off."
           }
         }
       ]
     },
     {
       "name": "Comments",
+      "description": "Comments on listings and forum threads, with nested replies and voting.",
       "item": [
         {
           "name": "Get comments for listing",
@@ -353,23 +456,8 @@
                 { "key": "listingId", "value": "LISTING_UUID" }
               ]
             },
-            "description": "Public. Returns comments for a listing."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Public. Top-level comments with nested replies for a listing."
+          }
         },
         {
           "name": "Get comments for thread",
@@ -383,26 +471,11 @@
                 { "key": "threadId", "value": "THREAD_UUID" }
               ]
             },
-            "description": "Public. Returns comments for a forum thread."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Public. Top-level comments with nested replies for a thread."
+          }
         },
         {
-          "name": "Add comment",
+          "name": "Create comment",
           "request": {
             "method": "POST",
             "header": [
@@ -414,11 +487,11 @@
               "mode": "raw",
               "raw": "{\n  \"body\": \"Is this still available? I'm interested!\",\n  \"listingId\": \"LISTING_UUID\"\n}"
             },
-            "description": "Auth required. Provide either listingId or threadId (not both). Optional parentId for replies."
+            "description": "Auth required. Provide listingId OR threadId. Optional parentId for nested replies."
           }
         },
         {
-          "name": "Add reply (nested comment)",
+          "name": "Create nested reply",
           "request": {
             "method": "POST",
             "header": [
@@ -428,9 +501,9 @@
             "url": "{{baseUrl}}/api/comments",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"body\": \"Yes it is! DM me.\",\n  \"listingId\": \"LISTING_UUID\",\n  \"parentId\": \"PARENT_COMMENT_UUID\"\n}"
+              "raw": "{\n  \"body\": \"Yes it is! DM me on Telegram.\",\n  \"listingId\": \"LISTING_UUID\",\n  \"parentId\": \"PARENT_COMMENT_UUID\"\n}"
             },
-            "description": "Auth required. parentId makes this a reply to an existing comment."
+            "description": "Auth required. parentId creates a nested reply. Unlimited depth."
           }
         },
         {
@@ -451,7 +524,7 @@
               "mode": "raw",
               "raw": "{\n  \"value\": 1\n}"
             },
-            "description": "Auth required. value: 1 or -1."
+            "description": "Auth required. value: 1 or -1. Same value toggles off."
           }
         }
       ]
@@ -467,23 +540,8 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": "{{baseUrl}}/api/notifications",
-            "description": "Auth required. Returns authenticated user's notifications."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Auth required. Returns last 50 notifications."
+          }
         },
         {
           "name": "Get unread count",
@@ -493,22 +551,8 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": "{{baseUrl}}/api/notifications/unread-count",
-            "description": "Auth required. Returns { count } of unread notifications for the badge."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has count\", () => {",
-                  "  pm.expect(pm.response.json().data).to.have.property('count');",
-                  "});"
-                ]
-              }
-            }
-          ]
+            "description": "Auth required. Returns { count } for badge display."
+          }
         },
         {
           "name": "Mark all as read",
@@ -518,7 +562,7 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": "{{baseUrl}}/api/notifications/read",
-            "description": "Auth required. Marks all notifications as read."
+            "description": "Auth required. Marks ALL notifications as read."
           }
         },
         {
@@ -554,57 +598,7 @@
                 { "key": "studentId", "value": "220103001" }
               ]
             },
-            "description": "Public. Returns { valid, name, groupCode } if student is whitelisted."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has data\", () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('data').or.have.property('status');",
-                  "});"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Auth",
-      "item": [
-        {
-          "name": "Telegram login",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{baseUrl}}/api/auth/telegram",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"id\": 123456789,\n  \"first_name\": \"Aibek\",\n  \"last_name\": \"Nurlanov\",\n  \"username\": \"aibek_aituc\",\n  \"photo_url\": \"https://t.me/i/userpic/...\",\n  \"auth_date\": 1712345678,\n  \"hash\": \"<HMAC-SHA256 hash from Telegram Widget>\"\n}"
-            },
-            "description": "No auth required. Payload from Telegram Login Widget. Returns access_token and refresh_token. Hash must be valid HMAC-SHA256 signed by the bot token."
-          }
-        },
-        {
-          "name": "Verify ID card (OCR)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{baseUrl}}/api/auth/verify-id-card",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"image\": \"<base64-encoded image string>\",\n  \"mimeType\": \"image/jpeg\"\n}"
-            },
-            "description": "No auth required. Sends AITUC student ID card image for OCR verification. Returns extracted student data."
+            "description": "Public. Returns { valid, name, groupCode } if student is in the whitelist."
           }
         }
       ]

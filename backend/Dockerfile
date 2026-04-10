@@ -21,11 +21,11 @@ RUN pnpm install
 RUN pnpm prisma generate
 
 # Собираем NestJS
-RUN pnpm run build
+RUN pnpm build
 
 # Проверка
 RUN ls dist/main.js || (echo "BUILD FAILED: dist/main.js not found" && exit 1)
 
 EXPOSE 3001
 
-CMD ["node", "dist/main.js"]
+CMD ["pnpm", "start:prod"]

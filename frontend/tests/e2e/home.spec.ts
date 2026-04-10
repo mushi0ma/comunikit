@@ -6,8 +6,8 @@ test.describe('AppLayout', () => {
   })
 
   test('Login page renders correctly', async ({ page }) => {
-    // Logo icon (Boxes icon from lucide — rendered as SVG, check nearby text)
-    await expect(page.getByText('Войти в аккаунт')).toBeVisible()
+    // Heading
+    await expect(page.getByRole('heading', { name: /войти/i })).toBeVisible()
 
     // Email input
     await expect(page.locator('input[type="email"]')).toBeVisible()
@@ -15,39 +15,58 @@ test.describe('AppLayout', () => {
     // Password input
     await expect(page.locator('input[type="password"]')).toBeVisible()
 
-    // Submit button — "Продолжить"
+    // Submit button — "войти"
     await expect(page.getByRole('button', { name: /войти/i })).toBeVisible()
 
     // GitHub OAuth button
-    await expect(page.getByRole('button', { name: /github/i })).toBeVisible()
+    await expect(page.getByText(/github/i).first()).toBeVisible()
 
-    // Telegram OAuth button
-    await expect(page.getByRole('button', { name: /telegram/i })).toBeVisible()
+    // Telegram OAuth link
+    await expect(page.getByText(/telegram/i).first()).toBeVisible()
 
     // Register link
     await expect(page.getByText(/зарегистрироваться/i)).toBeVisible()
 
-    // "или" divider
-    await expect(page.getByText('или')).toBeVisible()
+    // "or with email" divider
+    await expect(page.getByText(/or with email/i)).toBeVisible()
   })
 
   test('Register page renders correctly', async ({ page }) => {
     await page.goto('http://localhost:3000/register')
 
     // Title
-    await expect(page.getByText('Создать аккаунт')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /создать аккаунт/i })).toBeVisible()
 
     // Name input
     await expect(page.locator('input[placeholder="Алиев Арман"]')).toBeVisible()
 
-    // AITU-only disclaimer
-    await expect(page.getByText(/только для студентов/i)).toBeVisible()
+    // Email input
+    await expect(page.locator('input[type="email"]')).toBeVisible()
 
-    // GitHub registration button
-    await expect(page.getByRole('button', { name: /github/i })).toBeVisible()
+    // Password input
+    await expect(page.locator('input[type="password"]')).toBeVisible()
 
-    // Telegram registration button
-    await expect(page.getByRole('button', { name: /telegram/i })).toBeVisible()
+    // GitHub OAuth button
+    await expect(page.getByText(/github/i).first()).toBeVisible()
+
+    // Telegram link
+    await expect(page.getByText(/telegram/i).first()).toBeVisible()
+
+    // Login link
+    await expect(page.getByText(/войти/i).first()).toBeVisible()
+  })
+
+  test('Forgot password page renders correctly', async ({ page }) => {
+    await page.goto('http://localhost:3000/forgot-password')
+
+    // Title
+    await expect(page.getByRole('heading', { name: /восстановить пароль/i })).toBeVisible()
+
+    // Email input
+    await expect(page.locator('input[type="email"]')).toBeVisible()
+
+    // Submit button
+    await expect(page.getByRole('button', { name: /отправить ссылку/i })).toBeVisible()
 
     // Login link
     await expect(page.getByText(/войти/i).first()).toBeVisible()

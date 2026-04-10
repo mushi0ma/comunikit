@@ -1,34 +1,24 @@
-/* comunikit — RegisterPage (Two-column, AITU-themed) */
-import { useState, useEffect } from "react";
+/* comunikit — RegisterPage (Runpod split layout / cyberpunk) */
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { motion } from "framer-motion";
 import {
   Eye,
   EyeOff,
   Loader2,
   Github,
   Send,
-  MessageSquare,
-  ShoppingBag,
-  MapPin,
-  Mail,
-  Lock,
-  User,
   ArrowLeft,
-  Sparkles,
-  Users,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
-import { initTelegramWidget } from "@/lib/telegram-auth";
+import AuthHero from "@/components/auth/AuthHero";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -46,44 +36,11 @@ const registerSchema = z.object({
 
 type RegisterValues = z.infer<typeof registerSchema>;
 
-/* ── Steps for right panel ────────────────────────────────────── */
-
-const FEATURES = [
-  {
-    icon: MessageSquare,
-    title: "Форум студентов",
-    desc: "Обсуждай учёбу и жизнь в кампусе",
-    gradient: "from-violet-500/20 to-purple-600/20",
-    glow: "shadow-violet-500/10",
-  },
-  {
-    icon: ShoppingBag,
-    title: "Маркетплейс",
-    desc: "Покупай и продавай внутри AITU",
-    gradient: "from-sky-500/20 to-blue-600/20",
-    glow: "shadow-sky-500/10",
-  },
-  {
-    icon: MapPin,
-    title: "Lost & Found",
-    desc: "Найди потерянные вещи на карте",
-    gradient: "from-emerald-500/20 to-green-600/20",
-    glow: "shadow-emerald-500/10",
-  },
-];
-
-const STATS = [
-  { value: "847+", label: "студентов" },
-  { value: "1.2K", label: "объявлений" },
-  { value: "99%", label: "uptime" },
-];
-
 /* ── Component ───────────────────────────────────────────────── */
 
 export default function RegisterPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
   const signUp = useAuthStore((s) => s.signUp);
 
   const {
@@ -94,13 +51,6 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % 3);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   async function onSubmit(data: RegisterValues) {
     try {
@@ -122,353 +72,247 @@ export default function RegisterPage() {
     if (error) toast.error(error.message);
   }
 
-  function handleTelegramAuth() {
-    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
-    if (!botUsername) {
-      toast.error("Telegram бот не настроен");
-      return;
-    }
-
-    initTelegramWidget(
-      botUsername,
-      async (telegramUser) => {
-        try {
-          const res = await fetch(
-            `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/auth/telegram`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(telegramUser),
-            },
-          );
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.message ?? data.error ?? "Ошибка");
-          await supabase.auth.setSession({
-            access_token: data.access_token,
-            refresh_token: data.refresh_token,
-          });
-          toast.success("Добро пожаловать!");
-          navigate("/forum");
-        } catch (e) {
-          toast.error((e as Error).message);
-        }
-      },
-      "telegram-widget-container",
-    );
-
-    setTimeout(() => {
-      const iframe = document.querySelector(
-        "#telegram-widget-container iframe",
-      ) as HTMLElement | null;
-      iframe?.click();
-    }, 500);
-  }
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between p-6">
-        <Link
-          href="/"
-          className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="text-base font-bold text-foreground">comunikit</span>
-        </Link>
-        <Link href="/login">
-          <Button variant="ghost" size="sm">
-            Войти
-          </Button>
-        </Link>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      {/* ── Hero aside (desktop only) — with ASCII image slideshow ── */}
+      <AuthHero
+        withImages
+        heading={
+          <>
+            Присоединяйся к{" "}
+            <span className="text-fuchsia-400">AITU</span>
+            <span className="ml-1 inline-block h-7 w-[3px] translate-y-1 animate-pulse bg-fuchsia-400" />
+          </>
+        }
+        subheading="Форум, маркетплейс, Lost & Found — одним аккаунтом."
+      />
 
-      {/* ── Main ───────────────────────────────────────────────── */}
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-12 items-center">
-          {/* ── Left column: form ──────────────────────────────── */}
-          <div className="w-full max-w-sm mx-auto lg:mx-0">
-            {/* Pill badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
-              <span className="text-xs text-primary font-medium">
-                🎓 Только для студентов AITU
-              </span>
-            </div>
+      {/* ── Form side ────────────────────────────────────────── */}
+      <main className="flex flex-1 flex-col">
+        {/* Header */}
+        <header className="flex items-center justify-between p-6 lg:px-10 lg:py-8">
+          <Link
+            href="/"
+            className="group flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+            <span className="font-mono text-xs uppercase tracking-[0.2em]">
+              back
+            </span>
+          </Link>
+          <Link href="/login">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-mono text-xs uppercase tracking-[0.15em]"
+            >
+              sign in →
+            </Button>
+          </Link>
+        </header>
 
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Создать аккаунт
-            </h1>
-            <p className="text-sm text-muted-foreground mb-6">
-              Присоединяйся к студенческому сообществу
-            </p>
+        {/* Form container */}
+        <div className="flex flex-1 items-center justify-center px-6 pb-12 lg:px-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full max-w-sm"
+          >
+            {/* Mobile-only mini ASCII logo */}
+            <pre
+              aria-hidden="true"
+              className="mb-8 select-none font-mono text-[9px] leading-[1.1] text-primary lg:hidden"
+            >
+{` ██████╗██╗  ██╗
+██╔════╝██║ ██╔╝
+██║     █████╔╝
+██║     ██╔═██╗
+╚██████╗██║  ██╗
+ ╚═════╝╚═╝  ╚═╝`}
+            </pre>
 
-            {/* Form card */}
-            <div className="rounded-2xl border border-border bg-card p-6">
-              {/* OAuth buttons — side by side */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={handleGithubAuth}
-                  className="flex items-center justify-center gap-2 h-10 rounded-lg bg-background border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
-                >
-                  <Github className="size-4" />
-                  GitHub
-                </button>
-                <button
-                  type="button"
-                  onClick={handleTelegramAuth}
-                  className="flex items-center justify-center gap-2 h-10 rounded-lg bg-background border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors"
-                >
-                  <Send className="size-4" />
-                  Telegram
-                </button>
-              </div>
-
-              <div id="telegram-widget-container" className="hidden" />
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 my-5">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                  или
+            {/* Heading */}
+            <div className="mb-8">
+              <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
                 </span>
-                <div className="flex-1 h-px bg-border" />
+                new.user // register
               </div>
+              <h1 className="text-4xl font-bold tracking-tight text-foreground">
+                Создать аккаунт
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Присоединяйся к студенческому сообществу{" "}
+                <span className="font-mono text-foreground">AITU</span>.
+              </p>
+            </div>
 
-              {/* Form */}
-              <form
-                onSubmit={handleSubmit(onSubmit)}
-                className="flex flex-col gap-4"
+            {/* OAuth buttons */}
+            <div className="mb-6 grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={handleGithubAuth}
+                className="group flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card/40 backdrop-blur-sm transition-all hover:border-foreground/40 hover:bg-accent"
               >
-                {/* Name */}
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="name" className="text-sm font-medium">
-                    Полное имя
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Алиев Арман"
-                      autoComplete="name"
-                      className={cn(
-                        "pl-10 bg-background border-border",
-                        errors.name &&
-                          "border-destructive focus-visible:ring-destructive",
-                      )}
-                      {...register("name")}
-                    />
-                  </div>
-                  {errors.name && (
-                    <p className="text-xs text-destructive">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
+                <Github className="size-4" />
+                <span className="font-mono text-xs uppercase tracking-[0.15em] text-foreground">
+                  GitHub
+                </span>
+              </button>
+              <a
+                href={`https://t.me/${import.meta.env.VITE_TELEGRAM_BOT_USERNAME}?start=login`}
+                className="group flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card/40 backdrop-blur-sm transition-all hover:border-sky-500/60 hover:bg-accent"
+              >
+                <Send className="size-4 text-sky-500" />
+                <span className="font-mono text-xs uppercase tracking-[0.15em] text-foreground">
+                  Telegram
+                </span>
+              </a>
+            </div>
 
-                {/* Email */}
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="student@aitu.edu.kz"
-                      autoComplete="email"
-                      className={cn(
-                        "pl-10 bg-background border-border",
-                        errors.email &&
-                          "border-destructive focus-visible:ring-destructive",
-                      )}
-                      {...register("email")}
-                    />
-                  </div>
-                  {errors.email && (
-                    <p className="text-xs text-destructive">
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
+            {/* Divider */}
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                or with email
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
 
-                {/* Password */}
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Пароль
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPass ? "text" : "password"}
-                      placeholder="Минимум 8 символов"
-                      autoComplete="new-password"
-                      className={cn(
-                        "pl-10 pr-10 bg-background border-border",
-                        errors.password &&
-                          "border-destructive focus-visible:ring-destructive",
-                      )}
-                      {...register("password")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPass((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={showPass ? "Скрыть пароль" : "Показать пароль"}
-                    >
-                      {showPass ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-xs text-destructive">
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Submit */}
-                <Button
-                  type="submit"
-                  className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90 mt-1"
-                  disabled={isSubmitting}
+            {/* Form — Runpod-style minimal inputs */}
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="flex flex-col gap-6"
+            >
+              {/* Name */}
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="name"
+                  className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="size-4 mr-2 animate-spin" />
-                      Создаём аккаунт...
-                    </>
-                  ) : (
-                    "Продолжить"
-                  )}
-                </Button>
-              </form>
-            </div>
-
-            {/* Login link */}
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              Уже есть аккаунт?{" "}
-              <Link
-                href="/login"
-                className="text-primary font-semibold hover:underline"
-              >
-                Войти
-              </Link>
-            </p>
-          </div>
-
-          {/* ── Right column: premium hero (desktop only) ─────── */}
-          <div className="hidden lg:flex flex-col gap-6">
-            {/* Gradient accent card */}
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
-              {/* Background glow */}
-              <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="size-5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">Comunikit Platform</span>
-                </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2 leading-tight">
-                  Всё для студенческой
-                  <br />
-                  <span className="bg-gradient-to-r from-primary via-violet-400 to-sky-400 bg-clip-text text-transparent">
-                    жизни в AITU
-                  </span>
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Единая платформа для общения, торговли и поиска вещей в кампусе.
-                </p>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border">
-                  {STATS.map((s, i) => (
-                    <div key={i} className="text-center">
-                      <p className="text-xl font-bold text-foreground">{s.value}</p>
-                      <p className="text-xs text-muted-foreground">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Feature cards with animation */}
-            <div className="flex flex-col gap-3">
-              {FEATURES.map((feature, i) => (
-                <div
-                  key={i}
+                  name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="Алиев Арман"
+                  autoComplete="name"
+                  {...register("name")}
                   className={cn(
-                    "flex items-center gap-4 p-4 rounded-xl border transition-all duration-500",
-                    activeStep === i
-                      ? "bg-accent/50 border-primary/30 shadow-lg"
-                      : "bg-card/50 border-border/50 hover:bg-accent/30",
-                    activeStep === i && feature.glow,
+                    "w-full border-0 border-b border-border bg-transparent py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors",
+                    errors.name && "border-destructive focus:border-destructive",
                   )}
+                />
+                {errors.name && (
+                  <p className="mt-0.5 font-mono text-[11px] text-destructive">
+                    ✗ {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="email"
+                  className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground"
                 >
-                  <div
+                  email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="student@aitu.edu.kz"
+                  autoComplete="email"
+                  {...register("email")}
+                  className={cn(
+                    "w-full border-0 border-b border-border bg-transparent py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors",
+                    errors.email && "border-destructive focus:border-destructive",
+                  )}
+                />
+                {errors.email && (
+                  <p className="mt-0.5 font-mono text-[11px] text-destructive">
+                    ✗ {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="password"
+                  className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground"
+                >
+                  password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPass ? "text" : "password"}
+                    placeholder="Минимум 8 символов"
+                    autoComplete="new-password"
+                    {...register("password")}
                     className={cn(
-                      "size-11 rounded-xl flex items-center justify-center transition-all duration-500 bg-gradient-to-br",
-                      activeStep === i ? feature.gradient : "from-muted to-muted",
-                    )}
-                  >
-                    <feature.icon
-                      className={cn(
-                        "size-5 transition-colors duration-500",
-                        activeStep === i
-                          ? "text-primary"
-                          : "text-muted-foreground",
-                      )}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={cn(
-                        "text-sm font-semibold transition-colors duration-500",
-                        activeStep === i
-                          ? "text-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {feature.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{feature.desc}</p>
-                  </div>
-                  <div
-                    className={cn(
-                      "size-2 rounded-full transition-all duration-500",
-                      activeStep === i ? "bg-primary scale-100" : "bg-muted scale-75",
+                      "w-full border-0 border-b border-border bg-transparent py-2 pr-8 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors",
+                      errors.password &&
+                        "border-destructive focus:border-destructive",
                     )}
                   />
-                </div>
-              ))}
-            </div>
-
-            {/* Social proof */}
-            <div className="flex items-center gap-3 px-4">
-              <div className="flex -space-x-2">
-                {["А", "Б", "В", "Г"].map((letter, i) => (
-                  <div
-                    key={i}
-                    className="size-8 rounded-full bg-gradient-to-br from-primary/30 to-violet-500/30 border-2 border-background flex items-center justify-center text-xs font-bold text-primary"
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((v) => !v)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label={
+                      showPass ? "Скрыть пароль" : "Показать пароль"
+                    }
                   >
-                    {letter}
-                  </div>
-                ))}
+                    {showPass ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-0.5 font-mono text-[11px] text-destructive">
+                    ✗ {errors.password.message}
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-1.5">
-                <Users className="size-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  <strong className="text-foreground">+ 847</strong> студентов уже с нами
-                </span>
-              </div>
-            </div>
-          </div>
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-2 h-11 bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    создаём...
+                  </>
+                ) : (
+                  <>
+                    создать аккаунт
+                    <span className="ml-2 opacity-70">→</span>
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Login link */}
+            <p className="mt-8 text-center font-mono text-xs text-muted-foreground">
+              уже есть аккаунт?{" "}
+              <Link
+                href="/login"
+                className="uppercase tracking-[0.15em] text-primary hover:underline"
+              >
+                войти →
+              </Link>
+            </p>
+          </motion.div>
         </div>
       </main>
     </div>

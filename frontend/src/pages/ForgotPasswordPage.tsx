@@ -1,26 +1,18 @@
-/* comunikit — ForgotPasswordPage */
+/* comunikit — ForgotPasswordPage (Runpod split layout / cyberpunk) */
 import { useState } from "react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Loader2,
-  Mail,
   CheckCircle,
-  Clock,
-  Lock,
-  MailWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
+import AuthHero from "@/components/auth/AuthHero";
 
-const TIPS = [
-  { icon: MailWarning, text: "Проверь папку Спам если письмо не пришло" },
-  { icon: Clock, text: "Ссылка действует 1 час" },
-  { icon: Lock, text: "После сброса войди с новым паролем" },
-];
+/* ── Component ───────────────────────────────────────────────── */
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -51,148 +43,162 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between p-6">
-        <Link
-          href="/login"
-          className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="text-base font-bold text-foreground">comunikit</span>
-        </Link>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      {/* ── Hero aside (desktop only) ────────────────────────── */}
+      <AuthHero
+        heading={
+          <>
+            Восстановление{" "}
+            <span className="text-fuchsia-400">доступа</span>
+            <span className="ml-1 inline-block h-7 w-[3px] translate-y-1 animate-pulse bg-fuchsia-400" />
+          </>
+        }
+        subheading="Мы отправим ссылку для сброса пароля на твой email."
+      />
 
-      {/* Main */}
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left column: form */}
-          <div className="w-full max-w-sm mx-auto lg:mx-0">
+      {/* ── Form side ────────────────────────────────────────── */}
+      <main className="flex flex-1 flex-col">
+        {/* Header */}
+        <header className="flex items-center justify-between p-6 lg:px-10 lg:py-8">
+          <Link
+            href="/login"
+            className="group flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+            <span className="font-mono text-xs uppercase tracking-[0.2em]">
+              back
+            </span>
+          </Link>
+        </header>
+
+        {/* Form container */}
+        <div className="flex flex-1 items-center justify-center px-6 pb-12 lg:px-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full max-w-sm"
+          >
+            {/* Mobile-only mini ASCII logo */}
+            <pre
+              aria-hidden="true"
+              className="mb-8 select-none font-mono text-[9px] leading-[1.1] text-primary lg:hidden"
+            >
+{` ██████╗██╗  ██╗
+██╔════╝██║ ██╔╝
+██║     █████╔╝
+██║     ██╔═██╗
+╚██████╗██║  ██╗
+ ╚═════╝╚═╝  ╚═╝`}
+            </pre>
+
             {isSuccess ? (
-              /* Success state */
+              /* ── Success state ────────────────────────────────── */
               <div className="text-center">
-                <div className="inline-flex items-center justify-center size-16 rounded-full bg-green-500/10 mb-6">
-                  <CheckCircle className="size-8 text-green-500" />
+                <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-emerald-500/10">
+                  <CheckCircle className="size-8 text-emerald-500" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground mb-2">
+                <h1 className="text-2xl font-bold text-foreground">
                   Проверь почту
                 </h1>
-                <p className="text-sm text-muted-foreground mb-8">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Письмо отправлено на{" "}
-                  <strong className="text-foreground">{email}</strong>.
-                  Проверь почту.
+                  <strong className="font-mono text-foreground">{email}</strong>.
                 </p>
                 <Link href="/login">
-                  <Button className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90">
-                    <ArrowLeft className="size-4 mr-2" />
-                    Вернуться ко входу
+                  <Button className="mt-8 h-11 w-full bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30">
+                    <ArrowLeft className="mr-2 size-4" />
+                    вернуться ко входу
                   </Button>
                 </Link>
               </div>
             ) : (
-              /* Form state */
+              /* ── Form state ───────────────────────────────────── */
               <>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-                >
-                  <ArrowLeft className="size-4" />
-                  Назад ко входу
-                </Link>
-
-                <h1 className="text-3xl font-bold text-foreground mb-2">
-                  Восстановить пароль
-                </h1>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Введи email и мы отправим ссылку для сброса
-                </p>
-
-                {/* Form card */}
-                <div className="rounded-2xl border border-border bg-card p-6">
-                  {error && (
-                    <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                      {error}
-                    </div>
-                  )}
-
-                  <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col gap-4"
-                  >
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="email" className="text-sm font-medium">
-                        Email
-                      </Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="student@aitu.edu.kz"
-                          autoComplete="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="pl-10 bg-background border-border"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full h-11 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90 mt-1"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="size-4 mr-2 animate-spin" />
-                          Отправка...
-                        </>
-                      ) : (
-                        "Отправить ссылку"
-                      )}
-                    </Button>
-                  </form>
-
-                  <p className="text-center text-sm text-muted-foreground mt-4">
-                    Вспомнили пароль?{" "}
-                    <Link
-                      href="/login"
-                      className="text-primary font-semibold hover:underline"
-                    >
-                      Войти
-                    </Link>
+                {/* Heading */}
+                <div className="mb-8">
+                  <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                    <span className="relative flex size-1.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+                      <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
+                    </span>
+                    password.recovery
+                  </div>
+                  <h1 className="text-4xl font-bold tracking-tight text-foreground">
+                    Восстановить пароль
+                  </h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Введи email и мы отправим ссылку для сброса.
                   </p>
                 </div>
+
+                {/* Error */}
+                {error && (
+                  <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 font-mono text-[11px] text-destructive">
+                    ✗ {error}
+                  </div>
+                )}
+
+                {/* Form */}
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex flex-col gap-6"
+                >
+                  {/* Email */}
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="email"
+                      className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground"
+                    >
+                      email
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="student@aitu.edu.kz"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSubmitting}
+                      className={cn(
+                        "w-full border-0 border-b border-border bg-transparent py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
+                      )}
+                    />
+                  </div>
+
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="mt-2 h-11 bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                        отправка...
+                      </>
+                    ) : (
+                      <>
+                        отправить ссылку
+                        <span className="ml-2 opacity-70">→</span>
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                {/* Login link */}
+                <p className="mt-8 text-center font-mono text-xs text-muted-foreground">
+                  вспомнили пароль?{" "}
+                  <Link
+                    href="/login"
+                    className="uppercase tracking-[0.15em] text-primary hover:underline"
+                  >
+                    войти →
+                  </Link>
+                </p>
               </>
             )}
-          </div>
-
-          {/* Right column: tips (desktop only) */}
-          <div className="hidden lg:block">
-            <div className="rounded-2xl border border-border bg-card p-6 mb-6 text-center">
-              <p className="text-lg font-semibold text-foreground mb-1">
-                Сброс пароля
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Следуй инструкциям ниже
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {TIPS.map((tip, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card"
-                >
-                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <tip.icon className="size-4 text-primary" />
-                  </div>
-                  <span className="text-sm text-foreground">{tip.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          </motion.div>
         </div>
       </main>
     </div>

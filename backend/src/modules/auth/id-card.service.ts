@@ -15,7 +15,7 @@ export interface IdCardResult {
 export class IdCardService {
   constructor(private readonly config: ConfigService) {}
 
-  async verify(base64Image: string, mimeType: string): Promise<IdCardResult> {
+  async verify(imageBuffer: Buffer, mimeType: string): Promise<IdCardResult> {
     const apiKey = this.config.get<string>('OPENROUTER_API_KEY');
     if (!apiKey) {
       return {
@@ -24,6 +24,11 @@ export class IdCardService {
         reason: 'OCR service not configured',
       };
     }
+
+    // Convert buffer → base64 data URL for OpenRouter Vision.
+    // We intentionally do NOT persist the raw image anywhere (no Supabase
+    // Storage, no local disk) — documents are used only for one-shot OCR.
+    const base64Image = imageBuffer.toString('base64');
 
     const prompt = `You are a strict OCR verifier for Astana IT University (AITU) student ID cards.
 

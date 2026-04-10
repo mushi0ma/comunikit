@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 const profileSelect = {
   id: true,
@@ -24,7 +25,12 @@ const authorSelect = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // ─── Profile ────────────────────────────────────────────
 
@@ -47,7 +53,7 @@ export class UsersService {
     userId: string,
     data: { name?: string; bio?: string; telegramHandle?: string },
   ) {
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -63,6 +69,47 @@ export class UsersService {
         telegramHandle: true,
       },
     });
+
+    // Fire-and-forget in-app notification. Never let a notification failure
+    // break the actual profile update — log and move on.
+    await this.notifications
+      .create({
+        userId,
+        type: 'profile_updated',
+        title: 'Профиль обновлён',
+        body: 'Данные вашего профиля были успешно сохранены.',
+      })
+      .catch((err) => {
+        this.logger.warn(
+          `Failed to create profile_updated notification for user ${userId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      });
+
+    return updated;
+  }
+
+  /**
+   * Create an in-app notification when the user changes their password.
+   * Called from `UsersController.setPassword` after Supabase Auth confirms
+   * the update.
+   */
+  async notifyPasswordChanged(userId: string): Promise<void> {
+    await this.notifications
+      .create({
+        userId,
+        type: 'password_changed',
+        title: 'Пароль изменён',
+        body: 'Ваш пароль был успешно обновлён. Если это были не вы — срочно обратитесь в поддержку.',
+      })
+      .catch((err) => {
+        this.logger.warn(
+          `Failed to create password_changed notification for user ${userId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      });
   }
 
   // ─── Bookmarks ──────────────────────────────────────────

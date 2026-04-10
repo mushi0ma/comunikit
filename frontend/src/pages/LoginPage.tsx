@@ -59,10 +59,14 @@ const ACTIVITY = [
 
 /* ── Component ───────────────────────────────────────────────── */
 
+const API_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001";
+
 export default function LoginPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
   const [activeActivity, setActiveActivity] = useState(0);
+  const [telegramLoading, setTelegramLoading] = useState(false);
   const signIn = useAuthStore((s) => s.signIn);
 
   const {
@@ -80,6 +84,65 @@ export default function LoginPage() {
     }, 3500);
     return () => clearInterval(interval);
   }, []);
+
+  /**
+   * Telegram deep-link login: the bot sends users a button linking to
+   * `/login?tg_token=xxx`. We intercept that token here, exchange it for a
+   * Supabase session on the backend, and hydrate the Supabase client so the
+   * rest of the app sees us as authenticated.
+   */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("tg_token");
+    if (!token) return;
+
+    // Clear the token from the URL immediately so a refresh can't re-use it
+    // (and so it never ends up in browser history / analytics).
+    const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    let cancelled = false;
+    setTelegramLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/telegram-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        const data = (await res.json().catch(() => null)) as
+          | { access_token?: string; refresh_token?: string; error?: string }
+          | null;
+
+        if (!res.ok || !data?.access_token || !data.refresh_token) {
+          throw new Error(
+            data?.error ?? "Не удалось войти через Telegram. Запросите новую ссылку у бота.",
+          );
+        }
+
+        const { error } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (error) throw error;
+
+        if (cancelled) return;
+        toast.success("Вход через Telegram выполнен");
+        navigate("/forum");
+      } catch (err) {
+        if (cancelled) return;
+        toast.error(
+          err instanceof Error ? err.message : "Ошибка входа через Telegram",
+        );
+      } finally {
+        if (!cancelled) setTelegramLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   async function onSubmit(data: LoginValues) {
     try {

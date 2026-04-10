@@ -24,6 +24,7 @@ import { Resend } from 'resend';
 import { z } from 'zod';
 import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { TelegramBotService } from '../telegram-bot/telegram-bot.service.js';
 import { IdCardService, type IdCardResult } from './id-card.service.js';
 import { SessionsService } from './sessions.service.js';
 import { verifyTelegramAuth } from './telegram.strategy.js';
@@ -51,6 +52,7 @@ export class AuthController {
     private readonly idCardService: IdCardService,
     private readonly sessionsService: SessionsService,
     private readonly prisma: PrismaService,
+    private readonly telegramBot: TelegramBotService,
   ) {
     const supabaseUrl = this.config.get<string>('SUPABASE_URL');
     const serviceRoleKey = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -181,15 +183,133 @@ export class AuthController {
     };
   }
 
+  /**
+   * POST /api/auth/telegram-token — exchange a one-time token issued by the
+   * Telegram bot (via `/login` command) for a Supabase session. This is the
+   * second half of the deep-link flow:
+   *   1. User taps "Войти через Telegram" → opens t.me/<bot>?start=login.
+   *   2. Bot generates a token, sends back a button with
+   *      https://<app>/login?tg_token=xyz.
+   *   3. Frontend reads the token from the URL and POSTs it here.
+   *   4. We consume it (single-use, 5 min TTL) and issue a session.
+   */
+  @Post('telegram-token')
+  @HttpCode(HttpStatus.OK)
+  async telegramToken(@Req() req: Request, @Body() body: unknown) {
+    let token = '';
+    if (body && typeof body === 'object' && 'token' in body) {
+      const raw = (body as { token: unknown }).token;
+      if (typeof raw === 'string') token = raw;
+    }
+
+    if (!token) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'Отсутствует токен',
+      });
+    }
+
+    const tgUser = this.telegramBot.consumeLoginToken(token);
+    if (!tgUser) {
+      throw new UnauthorizedException({
+        success: false,
+        data: null,
+        error:
+          'Токен недействителен или просрочен. Запросите новую ссылку у бота.',
+      });
+    }
+
+    const syntheticEmail = `tg-${tgUser.id}@telegram.comunikit.local`;
+    const password = this.deterministicPassword(tgUser.id);
+
+    const { error: createError } = await this.admin.auth.admin.createUser({
+      email: syntheticEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        provider: 'telegram',
+        telegram_id: tgUser.id,
+        username: tgUser.username ?? undefined,
+        first_name: tgUser.first_name,
+        last_name: tgUser.last_name ?? undefined,
+        photo_url: tgUser.photo_url ?? undefined,
+      },
+    });
+    if (
+      createError &&
+      !createError.message.includes('already been registered')
+    ) {
+      throw new UnauthorizedException({
+        success: false,
+        data: null,
+        error: createError.message,
+      });
+    }
+
+    const { data: session, error: signInError } =
+      await this.admin.auth.signInWithPassword({
+        email: syntheticEmail,
+        password,
+      });
+    if (signInError || !session.session) {
+      throw new UnauthorizedException({
+        success: false,
+        data: null,
+        error: signInError?.message ?? 'Failed to issue session',
+      });
+    }
+
+    // Record the session + link telegramId on the Prisma User row.
+    const userAgent = req.headers['user-agent'] ?? '';
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.ip ??
+      null;
+
+    const supabaseUserId = session.user?.id;
+    if (supabaseUserId) {
+      await this.sessionsService
+        .create(supabaseUserId, session.session.access_token, userAgent, ip)
+        .catch(() => {
+          // Non-critical — don't fail login if session tracking fails
+        });
+
+      await this.prisma.user
+        .update({
+          where: { id: supabaseUserId },
+          data: {
+            telegramId: BigInt(tgUser.id),
+            telegramHandle: tgUser.username ?? undefined,
+          },
+        })
+        .catch(() => {
+          // Non-critical — user row may not exist yet (pre-verification)
+        });
+    }
+
+    return {
+      access_token: session.session.access_token,
+      refresh_token: session.session.refresh_token,
+    };
+  }
+
   @Post('verify-id-card')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }),
   )
   async verifyIdCard(
-    @UploadedFile() file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+    // Inline Multer file shape — we avoid the global `Express.Multer.File`
+    // type here because the repo's root tsconfig.json type-checks this file
+    // without `@types/multer` in its resolution path. Keep the shape minimal
+    // and local to this handler.
+    @UploadedFile()
+    file:
+      | { buffer: Buffer; mimetype: string; size: number; originalname: string }
+      | undefined,
   ): Promise<IdCardResult> {
-    if (!file || !file.buffer.length) {
+    if (!file || !file.buffer?.length) {
       throw new BadRequestException({
         success: false,
         data: null,
@@ -207,12 +327,14 @@ export class AuthController {
       throw new BadRequestException({
         success: false,
         data: null,
-        error: 'Unsupported image format. Use JPEG, PNG, or WebP.',
+        error: 'Unsupported image format. Use JPEG, PNG, WebP, or HEIC.',
       });
     }
 
-    const base64 = file.buffer.toString('base64');
-    return this.idCardService.verify(base64, file.mimetype);
+    // Pass the raw buffer directly to the service — nothing is ever written
+    // to Supabase Storage or local disk. The service converts it to base64
+    // in-memory for the OpenRouter Vision request and then discards it.
+    return this.idCardService.verify(file.buffer, file.mimetype);
   }
 
   @Get('sessions')
@@ -304,24 +426,60 @@ export class AuthController {
       data: { userId: user.id, code, expiresAt },
     });
 
-    // Send verification email via Resend (or fallback to console)
+    // Send verification email via Resend (or fallback to console).
+    // NOTE: Resend's free tier on the shared `onboarding@resend.dev` sender
+    // can only deliver mail to the email that owns the Resend account.
+    // Any other recipient is rejected with a 403/422. We catch BOTH the
+    // Resend SDK's `{ error }` object AND thrown network exceptions so the
+    // backend never crashes — instead we log details and return a clear
+    // message to the frontend, while still printing the OTP to the server
+    // log as a fallback so local development keeps working.
     if (this.resend) {
-      const { error: sendError } = await this.resend.emails.send({
-        from: 'Comunikit <onboarding@resend.dev>',
-        to: [user.email],
-        subject: 'Код подтверждения — Comunikit',
-        html: `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
-      });
-      if (sendError) {
-        console.error('[Resend] Failed to send email:', sendError);
+      try {
+        const { error: sendError } = await this.resend.emails.send({
+          from: 'Comunikit <onboarding@resend.dev>',
+          to: [user.email],
+          subject: 'Код подтверждения — Comunikit',
+          html: `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
+        });
+        if (sendError) {
+          // Resend returns a structured `{ name, message }` object rather
+          // than an Error instance. Re-throw it as a real Error so the
+          // catch below can normalise it uniformly with network failures.
+          throw new Error(
+            (sendError as { message?: string }).message ?? 'Resend send failed',
+          );
+        }
+      } catch (err) {
+        console.error('[Resend] Failed to send verification email:', err);
+        // Fallback so the developer can still grab the code from logs.
+        console.log(
+          `\n📧 [FALLBACK] Verification code for ${user.email}: ${code}\n`,
+        );
+
+        const rawMessage =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'object' && err !== null && 'message' in err
+              ? String((err as { message: unknown }).message)
+              : String(err);
+        const isFreeTierBlock =
+          /only send testing emails|verify a domain|can only send/i.test(
+            rawMessage,
+          );
+
         throw new BadRequestException({
           success: false,
           data: null,
-          error: 'Не удалось отправить письмо. Попробуйте позже.',
+          error: isFreeTierBlock
+            ? 'Бесплатный тариф Resend (домен resend.dev) позволяет отправлять письма только на адрес владельца аккаунта. Код выведен в логи сервера — обратитесь к администратору.'
+            : 'Не удалось отправить письмо. Попробуйте позже.',
         });
       }
     } else {
-      console.log(`\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`);
+      console.log(
+        `\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`,
+      );
     }
 
     return {

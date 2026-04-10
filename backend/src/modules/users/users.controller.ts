@@ -117,6 +117,9 @@ export class UsersController {
       });
     }
 
+    // In-app notification — non-critical, so failures don't block the response.
+    await this.users.notifyPasswordChanged(user.id);
+
     return { success: true, data: { message: 'Пароль установлен' } };
   }
 

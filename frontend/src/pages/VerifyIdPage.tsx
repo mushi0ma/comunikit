@@ -280,6 +280,7 @@ export default function VerifyIdPage() {
               ref={inputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,image/heic"
+              capture="environment"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];

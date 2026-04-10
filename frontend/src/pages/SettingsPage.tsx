@@ -140,7 +140,7 @@ export default function SettingsPage() {
               </div>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={e => void handleAvatarUpload(e)}
               />

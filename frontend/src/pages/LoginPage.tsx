@@ -1,4 +1,4 @@
-/* comunikit — LoginPage (Runpod split layout / cyberpunk) */
+/* comunikit — LoginPage (Runpod-inspired dark minimal) */
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
@@ -28,6 +28,13 @@ const loginSchema = z.object({
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
+
+/* ── Shared input class for Runpod-style fields ──────────────── */
+
+const inputBase =
+  "w-full rounded-lg border border-white/[0.07] bg-white/[0.03] px-3.5 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/30 transition-all duration-200 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:bg-white/[0.05] disabled:opacity-40";
+
+const inputError = "border-destructive/40 focus:border-destructive/60 focus:ring-destructive/20";
 
 /* ── Component ───────────────────────────────────────────────── */
 
@@ -91,7 +98,7 @@ export default function LoginPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="font-mono text-xs uppercase tracking-[0.15em]"
+              className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
             >
               sign up →
             </Button>
@@ -109,7 +116,7 @@ export default function LoginPage() {
             {/* Mobile-only mini ASCII logo */}
             <pre
               aria-hidden="true"
-              className="mb-8 select-none font-mono text-[9px] leading-[1.1] text-primary lg:hidden"
+              className="ck-neon-text mb-8 select-none font-mono text-[9px] leading-[1.1] lg:hidden"
             >
 {` ██████╗██╗  ██╗
 ██╔════╝██║ ██╔╝
@@ -128,43 +135,41 @@ export default function LoginPage() {
                 </span>
                 authentication required
               </div>
-              <h1 className="text-4xl font-bold tracking-tight text-foreground">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
                 Войти
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
                 Продолжи работу в студенческом сообществе{" "}
                 <span className="font-mono text-foreground">AITU</span>.
               </p>
             </div>
 
-            {/* OAuth — GitHub + Telegram Login Widget */}
+            {/* OAuth — GitHub + Telegram */}
             <div className="mb-6 flex flex-col gap-2.5">
               <button
                 type="button"
                 onClick={handleGithubAuth}
-                className="group flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card/40 backdrop-blur-sm transition-all hover:border-foreground/40 hover:bg-accent disabled:opacity-50"
+                className="group flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-white/[0.08] bg-white/[0.04] font-mono text-xs uppercase tracking-[0.15em] text-foreground backdrop-blur-sm transition-all duration-200 hover:border-white/20 hover:bg-white/[0.07] disabled:opacity-50"
               >
                 <Github className="size-4" />
-                <span className="font-mono text-xs uppercase tracking-[0.15em] text-foreground">
-                  GitHub
-                </span>
+                GitHub
               </button>
               <TelegramLoginButton onSuccess={handleTelegramSuccess} />
             </div>
 
             {/* Divider */}
             <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              <div className="h-px flex-1 bg-white/[0.06]" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
                 or with email
               </span>
-              <div className="h-px flex-1 bg-border" />
+              <div className="h-px flex-1 bg-white/[0.06]" />
             </div>
 
-            {/* Form — Runpod-style minimal inputs */}
+            {/* Form — Runpod-style boxed inputs */}
             <form
               onSubmit={handleSubmit(onSubmit)}
-              className="flex flex-col gap-6"
+              className="flex flex-col gap-5"
             >
               {/* Email */}
               <div className="flex flex-col gap-1.5">
@@ -180,14 +185,11 @@ export default function LoginPage() {
                   placeholder="student@aitu.edu.kz"
                   autoComplete="email"
                   {...register("email")}
-                  className={cn(
-                    "w-full border-0 border-b border-border bg-transparent py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
-                    errors.email && "border-destructive focus:border-destructive",
-                  )}
+                  className={cn(inputBase, errors.email && inputError)}
                 />
                 {errors.email && (
                   <p className="mt-0.5 font-mono text-[11px] text-destructive">
-                    ✗ {errors.email.message}
+                    {errors.email.message}
                   </p>
                 )}
               </div>
@@ -203,7 +205,7 @@ export default function LoginPage() {
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="font-mono text-[10px] uppercase tracking-[0.15em] text-primary hover:underline"
+                    className="font-mono text-[10px] uppercase tracking-[0.15em] text-primary/70 transition-colors hover:text-primary"
                   >
                     forgot?
                   </Link>
@@ -215,16 +217,12 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     autoComplete="current-password"
                     {...register("password")}
-                    className={cn(
-                      "w-full border-0 border-b border-border bg-transparent py-2 pr-8 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
-                      errors.password &&
-                        "border-destructive focus:border-destructive",
-                    )}
+                    className={cn(inputBase, "pr-10", errors.password && inputError)}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass((v) => !v)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors hover:text-foreground"
                     aria-label={
                       showPass ? "Скрыть пароль" : "Показать пароль"
                     }
@@ -238,7 +236,7 @@ export default function LoginPage() {
                 </div>
                 {errors.password && (
                   <p className="mt-0.5 font-mono text-[11px] text-destructive">
-                    ✗ {errors.password.message}
+                    {errors.password.message}
                   </p>
                 )}
               </div>
@@ -247,7 +245,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-2 h-11 bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30"
+                className="mt-1 h-11 rounded-lg bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-[0_0_20px_oklch(0.74_0.238_322.16/25%)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_0_30px_oklch(0.74_0.238_322.16/35%)]"
               >
                 {isSubmitting ? (
                   <>
@@ -257,18 +255,18 @@ export default function LoginPage() {
                 ) : (
                   <>
                     войти
-                    <span className="ml-2 opacity-70">→</span>
+                    <span className="ml-2 opacity-60">→</span>
                   </>
                 )}
               </Button>
             </form>
 
             {/* Register link */}
-            <p className="mt-8 text-center font-mono text-xs text-muted-foreground">
+            <p className="mt-8 text-center font-mono text-xs text-muted-foreground/70">
               нет аккаунта?{" "}
               <Link
                 href="/register"
-                className="uppercase tracking-[0.15em] text-primary hover:underline"
+                className="uppercase tracking-[0.15em] text-primary/80 transition-colors hover:text-primary"
               >
                 зарегистрироваться →
               </Link>

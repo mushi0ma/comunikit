@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
             {/* Mobile-only mini ASCII logo */}
             <pre
               aria-hidden="true"
-              className="mb-8 select-none font-mono text-[9px] leading-[1.1] text-primary lg:hidden"
+              className="ck-neon-text mb-8 select-none font-mono text-[9px] leading-[1.1] lg:hidden"
             >
 {` ██████╗██╗  ██╗
 ██╔════╝██║ ██╔╝
@@ -106,7 +106,9 @@ export default function ForgotPasswordPage() {
                   <strong className="font-mono text-foreground">{email}</strong>.
                 </p>
                 <Link href="/login">
-                  <Button className="mt-8 h-11 w-full bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30">
+                  <Button
+                    className="mt-8 h-11 w-full rounded-lg bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-[0_0_20px_oklch(0.74_0.238_322.16/25%)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_0_30px_oklch(0.74_0.238_322.16/35%)]"
+                  >
                     <ArrowLeft className="mr-2 size-4" />
                     вернуться ко входу
                   </Button>
@@ -160,9 +162,7 @@ export default function ForgotPasswordPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isSubmitting}
-                      className={cn(
-                        "w-full border-0 border-b border-border bg-transparent py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
-                      )}
+                      className="w-full rounded-lg border border-white/[0.07] bg-white/[0.03] px-3.5 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/30 transition-all duration-200 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:bg-white/[0.05] disabled:opacity-40"
                     />
                   </div>
 
@@ -170,7 +170,7 @@ export default function ForgotPasswordPage() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="mt-2 h-11 bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30"
+                    className="mt-1 h-11 rounded-lg bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-[0_0_20px_oklch(0.74_0.238_322.16/25%)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_0_30px_oklch(0.74_0.238_322.16/35%)]"
                   >
                     {isSubmitting ? (
                       <>

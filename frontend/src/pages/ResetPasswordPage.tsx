@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
             пароля.
           </p>
           <Link href="/forgot-password">
-            <Button className="mt-6 h-11 w-full bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground">
+            <Button className="mt-6 h-11 w-full rounded-lg bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-[0_0_20px_oklch(0.74_0.238_322.16/25%)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_0_30px_oklch(0.74_0.238_322.16/35%)]">
               запросить новую ссылку
             </Button>
           </Link>
@@ -166,7 +166,7 @@ export default function ResetPasswordPage() {
             {/* Mobile-only mini ASCII logo */}
             <pre
               aria-hidden="true"
-              className="mb-8 select-none font-mono text-[9px] leading-[1.1] text-primary lg:hidden"
+              className="ck-neon-text mb-8 select-none font-mono text-[9px] leading-[1.1] lg:hidden"
             >
 {` ██████╗██╗  ██╗
 ██╔════╝██║ ██╔╝
@@ -219,14 +219,12 @@ export default function ResetPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isSubmitting}
-                    className={cn(
-                      "w-full border-0 border-b border-border bg-transparent py-2 pr-8 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
-                    )}
+                    className="w-full rounded-lg border border-white/[0.07] bg-white/[0.03] px-3.5 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/30 transition-all duration-200 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:bg-white/[0.05] disabled:opacity-40"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass((v) => !v)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors hover:text-foreground"
                     aria-label={showPass ? "Скрыть пароль" : "Показать пароль"}
                   >
                     {showPass ? (
@@ -256,16 +254,16 @@ export default function ResetPasswordPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isSubmitting}
                     className={cn(
-                      "w-full border-0 border-b border-border bg-transparent py-2 pr-8 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
+                      "w-full rounded-lg border border-white/[0.07] bg-white/[0.03] px-3.5 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/30 transition-all duration-200 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:bg-white/[0.05] disabled:opacity-40",
                       confirmPassword &&
                         password !== confirmPassword &&
-                        "border-destructive focus:border-destructive",
+                        "border-destructive/40 focus:border-destructive/60 focus:ring-destructive/20",
                     )}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors hover:text-foreground"
                     aria-label={
                       showConfirm ? "Скрыть пароль" : "Показать пароль"
                     }
@@ -288,7 +286,7 @@ export default function ResetPasswordPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-2 h-11 bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30"
+                className="mt-1 h-11 rounded-lg bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-[0_0_20px_oklch(0.74_0.238_322.16/25%)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_0_30px_oklch(0.74_0.238_322.16/35%)]"
               >
                 {isSubmitting ? (
                   <>

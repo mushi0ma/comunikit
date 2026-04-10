@@ -194,8 +194,8 @@ export default function AuthHero({
               : undefined,
           }}
           className={cn(
-            "select-none whitespace-pre text-[11px] leading-[1.1] transition-colors",
-            glitching ? "text-fuchsia-300" : "text-fuchsia-400",
+            "ck-neon-text select-none whitespace-pre text-[11px] leading-[1.1] transition-colors",
+            glitching && "brightness-125",
           )}
         >
           {ASCII_LOGO}

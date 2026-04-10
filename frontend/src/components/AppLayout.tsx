@@ -122,7 +122,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
         {/* Logo — Boxes icon */}
         <div className="flex items-center justify-center h-14 border-b border-sidebar-border shrink-0">
           <Link href="/forum">
-            <Boxes className="w-6 h-6 text-primary shrink-0" />
+            <Boxes className="w-6 h-6 text-primary shrink-0 ck-neon-glow" />
           </Link>
         </div>
 
@@ -162,7 +162,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
             {/* Mobile: logo + title */}
             <div className="lg:hidden flex items-center gap-2 flex-1 min-w-0">
               <Link href="/forum">
-                <Boxes className="w-6 h-6 text-primary shrink-0" />
+                <Boxes className="w-6 h-6 text-primary shrink-0 ck-neon-glow" />
               </Link>
               <span className="text-sm font-semibold text-foreground truncate">
                 {title}

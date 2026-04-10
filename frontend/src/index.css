@@ -357,6 +357,17 @@
     box-shadow: 0 0 20px oklch(0.74 0.238 322.16 / 25%);
   }
 
+  /* ── Neon text glow (ASCII art / monospace accents) ────────── */
+  .ck-neon-text {
+    color: oklch(0.74 0.238 322.16);
+    text-shadow:
+      0 0 6px oklch(0.74 0.238 322.16 / 40%),
+      0 0 20px oklch(0.74 0.238 322.16 / 15%);
+  }
+  .ck-neon-glow {
+    filter: drop-shadow(0 0 8px oklch(0.74 0.238 322.16 / 30%));
+  }
+
   /* ── Sidebar icon button ───────────────────────────────────── */
   .ck-sidebar-icon {
     @apply flex items-center justify-center size-10 rounded-md

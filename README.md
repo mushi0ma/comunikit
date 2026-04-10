@@ -23,11 +23,11 @@ Comunikit — внутренняя платформа Astana IT University, до
 | Слой | Технология |
 |---|---|
 | Frontend | React 19, Vite 7, Tailwind CSS 4, shadcn/ui, TanStack Query 5, Wouter 3, Zustand 5 |
-| Backend | NestJS 11, Prisma 7 (ORM) |
-| База данных | PostgreSQL — Supabase |
-| Авторизация | Supabase Auth (email + GitHub OAuth + Telegram) |
+| Backend | NestJS 11, Prisma 7 (ORM), BullMQ (фоновые задачи) |
+| База данных | PostgreSQL — Supabase, Redis (очереди) |
+| Авторизация | Supabase Auth (Telegram Login Widget + email + GitHub OAuth), HTTP-only Cookies |
 | Деплой | Vercel (frontend) + Railway (backend) |
-| Тестирование | Playwright 1.59, Postman |
+| Тестирование | Jest, Playwright 1.59, Postman |
 
 ## Локальный запуск
 
@@ -54,6 +54,18 @@ SUPABASE_SERVICE_ROLE_KEY=...
 JWT_SECRET=...
 TELEGRAM_BOT_TOKEN=
 OPENROUTER_API_KEY=
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+```
+
+**Redis** (нужен для BullMQ-очередей):
+```bash
+# Вариант 1: Docker (рекомендуется)
+docker compose up -d redis
+
+# Вариант 2: локальная установка
+# macOS:  brew install redis && brew services start redis
+# Ubuntu: sudo apt install redis-server && sudo systemctl start redis
 ```
 
 ```bash
@@ -64,6 +76,13 @@ pnpm dev --port 3000
 cd backend && pnpm start:dev
 ```
 
+### Telegram Login Widget (локальная отладка)
+
+Виджет Telegram работает только на HTTPS-доменах или `localhost`. Для локальной
+разработки в `@BotFather` укажите домен `localhost` в настройках Login Widget
+(`/setdomain`). Бот, указанный в `VITE_TELEGRAM_BOT_USERNAME`, должен совпадать
+с `TELEGRAM_BOT_TOKEN` в backend.
+
 ## Деплой
 
 - **Frontend:** Vercel — [comunikit.vercel.app](https://comunikit.vercel.app)
@@ -73,7 +92,13 @@ cd backend && pnpm start:dev
 ## Тестирование
 
 ```bash
-# E2E тесты (Playwright) — 8/8 pass
+# Unit-тесты backend (Jest)
+cd backend && pnpm test
+
+# Unit-тесты с покрытием
+cd backend && pnpm test:cov
+
+# E2E тесты (Playwright)
 pnpm exec playwright test
 
 # API тесты — импортировать postman/comunikit-api.json в Postman

@@ -11,6 +11,8 @@ export const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   TELEGRAM_BOT_TOKEN: z.string().min(1, 'Required for Telegram auth & bot'),
   APP_URL: z.string().url().default('https://comunikit.vercel.app'),
+  REDIS_HOST: z.string().default('127.0.0.1'),
+  REDIS_PORT: z.coerce.number().default(6379),
   OPENROUTER_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),

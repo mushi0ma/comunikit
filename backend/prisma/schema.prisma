@@ -7,17 +7,18 @@ datasource db {
 }
 
 model User {
-  id             String         @id @default(uuid())
-  studentId      String         @unique
-  name           String
-  email          String?        @unique
-  emailVerified  DateTime?      @map("email_verified")
-  passwordHash   String?        @map("password_hash")
-  bio            String?
-  avatarUrl      String?
-  telegramId     BigInt?        @unique @map("telegram_id")
-  telegramHandle String?
-  karma          Int            @default(0)
+  id                 String         @id @default(uuid())
+  studentId          String?        @unique
+  isStudentVerified  Boolean        @default(false) @map("is_student_verified")
+  name               String
+  email              String?        @unique
+  emailVerified      DateTime?      @map("email_verified")
+  passwordHash       String?        @map("password_hash")
+  bio                String?
+  avatarUrl          String?
+  telegramId         BigInt?        @unique @map("telegram_id")
+  telegramHandle     String?
+  karma              Int            @default(0)
   listings       Listing[]
   threads        ForumThread[]
   comments       Comment[]

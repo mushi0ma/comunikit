@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
@@ -9,6 +10,9 @@ async function bootstrap() {
   });
   app.useBodyParser('json', { limit: '10mb' });
   app.useBodyParser('urlencoded', { limit: '10mb', extended: true });
+  // Parse `Cookie` header into `req.cookies` — used by AuthGuard to read the
+  // HTTP-only session cookie set by /auth/telegram-login.
+  app.use(cookieParser());
 
   const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
     .split(',')

@@ -19,6 +19,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers,
+    // Send HTTP-only session cookies on every API call. Required for the
+    // Telegram Login Widget flow where the backend owns the session via
+    // an HTTP-only cookie instead of a bearer token.
+    credentials: "include",
   });
 
   if (!res.ok) {

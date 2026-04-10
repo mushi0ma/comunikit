@@ -84,39 +84,68 @@ function timeAgo(dateStr: string): string {
 
 /* ── VoteButtons ─────────────────────────────────────────── */
 
+interface VoteResponse {
+  action: "created" | "updated" | "removed";
+  value: number;
+}
+
+interface VoteContext {
+  prevVotes: number;
+  prevUserVote: 1 | -1 | null;
+}
+
 function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVotes: number }) {
+  const queryClient = useQueryClient();
   const [votes, setVotes] = useState(initialVotes);
   const [userVote, setUserVote] = useState<1 | -1 | null>(null);
 
-  function vote(value: 1 | -1) {
-    // Save previous state for rollback
-    const prevVotes = votes;
-    const prevUserVote = userVote;
+  const voteMutation = useMutation<VoteResponse, Error, 1 | -1, VoteContext>({
+    mutationFn: (value) =>
+      apiFetch<VoteResponse>(`/api/forum/${threadId}/vote`, {
+        method: "POST",
+        body: JSON.stringify({ value }),
+      }),
+    onMutate: async (value) => {
+      // Cancel in-flight thread refetches so they don't clobber the
+      // optimistic update before the server responds.
+      await queryClient.cancelQueries({ queryKey: ["forum", threadId] });
 
-    // Optimistic update
-    if (userVote === value) {
-      setVotes(v => v - value);
-      setUserVote(null);
-    } else {
-      setVotes(v => v + value - (userVote || 0));
-      setUserVote(value);
-    }
+      // Snapshot so onError can restore on failure.
+      const ctx: VoteContext = { prevVotes: votes, prevUserVote: userVote };
 
-    apiFetch(`/api/forum/${threadId}/vote`, {
-      method: "POST",
-      body: JSON.stringify({ value }),
-    }).catch(() => {
-      // Rollback on error
-      setVotes(prevVotes);
-      setUserVote(prevUserVote);
+      // Optimistic update — mirror backend semantics (toggle/switch).
+      if (userVote === value) {
+        setVotes((v) => v - value);
+        setUserVote(null);
+      } else {
+        setVotes((v) => v + value - (userVote ?? 0));
+        setUserVote(value);
+      }
+
+      return ctx;
+    },
+    onError: (_err, _value, ctx) => {
+      // Roll back to the snapshot captured in onMutate. The previous
+      // version passed the wrong context shape here, so the rollback
+      // silently no-op'd and the UI drifted away from the server state.
+      if (ctx) {
+        setVotes(ctx.prevVotes);
+        setUserVote(ctx.prevUserVote);
+      }
       toast.error("Ошибка голосования");
-    });
-  }
+    },
+    onSettled: () => {
+      // Refresh the thread (and its upvote count) after the server has
+      // authoritatively accepted or rejected the vote.
+      void queryClient.invalidateQueries({ queryKey: ["forum", threadId] });
+    },
+  });
 
   return (
     <div className="flex items-center gap-1">
       <button
-        onClick={() => vote(1)}
+        onClick={() => voteMutation.mutate(1)}
+        disabled={voteMutation.isPending}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
           userVote === 1
@@ -128,7 +157,8 @@ function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVote
         <span>{votes > 0 ? votes : ""}</span>
       </button>
       <button
-        onClick={() => vote(-1)}
+        onClick={() => voteMutation.mutate(-1)}
+        disabled={voteMutation.isPending}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors",
           userVote === -1
@@ -144,30 +174,54 @@ function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVote
 
 /* ── CommentVote ─────────────────────────────────────────── */
 
-function CommentVote({ commentId, initialVotes }: { commentId: string; initialVotes: number }) {
+interface CommentVoteContext {
+  prevVotes: number;
+  prevVoted: boolean;
+}
+
+function CommentVote({
+  commentId,
+  initialVotes,
+  threadId,
+}: {
+  commentId: string;
+  initialVotes: number;
+  threadId: string;
+}) {
+  const queryClient = useQueryClient();
   const [votes, setVotes] = useState(initialVotes);
   const [voted, setVoted] = useState(false);
 
-  function toggle() {
-    // Optimistic update
-    const wasVoted = voted;
-    setVoted(!wasVoted);
-    setVotes(v => wasVoted ? v - 1 : v + 1);
-
-    apiFetch(`/api/comments/${commentId}/vote`, {
-      method: "POST",
-      body: JSON.stringify({ value: wasVoted ? -1 : 1 }),
-    }).catch(() => {
-      // Rollback on error
-      setVoted(wasVoted);
-      setVotes(v => wasVoted ? v + 1 : v - 1);
+  const voteMutation = useMutation<VoteResponse, Error, void, CommentVoteContext>({
+    mutationFn: () =>
+      apiFetch<VoteResponse>(`/api/comments/${commentId}/vote`, {
+        method: "POST",
+        body: JSON.stringify({ value: voted ? -1 : 1 }),
+      }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["forum", threadId] });
+      const ctx: CommentVoteContext = { prevVotes: votes, prevVoted: voted };
+      // Optimistic toggle
+      setVoted(!voted);
+      setVotes((v) => (voted ? v - 1 : v + 1));
+      return ctx;
+    },
+    onError: (_err, _void, ctx) => {
+      if (ctx) {
+        setVoted(ctx.prevVoted);
+        setVotes(ctx.prevVotes);
+      }
       toast.error("Ошибка голосования");
-    });
-  }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["forum", threadId] });
+    },
+  });
 
   return (
     <button
-      onClick={toggle}
+      onClick={() => voteMutation.mutate()}
+      disabled={voteMutation.isPending}
       className={cn(
         "flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors",
         voted
@@ -258,7 +312,11 @@ function CommentItem({
 
         {/* Actions */}
         <div className="flex items-center gap-1 px-4 pb-3">
-          <CommentVote commentId={comment.id} initialVotes={comment._count?.votes ?? 0} />
+          <CommentVote
+            commentId={comment.id}
+            initialVotes={comment._count?.votes ?? 0}
+            threadId={threadId}
+          />
 
           {isAuthenticated && (
             <button

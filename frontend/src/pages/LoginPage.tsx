@@ -1,24 +1,18 @@
 /* comunikit — LoginPage (Runpod split layout / cyberpunk) */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Github,
-  Send,
-  ArrowLeft,
-} from "lucide-react";
+import { Eye, EyeOff, Loader2, Github, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
 import AuthHero from "@/components/auth/AuthHero";
+import TelegramLoginButton from "@/components/auth/TelegramLoginButton";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -37,14 +31,11 @@ type LoginValues = z.infer<typeof loginSchema>;
 
 /* ── Component ───────────────────────────────────────────────── */
 
-const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001";
-
 export default function LoginPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
-  const [telegramLoading, setTelegramLoading] = useState(false);
   const signIn = useAuthStore((s) => s.signIn);
+  const hydrateFromCookie = useAuthStore((s) => s.hydrateFromCookie);
 
   const {
     register,
@@ -55,64 +46,12 @@ export default function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
 
-  /**
-   * Telegram deep-link login: the bot sends users a button linking to
-   * `/login?tg_token=xxx`. We intercept that token here, exchange it for a
-   * Supabase session on the backend, and hydrate the Supabase client so the
-   * rest of the app sees us as authenticated.
-   */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("tg_token");
-    if (!token) return;
-
-    // Clear the token from the URL immediately so a refresh can't re-use it
-    // (and so it never ends up in browser history / analytics).
-    const cleanUrl = `${window.location.pathname}${window.location.hash}`;
-    window.history.replaceState({}, document.title, cleanUrl);
-
-    let cancelled = false;
-    setTelegramLoading(true);
-    (async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/auth/telegram-token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-        const data = (await res.json().catch(() => null)) as
-          | { access_token?: string; refresh_token?: string; error?: string }
-          | null;
-
-        if (!res.ok || !data?.access_token || !data.refresh_token) {
-          throw new Error(
-            data?.error ?? "Не удалось войти через Telegram. Запросите новую ссылку у бота.",
-          );
-        }
-
-        const { error } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-        if (error) throw error;
-
-        if (cancelled) return;
-        toast.success("Вход через Telegram выполнен");
-        navigate("/forum");
-      } catch (err) {
-        if (cancelled) return;
-        toast.error(
-          err instanceof Error ? err.message : "Ошибка входа через Telegram",
-        );
-      } finally {
-        if (!cancelled) setTelegramLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
+  async function handleTelegramSuccess() {
+    // The backend just set an HTTP-only session cookie. Pull /auth/me so the
+    // store knows we are authenticated — then navigate.
+    await hydrateFromCookie();
+    navigate("/forum");
+  }
 
   async function onSubmit(data: LoginValues) {
     try {
@@ -198,12 +137,11 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* OAuth buttons */}
-            <div className="mb-6 grid grid-cols-2 gap-2.5">
+            {/* OAuth — GitHub + Telegram Login Widget */}
+            <div className="mb-6 flex flex-col gap-2.5">
               <button
                 type="button"
                 onClick={handleGithubAuth}
-                disabled={telegramLoading}
                 className="group flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card/40 backdrop-blur-sm transition-all hover:border-foreground/40 hover:bg-accent disabled:opacity-50"
               >
                 <Github className="size-4" />
@@ -211,22 +149,7 @@ export default function LoginPage() {
                   GitHub
                 </span>
               </button>
-              <a
-                href={`https://t.me/${import.meta.env.VITE_TELEGRAM_BOT_USERNAME}?start=login`}
-                className={cn(
-                  "group flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card/40 backdrop-blur-sm transition-all hover:border-sky-500/60 hover:bg-accent",
-                  telegramLoading && "pointer-events-none opacity-60",
-                )}
-              >
-                {telegramLoading ? (
-                  <Loader2 className="size-4 animate-spin text-sky-500" />
-                ) : (
-                  <Send className="size-4 text-sky-500" />
-                )}
-                <span className="font-mono text-xs uppercase tracking-[0.15em] text-foreground">
-                  Telegram
-                </span>
-              </a>
+              <TelegramLoginButton onSuccess={handleTelegramSuccess} />
             </div>
 
             {/* Divider */}
@@ -256,7 +179,6 @@ export default function LoginPage() {
                   type="email"
                   placeholder="student@aitu.edu.kz"
                   autoComplete="email"
-                  disabled={telegramLoading}
                   {...register("email")}
                   className={cn(
                     "w-full border-0 border-b border-border bg-transparent py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
@@ -292,7 +214,6 @@ export default function LoginPage() {
                     type={showPass ? "text" : "password"}
                     placeholder="••••••••"
                     autoComplete="current-password"
-                    disabled={telegramLoading}
                     {...register("password")}
                     className={cn(
                       "w-full border-0 border-b border-border bg-transparent py-2 pr-8 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-0 transition-colors disabled:opacity-50",
@@ -325,7 +246,7 @@ export default function LoginPage() {
               {/* Submit */}
               <Button
                 type="submit"
-                disabled={isSubmitting || telegramLoading}
+                disabled={isSubmitting}
                 className="mt-2 h-11 bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30"
               >
                 {isSubmitting ? (

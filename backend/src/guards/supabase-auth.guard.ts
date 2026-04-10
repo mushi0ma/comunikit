@@ -29,9 +29,16 @@ export class SupabaseAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<Request>();
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.replace('Bearer ', '');
+    const req = context
+      .switchToHttp()
+      .getRequest<Request & { cookies?: Record<string, string> }>();
+
+    // Prefer HTTP-only cookie (set by /auth/telegram-login). Fall back to
+    // Bearer header so Supabase email/password + GitHub OAuth sessions from
+    // the frontend's Supabase client continue to work unchanged.
+    const cookieToken = req.cookies?.['access_token'];
+    const headerToken = req.headers.authorization?.replace('Bearer ', '');
+    const token = cookieToken || headerToken;
 
     if (!token) {
       throw new UnauthorizedException({

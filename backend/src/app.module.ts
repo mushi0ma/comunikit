@@ -14,6 +14,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { UsersModule } from './modules/users/users.module.js';
 import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module.js';
 import { UploadModule } from './modules/upload/upload.module.js';
+import { TasksModule } from './modules/tasks/tasks.module.js';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { UploadModule } from './modules/upload/upload.module.js';
     UsersModule,
     TelegramBotModule,
     UploadModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

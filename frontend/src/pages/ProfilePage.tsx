@@ -55,16 +55,34 @@ function StarRating({ rating }: { rating: number }) {
 
 /* ── Page ──────────────────────────────────────────────────────── */
 
+interface MeProfile {
+  id: string;
+  name: string;
+  email: string | null;
+  karma: number;
+  isStudentVerified: boolean;
+  studentId: string | null;
+}
+
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>("listings");
   const user = useAuthStore(s => s.user);
   const refreshUser = useAuthStore(s => s.refreshUser);
   const signOut = useAuthStore(s => s.signOut);
 
-  const displayName = (user?.user_metadata?.name as string) || "Студент AITU";
+  /* ── Backend profile (source of truth for verification status) ── */
+  const { data: profile } = useQuery<MeProfile>({
+    queryKey: ["users", "me"],
+    queryFn: () => apiFetch<MeProfile>("/api/users/me"),
+    enabled: !!user?.id,
+  });
+
+  const displayName =
+    profile?.name || (user?.user_metadata?.name as string) || "Студент AITU";
   const userGroup = (user?.user_metadata?.group as string) || "";
-  const userEmail = user?.email ?? "";
-  const karma = (user?.user_metadata?.karma as number) ?? 0;
+  const userEmail = profile?.email ?? user?.email ?? "";
+  const karma = profile?.karma ?? (user?.user_metadata?.karma as number) ?? 0;
+  const isVerified = profile?.isStudentVerified ?? false;
 
   /* ── My listings query ────────────────────────────── */
   const { data: myListings, isLoading: listingsLoading } = useQuery<Listing[]>({
@@ -147,21 +165,23 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        {/* ── Verification CTA ─────────────────────────────── */}
-        <Link href="/verify-id">
-          <div className="mt-4 flex items-center gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 cursor-pointer transition-colors hover:bg-amber-500/10">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/25">
-              <ShieldCheck className="size-5 text-amber-500" />
+        {/* ── Verification CTA (hidden once the OCR flow persists verification) ── */}
+        {!isVerified && (
+          <Link href="/verify-id">
+            <div className="mt-4 flex items-center gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 cursor-pointer transition-colors hover:bg-amber-500/10">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/25">
+                <ShieldCheck className="size-5 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">Аккаунт не верифицирован</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Пройдите верификацию студенческого билета, чтобы получить полный доступ
+                </p>
+              </div>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-foreground">Аккаунт не верифицирован</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Пройдите верификацию студенческого билета, чтобы получить полный доступ
-              </p>
-            </div>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-          </div>
-        </Link>
+          </Link>
+        )}
 
         {/* ── Tabs ─────────────────────────────────────────── */}
         <div className="mt-6 flex gap-1 overflow-x-auto pb-1">

@@ -12,6 +12,7 @@ const profileSelect = {
   telegramHandle: true,
   karma: true,
   studentId: true,
+  isStudentVerified: true,
   passwordHash: true,
   createdAt: true,
 } as const;

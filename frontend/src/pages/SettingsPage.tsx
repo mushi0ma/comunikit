@@ -35,9 +35,17 @@ interface UserProfile {
   avatarUrl: string | null;
   telegramHandle: string | null;
   karma: number;
-  studentId: string;
+  studentId: string | null;
+  isStudentVerified: boolean;
   hasPassword: boolean;
   createdAt: string;
+}
+
+/** Detect fake email addresses issued to Telegram/OAuth users. The auth
+    controller creates them as `tg-<id>@telegram.comunikit.local`. */
+function isSyntheticTelegramEmail(email: string | null): boolean {
+  if (!email) return true;
+  return email.endsWith("@telegram.comunikit.local");
 }
 
 export default function SettingsPage() {
@@ -195,6 +203,11 @@ export default function SettingsPage() {
           email={profile?.email ?? authUser?.email ?? null}
           emailVerified={profile?.emailVerified ?? null}
         />
+
+        {/* ── Link real email (Telegram users) ─────────── */}
+        {isSyntheticTelegramEmail(profile?.email ?? authUser?.email ?? null) && (
+          <LinkEmailSection />
+        )}
 
         {/* ── Внешний вид ────────────────────────────────── */}
         <Section title="Внешний вид">
@@ -358,7 +371,9 @@ function EmailVerificationSection({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Неверный код"),
   });
 
-  if (!email) return null;
+  // Hide confirm-email UI for synthetic Telegram addresses — those users
+  // see the "Link real email" form below instead.
+  if (!email || email.endsWith("@telegram.comunikit.local")) return null;
 
   const isVerified = !!emailVerified;
 
@@ -433,6 +448,128 @@ function EmailVerificationSection({
             className="text-xs text-primary hover:underline self-start"
             onClick={() => sendCodeMutation.mutate()}
             disabled={sendCodeMutation.isPending}
+          >
+            Отправить код повторно
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/* ── Link Real Email (Telegram users) ────────────────────────── */
+
+function LinkEmailSection() {
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
+
+  const linkMutation = useMutation({
+    mutationFn: (newEmail: string) =>
+      apiFetch<{ message: string; email: string }>("/api/auth/link-email", {
+        method: "POST",
+        body: JSON.stringify({ email: newEmail }),
+      }),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowOtpInput(true);
+      void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Ошибка привязки email"),
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: (code: string) =>
+      apiFetch<{ message: string }>("/api/auth/verify-email", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      }),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowOtpInput(false);
+      setOtpCode("");
+      setEmail("");
+      void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Неверный код"),
+  });
+
+  return (
+    <Section title="Привязать реальный Email">
+      <div className="flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+          <Mail className="size-5 text-amber-500" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            Вы вошли через Telegram
+          </p>
+          <p className="text-xs text-muted-foreground">
+            У вас нет настоящего email-адреса. Привяжите реальный ящик, чтобы
+            получать уведомления и восстанавливать доступ.
+          </p>
+        </div>
+      </div>
+
+      {!showOtpInput ? (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+          <Label className="text-xs text-muted-foreground">Email</Label>
+          <Input
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={linkMutation.isPending}
+            autoComplete="email"
+          />
+          <Button
+            size="sm"
+            className="self-end"
+            disabled={linkMutation.isPending || !/^\S+@\S+\.\S+$/.test(email)}
+            onClick={() => linkMutation.mutate(email.trim().toLowerCase())}
+          >
+            {linkMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              "Привязать email"
+            )}
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+          <p className="text-sm text-muted-foreground">
+            Код подтверждения отправлен на{" "}
+            <strong className="text-foreground">{email}</strong>.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="000000"
+              value={otpCode}
+              onChange={(e) =>
+                setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              maxLength={6}
+              className="max-w-[140px] text-center font-mono text-lg tracking-widest"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              onClick={() => verifyMutation.mutate(otpCode)}
+              disabled={otpCode.length !== 6 || verifyMutation.isPending}
+            >
+              {verifyMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Подтвердить"
+              )}
+            </Button>
+          </div>
+          <button
+            className="self-start text-xs text-primary hover:underline"
+            onClick={() => linkMutation.mutate(email.trim().toLowerCase())}
+            disabled={linkMutation.isPending}
           >
             Отправить код повторно
           </button>

@@ -2,6 +2,10 @@ import { create } from "zustand";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
+const API_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  "http://localhost:3001";
+
 interface AuthState {
   user: User | null;
   session: Session | null;
@@ -19,6 +23,12 @@ interface AuthState {
   updatePassword: (newPassword: string) => Promise<void>;
   refreshUser: () => Promise<void>;
   initAuth: () => void;
+  /**
+   * Reads the HTTP-only session cookie via GET /api/auth/me and mirrors the
+   * resulting user onto the store. Used by the Telegram Login Widget flow,
+   * which never exposes the access_token to JS.
+   */
+  hydrateFromCookie: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -28,25 +38,71 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
 
   initAuth: () => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      set({
-        session,
-        user: session?.user ?? null,
-        isAuthenticated: !!session,
-        isLoading: false,
-      });
+    // First try Supabase client (email/password + GitHub OAuth sessions live
+    // in localStorage there). If no Supabase session is found, fall back to
+    // the cookie flow — the user may have signed in via Telegram Widget and
+    // only has an HTTP-only cookie.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        set({
+          session,
+          user: session.user,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return;
+      }
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
+          credentials: "include",
+        });
+        if (!res.ok) {
+          set({ isLoading: false, isAuthenticated: false });
+          return;
+        }
+        const body = (await res.json()) as { data?: { user?: User } };
+        if (body.data?.user) {
+          set({
+            session: null,
+            user: body.data.user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          set({ isLoading: false, isAuthenticated: false });
+        }
+      } catch {
+        set({ isLoading: false, isAuthenticated: false });
+      }
     });
 
     supabase.auth.onAuthStateChange((event, session) => {
-      set({
-        session,
-        user: session?.user ?? null,
-        isAuthenticated: !!session,
-        isLoading: false,
-      });
+      if (session) {
+        set({
+          session,
+          user: session.user,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      }
       if (event === "PASSWORD_RECOVERY") {
         // Session is active from the reset link — redirect handled by redirectTo URL
       }
+    });
+  },
+
+  hydrateFromCookie: async () => {
+    const res = await fetch(`${API_URL}/api/auth/me`, {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Failed to hydrate session from cookie");
+    const body = (await res.json()) as { data?: { user?: User } };
+    if (!body.data?.user) throw new Error("No user in /auth/me response");
+    set({
+      session: null,
+      user: body.data.user,
+      isAuthenticated: true,
+      isLoading: false,
     });
   },
 
@@ -70,7 +126,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
+    // Clear both possible session sources: Supabase localStorage and the
+    // HTTP-only cookie set by /auth/telegram-login.
+    await supabase.auth.signOut().catch(() => undefined);
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => undefined);
     set({ user: null, session: null, isAuthenticated: false });
   },
 

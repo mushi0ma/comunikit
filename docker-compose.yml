@@ -1,0 +1,49 @@
+# comunikit — local dev infra
+#
+# The only service that must run here is Redis — BullMQ uses it as its
+# broker. The NestJS backend and the Vite frontend are still launched
+# natively (`pnpm dev`) for faster iteration. If you want the backend
+# containerised too, uncomment the `backend` service below and set
+# `REDIS_HOST=redis` in backend/.env.
+#
+# Usage:
+#   docker compose up -d redis        # just the broker
+#   docker compose logs -f redis      # tail logs
+#   docker compose down               # stop everything
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: comunikit-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Optional: containerised NestJS backend. Uncomment + set REDIS_HOST=redis
+  # in your backend/.env to use it.
+  #
+  # backend:
+  #   build:
+  #     context: ./backend
+  #   container_name: comunikit-backend
+  #   env_file: ./backend/.env
+  #   environment:
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: "6379"
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   ports:
+  #     - "3001:3001"
+
+volumes:
+  redis-data:

@@ -5,20 +5,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Github,
-  Send,
-  ArrowLeft,
-} from "lucide-react";
+import { Eye, EyeOff, Loader2, Github, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { supabase } from "@/lib/supabase";
 import AuthHero from "@/components/auth/AuthHero";
+import TelegramLoginButton from "@/components/auth/TelegramLoginButton";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
@@ -42,6 +36,7 @@ export default function RegisterPage() {
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
   const signUp = useAuthStore((s) => s.signUp);
+  const hydrateFromCookie = useAuthStore((s) => s.hydrateFromCookie);
 
   const {
     register,
@@ -60,6 +55,11 @@ export default function RegisterPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Ошибка регистрации");
     }
+  }
+
+  async function handleTelegramSuccess() {
+    await hydrateFromCookie();
+    navigate("/forum");
   }
 
   async function handleGithubAuth() {
@@ -150,8 +150,8 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* OAuth buttons */}
-            <div className="mb-6 grid grid-cols-2 gap-2.5">
+            {/* OAuth — GitHub + Telegram Login Widget */}
+            <div className="mb-6 flex flex-col gap-2.5">
               <button
                 type="button"
                 onClick={handleGithubAuth}
@@ -162,15 +162,7 @@ export default function RegisterPage() {
                   GitHub
                 </span>
               </button>
-              <a
-                href={`https://t.me/${import.meta.env.VITE_TELEGRAM_BOT_USERNAME}?start=login`}
-                className="group flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card/40 backdrop-blur-sm transition-all hover:border-sky-500/60 hover:bg-accent"
-              >
-                <Send className="size-4 text-sky-500" />
-                <span className="font-mono text-xs uppercase tracking-[0.15em] text-foreground">
-                  Telegram
-                </span>
-              </a>
+              <TelegramLoginButton onSuccess={handleTelegramSuccess} />
             </div>
 
             {/* Divider */}

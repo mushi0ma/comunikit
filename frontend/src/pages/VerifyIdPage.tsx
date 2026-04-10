@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useLocation, Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Upload,
@@ -13,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const API_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001";
@@ -33,6 +35,7 @@ type Status = "idle" | "preview" | "analyzing" | "success" | "error";
 
 export default function VerifyIdPage() {
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<Status>("idle");
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -72,9 +75,20 @@ export default function VerifyIdPage() {
       const formData = new FormData();
       formData.append("file", file);
 
+      // Attach the Supabase bearer token so the backend knows who is
+      // verifying and can persist isStudentVerified on the User row.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+
       const res = await fetch(`${API_URL}/api/auth/verify-id-card`, {
         method: "POST",
         body: formData,
+        headers,
       });
 
       if (!res.ok) {
@@ -90,6 +104,8 @@ export default function VerifyIdPage() {
 
       if (data.isValid) {
         toast.success("Карта верифицирована!");
+        // Refresh the profile cache so ProfilePage hides the banner.
+        void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
       } else {
         toast.error(data.reason ?? "Верификация не пройдена");
       }

@@ -39,7 +39,9 @@ const SUB_TYPES: Record<MainType, { value: SubType; label: string; Icon: React.E
   ],
 };
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001";
+const API_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  (import.meta.env.PROD ? "https://comunikit-production.up.railway.app" : "http://localhost:3001");
 
 export default function CreateListing() {
   const [, navigate] = useLocation();

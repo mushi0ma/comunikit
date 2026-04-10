@@ -12,8 +12,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  "http://localhost:3001";
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  (import.meta.env.PROD ? "https://comunikit-production.up.railway.app" : "http://localhost:3001");
 
 const BOT_USERNAME =
   (import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined) ?? "";

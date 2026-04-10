@@ -23,9 +23,9 @@ Comunikit — внутренняя платформа Astana IT University, до
 | Слой | Технология |
 |---|---|
 | Frontend | React 19, Vite 7, Tailwind CSS 4, shadcn/ui, TanStack Query 5, Wouter 3, Zustand 5 |
-| Backend | NestJS 11, Prisma 7 (ORM), BullMQ (фоновые задачи) |
+| Backend | NestJS 11, Prisma 7 (ORM), BullMQ (фоновые задачи), Nodemailer (SMTP) |
 | База данных | PostgreSQL — Supabase, Redis (очереди) |
-| Авторизация | Supabase Auth (Telegram Login Widget + email + GitHub OAuth), HTTP-only Cookies |
+| Авторизация | Supabase Auth (Telegram + email + GitHub OAuth), HTTP-only Cookies |
 | Деплой | Vercel (frontend) + Railway (backend) |
 | Тестирование | Jest, Playwright 1.59, Postman |
 
@@ -56,6 +56,10 @@ TELEGRAM_BOT_TOKEN=
 OPENROUTER_API_KEY=
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
+SMTP_HOST=smtp.yourmail.com
+SMTP_PORT=587
+SMTP_USER=your_email
+SMTP_PASS=your_password
 ```
 
 **Redis** (нужен для BullMQ-очередей):

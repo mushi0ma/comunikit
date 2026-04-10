@@ -24,6 +24,7 @@ const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   bio: z.string().max(500).optional(),
   telegramHandle: z.string().max(50).optional(),
+  avatarUrl: z.string().url().max(500).optional(),
 });
 
 const setPasswordSchema = z.object({

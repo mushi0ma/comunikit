@@ -51,7 +51,7 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    data: { name?: string; bio?: string; telegramHandle?: string },
+    data: { name?: string; bio?: string; telegramHandle?: string; avatarUrl?: string },
   ) {
     const updated = await this.prisma.user.update({
       where: { id: userId },
@@ -61,11 +61,13 @@ export class UsersService {
         ...(data.telegramHandle !== undefined && {
           telegramHandle: data.telegramHandle,
         }),
+        ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
       },
       select: {
         id: true,
         name: true,
         bio: true,
+        avatarUrl: true,
         telegramHandle: true,
       },
     });

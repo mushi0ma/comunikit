@@ -19,7 +19,6 @@ import AppLayout from "@/components/AppLayout";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
-import { supabase } from "@/lib/supabase";
 import { uploadImage } from "@/lib/upload";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -99,13 +98,17 @@ export default function SettingsPage() {
     if (!file) return;
     setAvatarUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const url = await uploadImage(file, "avatars", user?.id);
+      const url = await uploadImage(file, "avatars");
       setAvatarUrl(url);
-      await supabase.auth.updateUser({ data: { avatar_url: url } });
+      // Save avatar URL to the user profile via backend
+      await apiFetch("/api/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({ avatarUrl: url }),
+      });
+      void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
       toast.success("Фото профиля обновлено");
-    } catch {
-      toast.error("Ошибка загрузки фото");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка загрузки фото");
     } finally {
       setAvatarUploading(false);
     }

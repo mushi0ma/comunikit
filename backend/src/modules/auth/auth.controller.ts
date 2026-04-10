@@ -480,6 +480,19 @@ export class AuthController {
       console.log(
         `\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`,
       );
+
+      // No email service configured — in development we return the code
+      // directly so the user can still verify. In production this path
+      // shouldn't be reached if RESEND_API_KEY is properly set.
+      const isDev = (this.config.get<string>('NODE_ENV') ?? 'development') === 'development';
+      return {
+        success: true,
+        data: {
+          message: isDev
+            ? `[DEV] Код: ${code} (email сервис не настроен)`
+            : 'Email сервис не настроен. Обратитесь к администратору.',
+        },
+      };
     }
 
     return {

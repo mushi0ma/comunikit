@@ -13,6 +13,7 @@ import { CommentsModule } from './modules/comments/comments.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module.js';
+import { UploadModule } from './modules/upload/upload.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module.js
     NotificationsModule,
     UsersModule,
     TelegramBotModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

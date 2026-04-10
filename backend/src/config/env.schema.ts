@@ -12,6 +12,7 @@ export const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1, 'Required for Telegram auth & bot'),
   APP_URL: z.string().url().default('https://comunikit.vercel.app'),
   OPENROUTER_API_KEY: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

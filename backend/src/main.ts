@@ -20,10 +20,18 @@ async function bootstrap() {
     .filter(Boolean);
 
   app.enableCors({
-    origin: allowedOrigins.length ? allowedOrigins : true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: allowedOrigins.length
+      ? allowedOrigins
+      : ['http://localhost:3000'],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
   });
 
   app.setGlobalPrefix('api');

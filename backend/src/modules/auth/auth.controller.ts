@@ -20,7 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Request } from 'express';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 import { z } from 'zod';
 import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -45,7 +45,7 @@ type TelegramPayload = z.infer<typeof telegramPayloadSchema>;
 export class AuthController {
   private readonly admin: SupabaseClient;
   private readonly botToken: string;
-  private readonly resend: Resend | null;
+  private readonly mailer: nodemailer.Transporter | null;
 
   constructor(
     private readonly config: ConfigService,
@@ -64,8 +64,19 @@ export class AuthController {
     });
     this.botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN') ?? '';
 
-    const resendApiKey = this.config.get<string>('RESEND_API_KEY');
-    this.resend = resendApiKey ? new Resend(resendApiKey) : null;
+    const smtpHost = this.config.get<string>('SMTP_HOST');
+    const smtpPort = this.config.get<number>('SMTP_PORT');
+    const smtpUser = this.config.get<string>('SMTP_USER');
+    const smtpPass = this.config.get<string>('SMTP_PASS');
+    this.mailer =
+      smtpHost && smtpUser && smtpPass
+        ? nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort || 465,
+            secure: (smtpPort || 465) === 465,
+            auth: { user: smtpUser, pass: smtpPass },
+          })
+        : null;
   }
 
   @Post('telegram')
@@ -426,54 +437,25 @@ export class AuthController {
       data: { userId: user.id, code, expiresAt },
     });
 
-    // Send verification email via Resend (or fallback to console).
-    // NOTE: Resend's free tier on the shared `onboarding@resend.dev` sender
-    // can only deliver mail to the email that owns the Resend account.
-    // Any other recipient is rejected with a 403/422. We catch BOTH the
-    // Resend SDK's `{ error }` object AND thrown network exceptions so the
-    // backend never crashes — instead we log details and return a clear
-    // message to the frontend, while still printing the OTP to the server
-    // log as a fallback so local development keeps working.
-    if (this.resend) {
+    // Send verification email via SMTP (nodemailer) or fallback to console.
+    if (this.mailer) {
       try {
-        const { error: sendError } = await this.resend.emails.send({
-          from: 'Comunikit <onboarding@resend.dev>',
-          to: [user.email],
+        const smtpUser = this.config.get<string>('SMTP_USER') ?? 'noreply@comunikit.app';
+        await this.mailer.sendMail({
+          from: `Comunikit <${smtpUser}>`,
+          to: user.email,
           subject: 'Код подтверждения — Comunikit',
           html: `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
         });
-        if (sendError) {
-          // Resend returns a structured `{ name, message }` object rather
-          // than an Error instance. Re-throw it as a real Error so the
-          // catch below can normalise it uniformly with network failures.
-          throw new Error(
-            (sendError as { message?: string }).message ?? 'Resend send failed',
-          );
-        }
       } catch (err) {
-        console.error('[Resend] Failed to send verification email:', err);
-        // Fallback so the developer can still grab the code from logs.
+        console.error('[SMTP] Failed to send verification email:', err);
         console.log(
           `\n📧 [FALLBACK] Verification code for ${user.email}: ${code}\n`,
         );
-
-        const rawMessage =
-          err instanceof Error
-            ? err.message
-            : typeof err === 'object' && err !== null && 'message' in err
-              ? String((err as { message: unknown }).message)
-              : String(err);
-        const isFreeTierBlock =
-          /only send testing emails|verify a domain|can only send/i.test(
-            rawMessage,
-          );
-
         throw new BadRequestException({
           success: false,
           data: null,
-          error: isFreeTierBlock
-            ? 'Бесплатный тариф Resend (домен resend.dev) позволяет отправлять письма только на адрес владельца аккаунта. Код выведен в логи сервера — обратитесь к администратору.'
-            : 'Не удалось отправить письмо. Попробуйте позже.',
+          error: 'Не удалось отправить письмо. Попробуйте позже.',
         });
       }
     } else {
@@ -481,15 +463,13 @@ export class AuthController {
         `\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`,
       );
 
-      // No email service configured — in development we return the code
-      // directly so the user can still verify. In production this path
-      // shouldn't be reached if RESEND_API_KEY is properly set.
+      // No SMTP configured — in development return the code directly.
       const isDev = (this.config.get<string>('NODE_ENV') ?? 'development') === 'development';
       return {
         success: true,
         data: {
           message: isDev
-            ? `[DEV] Код: ${code} (email сервис не настроен)`
+            ? `[DEV] Код: ${code} (SMTP не настроен)`
             : 'Email сервис не настроен. Обратитесь к администратору.',
         },
       };

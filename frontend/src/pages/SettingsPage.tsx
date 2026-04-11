@@ -582,6 +582,7 @@ function LinkEmailSection() {
 /* ── Set Password Section (for OAuth users) ──────────────────── */
 
 function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
+  const queryClient = useQueryClient();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -597,6 +598,7 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
       setShowForm(false);
       setPassword("");
       setConfirmPassword("");
+      void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка"),
   });

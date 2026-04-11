@@ -94,6 +94,20 @@ export class UsersService {
   }
 
   /**
+   * Hash the plaintext password with bcrypt and persist it in the Prisma
+   * User row. This keeps `passwordHash` in sync with Supabase Auth so
+   * `getProfile()` can derive `hasPassword` correctly.
+   */
+  async setPasswordHash(userId: string, password: string): Promise<void> {
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.hash(password, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: hash },
+    });
+  }
+
+  /**
    * Create an in-app notification when the user changes their password.
    * Called from `UsersController.setPassword` after Supabase Auth confirms
    * the update.

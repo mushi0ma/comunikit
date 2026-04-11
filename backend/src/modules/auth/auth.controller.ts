@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   Post,
@@ -376,14 +377,20 @@ export class AuthController {
         `\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`,
       );
 
-      // No SMTP configured — in development return the code directly.
-      const isDev = (this.config.get<string>('NODE_ENV') ?? 'development') === 'development';
+      // In production, SMTP MUST be configured — surface the error clearly.
+      if (this.isProd) {
+        throw new InternalServerErrorException({
+          success: false,
+          data: null,
+          error: 'SMTP не настроен. Обратитесь к администратору.',
+        });
+      }
+
+      // In development/staging, return the code directly for convenience.
       return {
         success: true,
         data: {
-          message: isDev
-            ? `[DEV] Код: ${code} (SMTP не настроен)`
-            : 'Email сервис не настроен. Обратитесь к администратору.',
+          message: `[DEV] Код: ${code} (SMTP не настроен)`,
         },
       };
     }

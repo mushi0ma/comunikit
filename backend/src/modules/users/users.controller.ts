@@ -119,6 +119,9 @@ export class UsersController {
       });
     }
 
+    // Persist bcrypt hash in Prisma so getProfile().hasPassword reflects the change
+    await this.users.setPasswordHash(user.id, parsed.data.password);
+
     // In-app notification — non-critical, so failures don't block the response.
     await this.users.notifyPasswordChanged(user.id);
 

@@ -68,15 +68,15 @@ export class AuthController {
       (this.config.get<string>('NODE_ENV') ?? 'development') === 'production';
 
     const smtpHost = this.config.get<string>('SMTP_HOST');
-    const smtpPort = this.config.get<number>('SMTP_PORT');
+    const smtpPort = Number(this.config.get<string>('SMTP_PORT')) || 465;
     const smtpUser = this.config.get<string>('SMTP_USER');
     const smtpPass = this.config.get<string>('SMTP_PASS');
     this.mailer =
       smtpHost && smtpUser && smtpPass
         ? nodemailer.createTransport({
             host: smtpHost,
-            port: smtpPort || 465,
-            secure: (smtpPort || 465) === 465,
+            port: smtpPort,
+            secure: smtpPort === 465,
             auth: { user: smtpUser, pass: smtpPass },
           })
         : null;

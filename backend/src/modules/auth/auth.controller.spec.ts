@@ -54,7 +54,7 @@ describe('AuthController — SMTP (nodemailer) integration', () => {
     get: jest.fn((key: string) => {
       const map: Record<string, string | number> = {
         SMTP_HOST: 'smtp.example.com',
-        SMTP_PORT: 465,
+        SMTP_PORT: '465',
         SMTP_USER: 'noreply@comunikit.app',
         SMTP_PASS: 'test-password',
         SUPABASE_URL: 'https://example.supabase.co',

@@ -7,7 +7,7 @@
 import * as nodemailer from 'nodemailer';
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { AuthController } from './auth.controller.js';
 import { IdCardService } from './id-card.service.js';
 import { SessionsService } from './sessions.service.js';
@@ -227,6 +227,35 @@ describe('AuthController — SMTP (nodemailer) integration', () => {
       ).toMatch(/уже подтверждён/i);
       expect(sendMail).not.toHaveBeenCalled();
     });
+
+    it('throws InternalServerErrorException when SMTP sendMail fails', async () => {
+      sendMail.mockRejectedValueOnce(new Error('SMTP connection refused'));
+
+      const req = makeReq();
+      await expect(
+        controller.sendVerification(
+          req as unknown as Parameters<typeof controller.sendVerification>[0],
+        ),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+    });
+
+    it('still persists the OTP before attempting to send email', async () => {
+      sendMail.mockRejectedValueOnce(new Error('SMTP timeout'));
+
+      const req = makeReq('fail@aitu.edu.kz');
+      await controller
+        .sendVerification(
+          req as unknown as Parameters<typeof controller.sendVerification>[0],
+        )
+        .catch(() => undefined);
+
+      expect(mockPrisma.verificationToken.create).toHaveBeenCalledTimes(1);
+      const createArgs = mockPrisma.verificationToken.create.mock
+        .calls[0][0] as { data: { userId: string; code: string } };
+      expect(createArgs.data.code).toMatch(/^\d{6}$/);
+    });
   });
 
   // ── linkEmail ───────────────────────────────────────────
@@ -293,6 +322,41 @@ describe('AuthController — SMTP (nodemailer) integration', () => {
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(sendMail).not.toHaveBeenCalled();
+    });
+
+    it('throws InternalServerErrorException when SMTP fails during link-email', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.user.update.mockResolvedValueOnce({});
+      sendMail.mockRejectedValueOnce(new Error('SMTP auth failed'));
+
+      const req = makeReq();
+      await expect(
+        controller.linkEmail(
+          req as unknown as Parameters<typeof controller.linkEmail>[0],
+          { email: 'new@student.com' },
+        ),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+    });
+
+    it('persists OTP even when SMTP fails during link-email', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.user.update.mockResolvedValueOnce({});
+      sendMail.mockRejectedValueOnce(new Error('SMTP timeout'));
+
+      const req = makeReq();
+      await controller
+        .linkEmail(
+          req as unknown as Parameters<typeof controller.linkEmail>[0],
+          { email: 'retry@student.com' },
+        )
+        .catch(() => undefined);
+
+      expect(mockPrisma.verificationToken.create).toHaveBeenCalledTimes(1);
+      const createArgs = mockPrisma.verificationToken.create.mock
+        .calls[0][0] as { data: { userId: string; code: string } };
+      expect(createArgs.data.code).toMatch(/^\d{6}$/);
     });
   });
 });

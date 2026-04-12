@@ -44,6 +44,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     // only has an HTTP-only cookie.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        // Proactively refresh if the JWT is expired or about to expire.
+        if (session.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          session = refreshed.session;
+          if (!session) {
+            // Refresh token is also invalid — force re-login.
+            set({ isLoading: false, isAuthenticated: false });
+            return;
+          }
+        }
         set({
           session,
           user: session.user,

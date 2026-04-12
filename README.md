@@ -43,6 +43,7 @@ VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=...
 VITE_API_URL=http://localhost:3001
 VITE_TELEGRAM_BOT_USERNAME=
+VITE_TELEGRAM_BOT_ID=
 ```
 
 **Backend** — создать `backend/.env`:

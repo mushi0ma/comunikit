@@ -32,7 +32,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     ...((init?.headers as Record<string, string>) ?? {}),
   };
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  let res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers,
     // Send HTTP-only session cookies on every API call. Required for the
@@ -40,6 +40,27 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     // an HTTP-only cookie instead of a bearer token.
     credentials: "include",
   });
+
+  // Retry once on 401 — the JWT may have expired between the proactive
+  // refresh window and the actual request, or the cached session was stale.
+  if (res.status === 401 && token) {
+    try {
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      if (refreshed.session) {
+        const retryHeaders: Record<string, string> = {
+          ...headers,
+          Authorization: `Bearer ${refreshed.session.access_token}`,
+        };
+        res = await fetch(`${BASE_URL}${path}`, {
+          ...init,
+          headers: retryHeaders,
+          credentials: "include",
+        });
+      }
+    } catch {
+      // Refresh failed — fall through to the original 401 error handling.
+    }
+  }
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`;

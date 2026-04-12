@@ -18,6 +18,9 @@ const API_URL =
 const BOT_USERNAME =
   (import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined) ?? "";
 
+const BOT_ID =
+  (import.meta.env.VITE_TELEGRAM_BOT_ID as string | undefined) ?? "";
+
 export interface TelegramWidgetPayload {
   id: number;
   first_name: string;
@@ -38,7 +41,7 @@ interface Props {
 interface TelegramGlobal {
   Login: {
     auth: (
-      options: { bot_id: string; request_access?: string; lang?: string },
+      options: { bot_id: string; request_access?: boolean; lang?: string },
       callback: (data: TelegramWidgetPayload | false) => void,
     ) => void;
   };
@@ -136,8 +139,13 @@ export default function TelegramLoginButton({
       toast.error("Telegram widget не загружен, попробуйте позже");
       return;
     }
+    const botId = BOT_ID || BOT_USERNAME;
+    if (!botId) {
+      toast.error("Telegram bot не настроен");
+      return;
+    }
     tg.Login.auth(
-      { bot_id: BOT_USERNAME, request_access: "write" },
+      { bot_id: botId, request_access: true },
       (data) => {
         if (!data) return; // user closed the popup
         sendPayload(data);

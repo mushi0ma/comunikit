@@ -366,7 +366,7 @@ export class AuthController {
         console.log(
           `\n📧 [FALLBACK] Verification code for ${user.email}: ${code}\n`,
         );
-        throw new BadRequestException({
+        throw new InternalServerErrorException({
           success: false,
           data: null,
           error: 'Не удалось отправить письмо. Попробуйте позже.',
@@ -597,6 +597,11 @@ export class AuthController {
         console.log(
           `\n📧 [FALLBACK] link-email code for ${newEmail}: ${code}\n`,
         );
+        throw new InternalServerErrorException({
+          success: false,
+          data: null,
+          error: 'Email привязан, но не удалось отправить код. Попробуйте запросить код повторно.',
+        });
       }
     } else {
       console.log(

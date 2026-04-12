@@ -78,19 +78,36 @@ export default function VerifyIdPage() {
 
       // Attach the Supabase bearer token so the backend knows who is
       // verifying and can persist isStudentVerified on the User row.
-      const {
+      let {
         data: { session },
       } = await supabase.auth.getSession();
+      if (session?.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session;
+      }
       const headers: Record<string, string> = {};
       if (session?.access_token) {
         headers.Authorization = `Bearer ${session.access_token}`;
       }
 
-      const res = await fetch(`${API_URL}/api/auth/verify-id-card`, {
+      let res = await fetch(`${API_URL}/api/auth/verify-id-card`, {
         method: "POST",
         body: formData,
         headers,
       });
+
+      // Retry once on 401 — token may have expired while picking the photo.
+      if (res.status === 401 && session?.access_token) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session) {
+          headers.Authorization = `Bearer ${refreshed.session.access_token}`;
+          res = await fetch(`${API_URL}/api/auth/verify-id-card`, {
+            method: "POST",
+            body: formData,
+            headers,
+          });
+        }
+      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => null);

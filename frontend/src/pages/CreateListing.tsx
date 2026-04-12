@@ -123,7 +123,11 @@ export default function CreateListing() {
     }
     setPublishing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      let { data: { session } } = await supabase.auth.getSession();
+      if (session?.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session;
+      }
       if (!session?.access_token) {
         toast.error("Войдите в аккаунт, чтобы публиковать объявления");
         setPublishing(false);
@@ -140,14 +144,31 @@ export default function CreateListing() {
         ...(imageUrls.length > 0 ? { images: imageUrls } : {}),
       };
 
-      const res = await fetch(`${API_URL}/api/listings`, {
+      let token = session.access_token;
+      let res = await fetch(`${API_URL}/api/listings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
+
+      // Retry once on 401 — token may have expired while user filled the form.
+      if (res.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session) {
+          token = refreshed.session.access_token;
+          res = await fetch(`${API_URL}/api/listings`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+        }
+      }
 
       const result = await res.json() as { success: boolean; data?: { id: string }; error?: string };
       if (!res.ok) {

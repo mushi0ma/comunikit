@@ -18,9 +18,13 @@ export async function uploadImage(
     ? '/api/upload/avatar'
     : '/api/upload/listing-image'
 
-  // Get auth token for the request
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token
+  // Get auth token for the request, refreshing if near expiry.
+  let { data: { session } } = await supabase.auth.getSession()
+  if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    session = refreshed.session
+  }
+  let token = session?.access_token
   if (!token) {
     throw new Error('Необходимо авторизоваться для загрузки файлов')
   }
@@ -28,7 +32,7 @@ export async function uploadImage(
   const formData = new FormData()
   formData.append('file', file)
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  let res = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -36,6 +40,23 @@ export async function uploadImage(
     },
     body: formData,
   })
+
+  // Retry once on 401 — token may have expired between refresh check and request.
+  if (res.status === 401) {
+    try {
+      const { data: refreshed } = await supabase.auth.refreshSession()
+      if (refreshed.session) {
+        token = refreshed.session.access_token
+        res = await fetch(`${BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
+      }
+    } catch {
+      // Refresh failed — fall through to original error handling.
+    }
+  }
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`

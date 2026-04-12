@@ -586,6 +586,7 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [justSet, setJustSet] = useState(false);
 
   const setPasswordMutation = useMutation({
     mutationFn: (pwd: string) =>
@@ -595,6 +596,7 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
       }),
     onSuccess: () => {
       toast.success("Пароль установлен!");
+      setJustSet(true);
       setShowForm(false);
       setPassword("");
       setConfirmPassword("");
@@ -603,7 +605,7 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка"),
   });
 
-  if (hasPassword) return null;
+  if (hasPassword || justSet) return null;
 
   return (
     <div className="mb-3">

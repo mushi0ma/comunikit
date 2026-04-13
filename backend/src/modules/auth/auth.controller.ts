@@ -129,14 +129,13 @@ export class AuthController {
         },
       })
       .catch(() => undefined);
-
-    // HTTP-only Secure cookie. `sameSite: 'lax'` is the sweet spot — it
+    
     // blocks CSRF on cross-site state-changing requests but still allows
     // top-level navigation from Telegram's widget iframe.
     res.cookie(SESSION_COOKIE_NAME, result.accessToken, {
       httpOnly: true,
       secure: this.isProd,
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
       maxAge: SESSION_COOKIE_MAX_AGE_MS,
     });
@@ -177,7 +176,7 @@ export class AuthController {
     res.clearCookie(SESSION_COOKIE_NAME, {
       httpOnly: true,
       secure: this.isProd,
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
     });
     return { success: true, data: null };

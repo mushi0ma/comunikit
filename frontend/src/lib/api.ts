@@ -1,7 +1,7 @@
 // comunikit — typed fetch wrapper with optional auth
 import { supabase } from "@/lib/supabase";
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.PROD ? "https://comunikit-production.up.railway.app" : "http://localhost:3001");
+export const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.PROD ? "https://comunikit-production.up.railway.app" : "http://localhost:3001");
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   // Merge auth token into headers if a session exists.

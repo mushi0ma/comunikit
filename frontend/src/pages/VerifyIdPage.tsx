@@ -16,9 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
-const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ||
-  (import.meta.env.PROD ? "https://comunikit-production.up.railway.app" : "http://localhost:3001");
+import { BASE_URL as API_URL } from "@/lib/api";
 
 interface ExtractedData {
   name: string | null;

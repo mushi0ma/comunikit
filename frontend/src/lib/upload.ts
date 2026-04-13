@@ -4,9 +4,7 @@
 
 import { supabase } from './supabase'
 
-const BASE_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ||
-  (import.meta.env.PROD ? "https://comunikit-production.up.railway.app" : "http://localhost:3001")
+import { BASE_URL } from './api'
 
 export async function uploadImage(
   file: File,

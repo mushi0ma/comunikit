@@ -11,9 +11,7 @@ import { Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ||
-  (import.meta.env.PROD ? "https://comunikit-production.up.railway.app" : "http://localhost:3001");
+import { BASE_URL as API_URL } from "@/lib/api";
 
 const BOT_USERNAME =
   (import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined) ?? "";

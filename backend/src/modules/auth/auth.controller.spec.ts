@@ -359,4 +359,244 @@ describe('AuthController — SMTP (nodemailer) integration', () => {
       expect(createArgs.data.code).toMatch(/^\d{6}$/);
     });
   });
+
+  // ── verifyEmail ─────────────────────────────────────────
+
+  describe('POST /auth/verify-email', () => {
+    function makeReq(): AuthedReq {
+      return {
+        user: { id: 'user-1' },
+        headers: {},
+      };
+    }
+
+    it('marks emailVerified and cleans up tokens on valid OTP', async () => {
+      mockPrisma.verificationToken.findFirst.mockResolvedValueOnce({
+        id: 'tok-1',
+        userId: 'user-1',
+        code: '123456',
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      mockPrisma.user.update.mockResolvedValueOnce({});
+      mockPrisma.verificationToken.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+      const req = makeReq();
+      const result = await controller.verifyEmail(
+        req as unknown as Parameters<typeof controller.verifyEmail>[0],
+        { code: '123456' },
+      );
+
+      expect(mockPrisma.verificationToken.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            code: '123456',
+          }),
+        }),
+      );
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'user-1' },
+          data: expect.objectContaining({ emailVerified: expect.any(Date) }),
+        }),
+      );
+      expect(mockPrisma.verificationToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({ message: expect.stringContaining('подтверждён') }),
+        }),
+      );
+    });
+
+    it('rejects with BadRequestException for invalid/expired OTP', async () => {
+      mockPrisma.verificationToken.findFirst.mockResolvedValueOnce(null);
+
+      const req = makeReq();
+      await expect(
+        controller.verifyEmail(
+          req as unknown as Parameters<typeof controller.verifyEmail>[0],
+          { code: '000000' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects codes shorter than 6 digits', async () => {
+      const req = makeReq();
+      await expect(
+        controller.verifyEmail(
+          req as unknown as Parameters<typeof controller.verifyEmail>[0],
+          { code: '123' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when code is missing', async () => {
+      const req = makeReq();
+      await expect(
+        controller.verifyEmail(
+          req as unknown as Parameters<typeof controller.verifyEmail>[0],
+          {},
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects codes longer than 6 digits', async () => {
+      const req = makeReq();
+      await expect(
+        controller.verifyEmail(
+          req as unknown as Parameters<typeof controller.verifyEmail>[0],
+          { code: '12345678' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  // ── Production SMTP guard ───────────────────────────────
+
+  describe('send-verification — production without SMTP', () => {
+    it('throws InternalServerErrorException when NODE_ENV=production and SMTP is not configured', async () => {
+      // Build a controller where SMTP_HOST is empty (no mailer) and NODE_ENV=production.
+      const prodConfig = {
+        get: jest.fn((key: string) => {
+          const map: Record<string, string | number> = {
+            SMTP_HOST: '',
+            SMTP_PORT: '465',
+            SMTP_USER: '',
+            SMTP_PASS: '',
+            SUPABASE_URL: 'https://example.supabase.co',
+            SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+            TELEGRAM_BOT_TOKEN: 'test-bot-token',
+            NODE_ENV: 'production',
+          };
+          return map[key];
+        }),
+      };
+
+      (nodemailer.createTransport as jest.Mock).mockReturnValue({ sendMail });
+
+      const moduleRef = await Test.createTestingModule({
+        controllers: [AuthController],
+        providers: [
+          { provide: ConfigService, useValue: prodConfig },
+          { provide: PrismaService, useValue: mockPrisma },
+          { provide: IdCardService, useValue: { verify: jest.fn() } },
+          {
+            provide: SessionsService,
+            useValue: {
+              create: jest.fn(),
+              hashToken: jest.fn().mockReturnValue('hash'),
+              touch: jest.fn(),
+              listForUser: jest.fn().mockResolvedValue([]),
+              revoke: jest.fn(),
+            },
+          },
+          {
+            provide: AuthService,
+            useValue: { verifyTelegramAuth: jest.fn(), loginWithTelegramWidget: jest.fn() },
+          },
+        ],
+      }).compile();
+
+      const prodController = moduleRef.get(AuthController);
+      // Replace Supabase admin with a mock
+      (prodController as unknown as { admin: unknown }).admin = {
+        auth: {
+          admin: {
+            updateUserById: jest.fn().mockResolvedValue({ error: null }),
+            listUsers: jest.fn().mockResolvedValue({ data: { users: [] } }),
+          },
+          getUser: jest.fn().mockResolvedValue({ data: { user: null } }),
+        },
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ emailVerified: null });
+
+      const req: AuthedReq = { user: { id: 'user-prod', email: 'prod@aitu.edu.kz' }, headers: {} };
+      await expect(
+        prodController.sendVerification(
+          req as unknown as Parameters<typeof prodController.sendVerification>[0],
+        ),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+
+      // sendMail should NOT have been called since SMTP was not configured.
+      // (The last sendMail mock was from the global beforeEach — verify no new calls.)
+    });
+  });
+
+  // ── Dev fallback without SMTP ───────────────────────────
+
+  describe('send-verification — dev without SMTP', () => {
+    it('returns the code in response when SMTP is not configured in development', async () => {
+      const devConfig = {
+        get: jest.fn((key: string) => {
+          const map: Record<string, string | number> = {
+            SMTP_HOST: '',
+            SMTP_PORT: '465',
+            SMTP_USER: '',
+            SMTP_PASS: '',
+            SUPABASE_URL: 'https://example.supabase.co',
+            SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+            TELEGRAM_BOT_TOKEN: 'test-bot-token',
+            NODE_ENV: 'development',
+          };
+          return map[key];
+        }),
+      };
+
+      (nodemailer.createTransport as jest.Mock).mockReturnValue({ sendMail });
+
+      const moduleRef = await Test.createTestingModule({
+        controllers: [AuthController],
+        providers: [
+          { provide: ConfigService, useValue: devConfig },
+          { provide: PrismaService, useValue: mockPrisma },
+          { provide: IdCardService, useValue: { verify: jest.fn() } },
+          {
+            provide: SessionsService,
+            useValue: {
+              create: jest.fn(),
+              hashToken: jest.fn().mockReturnValue('hash'),
+              touch: jest.fn(),
+              listForUser: jest.fn().mockResolvedValue([]),
+              revoke: jest.fn(),
+            },
+          },
+          {
+            provide: AuthService,
+            useValue: { verifyTelegramAuth: jest.fn(), loginWithTelegramWidget: jest.fn() },
+          },
+        ],
+      }).compile();
+
+      const devController = moduleRef.get(AuthController);
+      (devController as unknown as { admin: unknown }).admin = {
+        auth: {
+          admin: {
+            updateUserById: jest.fn().mockResolvedValue({ error: null }),
+            listUsers: jest.fn().mockResolvedValue({ data: { users: [] } }),
+          },
+          getUser: jest.fn().mockResolvedValue({ data: { user: null } }),
+        },
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ emailVerified: null });
+
+      const req: AuthedReq = { user: { id: 'user-dev', email: 'dev@test.com' }, headers: {} };
+      const result = await devController.sendVerification(
+        req as unknown as Parameters<typeof devController.sendVerification>[0],
+      );
+
+      expect(
+        (result as { data: { message: string } }).data.message,
+      ).toMatch(/\[DEV\].*Код.*\d{6}/);
+
+      // sendMail should NOT be called since there is no mailer
+      expect(sendMail).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -43,22 +43,43 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   // Retry once on 401 — the JWT may have expired between the proactive
   // refresh window and the actual request, or the cached session was stale.
-  if (res.status === 401 && token) {
-    try {
-      const { data: refreshed } = await supabase.auth.refreshSession();
-      if (refreshed.session) {
-        const retryHeaders: Record<string, string> = {
-          ...headers,
-          Authorization: `Bearer ${refreshed.session.access_token}`,
-        };
-        res = await fetch(`${BASE_URL}${path}`, {
-          ...init,
-          headers: retryHeaders,
+  if (res.status === 401) {
+    if (token) {
+      // Bearer-token session: try Supabase JS refresh
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session) {
+          const retryHeaders: Record<string, string> = {
+            ...headers,
+            Authorization: `Bearer ${refreshed.session.access_token}`,
+          };
+          res = await fetch(`${BASE_URL}${path}`, {
+            ...init,
+            headers: retryHeaders,
+            credentials: "include",
+          });
+        }
+      } catch {
+        // Refresh failed — fall through to the original 401 error handling.
+      }
+    } else {
+      // Cookie-based session (Telegram): try server-side refresh
+      try {
+        const refreshRes = await fetch(`${BASE_URL}/api/auth/refresh-session`, {
+          method: "POST",
           credentials: "include",
         });
+        if (refreshRes.ok) {
+          // Cookie has been refreshed — retry the original request
+          res = await fetch(`${BASE_URL}${path}`, {
+            ...init,
+            headers,
+            credentials: "include",
+          });
+        }
+      } catch {
+        // Refresh failed — fall through to the original 401 error handling.
       }
-    } catch {
-      // Refresh failed — fall through to the original 401 error handling.
     }
   }
 

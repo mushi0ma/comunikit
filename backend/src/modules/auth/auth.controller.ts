@@ -205,6 +205,109 @@ export class AuthController {
     return { success: true, data: null };
   }
 
+  /**
+   * POST /api/auth/refresh-session — re-issue a fresh JWT for Telegram
+   * cookie-based sessions. The old cookie's JWT may have expired (Supabase
+   * JWTs live ~1 hour), but the Supabase Admin SDK can still read the user
+   * via getUser(). We then re-sign-in using the deterministic Telegram
+   * credentials and set a fresh cookie.
+   */
+  @Post('refresh-session')
+  @HttpCode(HttpStatus.OK)
+  async refreshSession(
+    @Req() req: Request & { cookies?: Record<string, string> },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const oldToken = req.cookies?.[SESSION_COOKIE_NAME];
+    if (!oldToken) {
+      throw new UnauthorizedException({
+        success: false,
+        data: null,
+        error: 'No session cookie',
+      });
+    }
+
+    // Admin SDK can read user from an expired JWT
+    const {
+      data: { user },
+      error,
+    } = await this.admin.auth.getUser(oldToken);
+    if (error || !user) {
+      throw new UnauthorizedException({
+        success: false,
+        data: null,
+        error: 'Session expired. Please log in again.',
+      });
+    }
+
+    // Only refresh Telegram synthetic sessions — others use Supabase JS
+    const telegramId = user.user_metadata?.telegram_id as number | undefined;
+    if (!telegramId) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: 'Not a Telegram session',
+      });
+    }
+
+    // Re-sign-in using the deterministic credentials
+    const result = await this.authService.loginWithTelegramWidget({
+      id: telegramId,
+      first_name: (user.user_metadata?.first_name as string) ?? '',
+      username: user.user_metadata?.username as string | undefined,
+      photo_url: user.user_metadata?.photo_url as string | undefined,
+      auth_date: Math.floor(Date.now() / 1000),
+      // Bypass HMAC verification — we already validated the user via admin SDK
+      hash: '',
+    }).catch(() => null);
+
+    // If re-sign-in via widget fails (HMAC will fail), fall back to direct
+    // signInWithPassword with the synthetic email + deterministic password
+    if (!result) {
+      const syntheticEmail = `tg-${telegramId}@telegram.comunikit.local`;
+      const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN') ?? '';
+      const crypto = await import('crypto');
+      const password = crypto
+        .createHmac('sha256', botToken)
+        .update(`telegram:${telegramId}`)
+        .digest('hex');
+
+      const { data: session, error: signInError } =
+        await this.admin.auth.signInWithPassword({
+          email: syntheticEmail,
+          password,
+        });
+
+      if (signInError || !session.session) {
+        throw new UnauthorizedException({
+          success: false,
+          data: null,
+          error: 'Failed to refresh session. Please log in again.',
+        });
+      }
+
+      res.cookie(SESSION_COOKIE_NAME, session.session.access_token, {
+        httpOnly: true,
+        secure: this.isProd,
+        sameSite: 'none',
+        path: '/',
+        maxAge: SESSION_COOKIE_MAX_AGE_MS,
+      });
+
+      return { success: true, data: { refreshed: true } };
+    }
+
+    res.cookie(SESSION_COOKIE_NAME, result.accessToken, {
+      httpOnly: true,
+      secure: this.isProd,
+      sameSite: 'none',
+      path: '/',
+      maxAge: SESSION_COOKIE_MAX_AGE_MS,
+    });
+
+    return { success: true, data: { refreshed: true } };
+  }
+
   @Post('verify-id-card')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(

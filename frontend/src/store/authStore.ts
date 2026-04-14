@@ -156,8 +156,30 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   refreshUser: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    set({ user: data.user });
+    // Try Supabase JS session first (email/password + GitHub OAuth).
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session) {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data.user) {
+        set({ user: data.user });
+        return;
+      }
+    }
+
+    // Fallback: cookie-based Telegram session — hydrate from /api/auth/me
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const body = (await res.json()) as { data?: { user?: User } };
+        if (body.data?.user) {
+          set({ user: body.data.user });
+          return;
+        }
+      }
+    } catch {
+      // Ignore — user may need to re-login
+    }
   },
 }));

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Loader2, MessageSquare, ShoppingBag, X } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
 export default function SearchPage() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"listings" | "forum">("listings");
   const [listings, setListings] = useState<any[]>([]);
@@ -38,7 +40,7 @@ export default function SearchPage() {
   }, [query]);
 
   return (
-    <AppLayout title="Поиск">
+    <AppLayout title={t("search.title")}>
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Search input */}
         <div className="relative mb-6">
@@ -47,7 +49,7 @@ export default function SearchPage() {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск объявлений и тем форума..."
+            placeholder={t("search.placeholder")}
             className="pl-10 pr-10 h-12 text-base"
           />
           {query && (
@@ -63,23 +65,23 @@ export default function SearchPage() {
         {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-border">
           {[
-            { key: "listings" as const, label: "Объявления", icon: ShoppingBag, count: listings.length },
-            { key: "forum" as const, label: "Форум", icon: MessageSquare, count: threads.length },
-          ].map((t) => (
+            { key: "listings" as const, label: t("common.listings"), icon: ShoppingBag, count: listings.length },
+            { key: "forum" as const, label: t("common.forum"), icon: MessageSquare, count: threads.length },
+          ].map((item) => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={item.key}
+              onClick={() => setTab(item.key)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
-                tab === t.key
+                tab === item.key
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
-              <t.icon className="w-4 h-4" />
-              {t.label}
+              <item.icon className="w-4 h-4" />
+              {item.label}
               {query.length >= 2 && (
-                <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">{t.count}</span>
+                <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">{item.count}</span>
               )}
             </button>
           ))}
@@ -95,12 +97,12 @@ export default function SearchPage() {
         {/* Empty state */}
         {!loading && query.length >= 2 && tab === "listings" && listings.length === 0 && (
           <p className="text-center text-muted-foreground py-12">
-            Ничего не найдено по запросу «{query}»
+            {t("search.noListings", { query })}
           </p>
         )}
         {!loading && query.length >= 2 && tab === "forum" && threads.length === 0 && (
           <p className="text-center text-muted-foreground py-12">
-            Нет тем по запросу «{query}»
+            {t("search.noThreads", { query })}
           </p>
         )}
 
@@ -116,17 +118,17 @@ export default function SearchPage() {
         {/* Forum results */}
         {!loading && tab === "forum" && (
           <div className="flex flex-col gap-3">
-            {threads.map((t) => (
-              <Link key={t.id} href={`/forum/${t.id}`}>
+            {threads.map((th) => (
+              <Link key={th.id} href={`/forum/${th.id}`}>
                 <div className="rounded-xl border border-border bg-card p-4 hover:bg-accent/50 transition-colors cursor-pointer">
-                  <p className="font-semibold text-sm mb-1">{t.title}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{t.body}</p>
+                  <p className="font-semibold text-sm mb-1">{th.title}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{th.body}</p>
                   <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                    <span>{t.author?.name}</span>
+                    <span>{th.author?.name}</span>
                     <span>·</span>
-                    <span className="text-primary">{t.category}</span>
+                    <span className="text-primary">{th.category}</span>
                     <span>·</span>
-                    <span>{t.replyCount ?? 0} ответов</span>
+                    <span>{th.replyCount ?? 0} {t("common.replies")}</span>
                   </div>
                 </div>
               </Link>
@@ -138,8 +140,8 @@ export default function SearchPage() {
         {query.length < 2 && !loading && (
           <div className="text-center py-16 text-muted-foreground">
             <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p className="font-medium">Начни вводить запрос</p>
-            <p className="text-sm mt-1">Поиск по объявлениям и темам форума</p>
+            <p className="font-medium">{t("search.hint")}</p>
+            <p className="text-sm mt-1">{t("search.hintSub")}</p>
           </div>
         )}
       </div>

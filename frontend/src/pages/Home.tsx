@@ -3,6 +3,7 @@
    Uses Shadcn Card components with glassmorphism + semantic tokens only.
 */
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import {
   PlusCircle, Search, TrendingUp, MessageSquare,
@@ -64,6 +65,7 @@ function StatPill({ icon: Icon, label, value }: {
 /* ── Main Dashboard ──────────────────────────────────────────── */
 
 export default function Home() {
+  const { t } = useTranslation();
   const trendingItems = useMemo(
     () => MOCK_LISTINGS.filter(l => l.status === "active").slice(0, 3),
     [],
@@ -75,7 +77,7 @@ export default function Home() {
   );
 
   return (
-    <AppLayout title="Панель управления">
+    <AppLayout title={t("dashboard.title")}>
       <div className="container py-4 md:py-6">
         {/* ── Bento Grid ─────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
@@ -93,7 +95,7 @@ export default function Home() {
                   </Avatar>
                   <div>
                     <h2 className="text-lg font-bold text-foreground md:text-xl">
-                      Привет, {MOCK_USER.name.split(" ")[0]}!
+                      {t("dashboard.hello", { name: MOCK_USER.name.split(" ")[0] })}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {MOCK_USER.group} · {MOCK_USER.email}
@@ -102,17 +104,17 @@ export default function Home() {
                 </div>
                 <Badge variant="secondary" className="hidden md:inline-flex">
                   <Sparkles className="size-3" data-icon="inline-start" />
-                  Карма: {MOCK_USER.karma}
+                  {t("common.karma")}: {MOCK_USER.karma}
                 </Badge>
               </div>
 
               <Separator />
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatPill icon={ShoppingBag} label="Объявления" value={MOCK_USER.listingsCount} />
-                <StatPill icon={TrendingUp} label="Рейтинг" value={`${MOCK_USER.rating} ★`} />
-                <StatPill icon={Eye} label="Просмотры" value="1.2K" />
-                <StatPill icon={MessageSquare} label="Отзывы" value={MOCK_USER.reviewCount} />
+                <StatPill icon={ShoppingBag} label={t("common.listings")} value={MOCK_USER.listingsCount} />
+                <StatPill icon={TrendingUp} label={t("common.rating")} value={`${MOCK_USER.rating} ★`} />
+                <StatPill icon={Eye} label={t("common.views")} value="1.2K" />
+                <StatPill icon={MessageSquare} label={t("common.reviews")} value={MOCK_USER.reviewCount} />
               </div>
             </div>
           </BentoCard>
@@ -121,26 +123,26 @@ export default function Home() {
           <BentoCard className="lg:col-span-1">
             <div className="flex flex-col gap-3 p-5 md:p-6 h-full">
               <CardHeader className="p-0">
-                <CardTitle className="text-base font-bold">Быстрые действия</CardTitle>
-                <CardDescription>Создайте или найдите</CardDescription>
+                <CardTitle className="text-base font-bold">{t("dashboard.quickActions")}</CardTitle>
+                <CardDescription>{t("dashboard.quickActionsDesc")}</CardDescription>
               </CardHeader>
               <div className="flex flex-col gap-2 flex-1 justify-center">
                 <Link href="/create">
                   <Button className="w-full justify-start gap-2 rounded-lg" size="default">
                     <PlusCircle data-icon="inline-start" />
-                    Новое объявление
+                    {t("dashboard.newListing")}
                   </Button>
                 </Link>
                 <Link href="/create">
                   <Button variant="outline" className="w-full justify-start gap-2 rounded-lg" size="default">
                     <AlertTriangle data-icon="inline-start" />
-                    Сообщить о потере
+                    {t("dashboard.reportLoss")}
                   </Button>
                 </Link>
                 <Link href="/marketplace">
                   <Button variant="outline" className="w-full justify-start gap-2 rounded-lg" size="default">
                     <Search data-icon="inline-start" />
-                    Поиск по объявлениям
+                    {t("dashboard.searchListings")}
                   </Button>
                 </Link>
               </div>
@@ -155,13 +157,13 @@ export default function Home() {
                 <CardHeader className="p-0">
                   <CardTitle className="text-base font-bold flex items-center gap-2">
                     <TrendingUp className="size-4 text-primary" />
-                    Популярное
+                    {t("dashboard.trending")}
                   </CardTitle>
-                  <CardDescription>Самые просматриваемые объявления</CardDescription>
+                  <CardDescription>{t("dashboard.trendingDesc")}</CardDescription>
                 </CardHeader>
                 <Link href="/marketplace">
                   <Button variant="ghost" size="sm" className="text-primary">
-                    Все
+                    {t("common.all")}
                     <ArrowRight data-icon="inline-end" />
                   </Button>
                 </Link>
@@ -197,7 +199,7 @@ export default function Home() {
                           {item.price ? (
                             <span className="ck-price text-sm">{formatPrice(item.price)}</span>
                           ) : (
-                            <span className="text-xs text-muted-foreground italic">Без цены</span>
+                            <span className="text-xs text-muted-foreground italic">{t("common.noPriceShort")}</span>
                           )}
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Eye className="size-3" />
@@ -219,13 +221,13 @@ export default function Home() {
                 <CardHeader className="p-0">
                   <CardTitle className="text-base font-bold flex items-center gap-2">
                     <MessageSquare className="size-4 text-primary" />
-                    Форум
+                    {t("dashboard.forumPreview")}
                   </CardTitle>
-                  <CardDescription>Активные обсуждения</CardDescription>
+                  <CardDescription>{t("dashboard.activeDiscussions")}</CardDescription>
                 </CardHeader>
                 <Link href="/forum">
                   <Button variant="ghost" size="sm" className="text-primary">
-                    Все
+                    {t("common.all")}
                     <ArrowRight data-icon="inline-end" />
                   </Button>
                 </Link>

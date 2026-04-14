@@ -3,6 +3,7 @@
    Data: real API + mock fallback
 */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -54,32 +55,34 @@ interface ForumCategory {
   description: string;
 }
 
-const FORUM_CATEGORIES: ForumCategory[] = [
-  {
-    value: "Учёба",
-    label: "Учёба",
-    Icon: BookOpen,
-    description: "Экзамены, курсы, преподаватели и полезные ресурсы",
-  },
-  {
-    value: "Общее",
-    label: "Общее",
-    Icon: MessageCircle,
-    description: "Жизнь в кампусе, вопросы, советы и обсуждения",
-  },
-  {
-    value: "События",
-    label: "События",
-    Icon: CalendarDays,
-    description: "Хакатоны, конференции, meetup-ы и мероприятия",
-  },
-  {
-    value: "Жильё",
-    label: "Жильё",
-    Icon: HomeIcon,
-    description: "Поиск соседей, аренда и вопросы по общежитиям",
-  },
-];
+function useForumCategories(t: (key: string) => string): ForumCategory[] {
+  return [
+    {
+      value: "Учёба",
+      label: t("forum.categories.study"),
+      Icon: BookOpen,
+      description: t("forum.categories.studyDesc"),
+    },
+    {
+      value: "Общее",
+      label: t("forum.categories.general"),
+      Icon: MessageCircle,
+      description: t("forum.categories.generalDesc"),
+    },
+    {
+      value: "События",
+      label: t("forum.categories.events"),
+      Icon: CalendarDays,
+      description: t("forum.categories.eventsDesc"),
+    },
+    {
+      value: "Жильё",
+      label: t("forum.categories.housing"),
+      Icon: HomeIcon,
+      description: t("forum.categories.housingDesc"),
+    },
+  ];
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Учёба": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -142,7 +145,7 @@ function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVote
         setUserVote(value);
       }
     } catch {
-      toast.error("Ошибка голосования");
+      toast.error("Vote error");
     } finally {
       setLoading(false);
     }
@@ -182,6 +185,8 @@ function VoteButtons({ threadId, initialVotes }: { threadId: string; initialVote
 /* ── page ─────────────────────────────────────────────────── */
 
 export default function ForumPage() {
+  const { t } = useTranslation();
+  const FORUM_CATEGORIES = useForumCategories(t);
   const [, navigate] = useLocation();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -211,7 +216,7 @@ export default function ForumPage() {
       setShowCreate(false);
       setNewTitle("");
       setNewBody("");
-      toast.success("Тема создана!");
+      toast.success(t("forum.topicCreated"));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -219,16 +224,16 @@ export default function ForumPage() {
 
   const items = threads ?? mockToApiThreads();
   const filtered = items.filter(
-    t => !activeCategory || t.category === activeCategory,
+    th => !activeCategory || th.category === activeCategory,
   );
 
-  const categoryCounts = items.reduce<Record<string, number>>((acc, t) => {
-    acc[t.category] = (acc[t.category] || 0) + 1;
+  const categoryCounts = items.reduce<Record<string, number>>((acc, th) => {
+    acc[th.category] = (acc[th.category] || 0) + 1;
     return acc;
   }, {});
 
   return (
-    <AppLayout title="Форум">
+    <AppLayout title={t("nav.forum")}>
       <div className="container py-4 flex gap-6">
       <div className="flex-1 min-w-0 flex flex-col gap-0 max-w-2xl">
         {/* ── Header ───────────────────────────────────── */}
@@ -238,15 +243,15 @@ export default function ForumPage() {
               <MessageSquare className="size-4 text-primary" strokeWidth={1.5} />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Форум AITU</h1>
-              <p className="text-xs text-muted-foreground">{items.length} тем · студенческое сообщество</p>
+              <h1 className="text-lg font-semibold text-foreground">{t("forum.title")}</h1>
+              <p className="text-xs text-muted-foreground">{t("forum.topicCount", { count: items.length })}</p>
             </div>
           </div>
           <Button
             size="sm"
             onClick={() => {
               if (!isAuthenticated) {
-                toast.error("Войдите, чтобы создать тему");
+                toast.error(t("forum.loginToCreate"));
                 return;
               }
               setShowCreate(v => !v);
@@ -254,7 +259,7 @@ export default function ForumPage() {
             className="gap-1.5 rounded-xl"
           >
             <Plus className="size-4" strokeWidth={1.5} />
-            Новая тема
+            {t("forum.newTopic")}
           </Button>
         </div>
 
@@ -270,7 +275,7 @@ export default function ForumPage() {
             )}
           >
             <Hash className="size-3.5" strokeWidth={1.5} />
-            Все
+            {t("common.all")}
             <span className="text-xs opacity-60">{items.length}</span>
           </button>
           {FORUM_CATEGORIES.map(cat => {
@@ -298,16 +303,16 @@ export default function ForumPage() {
         {showCreate && (
           <div className="mb-6 rounded-2xl border border-border bg-card overflow-hidden ck-animate-in">
             <div className="px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-medium text-foreground">Новая тема</h3>
+              <h3 className="text-sm font-medium text-foreground">{t("forum.newTopic")}</h3>
             </div>
             <div className="p-4 flex flex-col gap-3">
               <Input
-                placeholder="Заголовок темы..."
+                placeholder={t("forum.topicTitle")}
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
               />
               <textarea
-                placeholder="Текст (мин. 10 символов)..."
+                placeholder={t("forum.topicBody")}
                 value={newBody}
                 onChange={e => setNewBody(e.target.value)}
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[80px] resize-none"
@@ -329,7 +334,7 @@ export default function ForumPage() {
                   className="rounded-xl"
                   onClick={() => setShowCreate(false)}
                 >
-                  Отмена
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   size="sm"
@@ -337,7 +342,7 @@ export default function ForumPage() {
                   disabled={createMutation.isPending || newTitle.length < 3 || newBody.length < 10}
                   onClick={() => createMutation.mutate({ title: newTitle, body: newBody, category: newCategory })}
                 >
-                  {createMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Создать"}
+                  {createMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : t("common.create")}
                 </Button>
               </div>
             </div>
@@ -350,7 +355,7 @@ export default function ForumPage() {
             <div className="flex size-12 items-center justify-center rounded-2xl bg-muted border border-border mb-4">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">Загрузка тем...</p>
+            <p className="text-sm text-muted-foreground">{t("forum.loadingTopics")}</p>
           </div>
         )}
 
@@ -394,7 +399,7 @@ export default function ForumPage() {
                     {thread.isPinned && (
                       <span className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                         <Pin className="size-3" strokeWidth={1.5} />
-                        Закреп
+                        {t("common.pinned")}
                       </span>
                     )}
                     <span
@@ -446,22 +451,22 @@ export default function ForumPage() {
             <div className="flex size-16 items-center justify-center rounded-2xl bg-muted border border-border mb-5">
               <MessageSquare className="size-7 text-muted-foreground" strokeWidth={1.5} />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-1">Нет тем</h3>
+            <h3 className="text-lg font-medium text-foreground mb-1">{t("forum.noTopics")}</h3>
             <p className="text-sm text-muted-foreground mb-6">
-              {activeCategory ? `В категории «${activeCategory}» пока нет обсуждений` : "Будьте первым, кто начнёт обсуждение"}
+              {activeCategory ? t("forum.noTopicsInCategory", { category: activeCategory }) : t("forum.beFirst")}
             </p>
             <Button
               className="rounded-xl gap-1.5"
               onClick={() => {
                 if (!isAuthenticated) {
-                  toast.error("Войдите, чтобы создать тему");
+                  toast.error(t("forum.loginToCreate"));
                   return;
                 }
                 setShowCreate(true);
               }}
             >
               <Plus className="size-4" strokeWidth={1.5} />
-              Создать первую тему
+              {t("forum.createFirst")}
             </Button>
           </div>
         )}

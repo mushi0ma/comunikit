@@ -1,5 +1,6 @@
 /* comunikit — ForgotPasswordPage (Runpod split layout / cyberpunk) */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -15,6 +16,7 @@ import AuthHero from "@/components/auth/AuthHero";
 /* ── Component ───────────────────────────────────────────────── */
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -26,7 +28,7 @@ export default function ForgotPasswordPage() {
     setError("");
 
     if (!email || !email.includes("@")) {
-      setError("Введите корректный email");
+      setError(t("auth.forgotEmailError"));
       return;
     }
 
@@ -66,7 +68,7 @@ export default function ForgotPasswordPage() {
           >
             <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
             <span className="font-mono text-xs uppercase tracking-[0.2em]">
-              back
+              {t("common.back")}
             </span>
           </Link>
         </header>
@@ -99,10 +101,10 @@ export default function ForgotPasswordPage() {
                   <CheckCircle className="size-8 text-emerald-500" />
                 </div>
                 <h1 className="text-2xl font-bold text-foreground">
-                  Проверь почту
+                  {t("auth.forgotSuccess")}
                 </h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Письмо отправлено на{" "}
+                  {t("auth.forgotSent")}{" "}
                   <strong className="font-mono text-foreground">{email}</strong>.
                 </p>
                 <Link href="/login">
@@ -110,7 +112,7 @@ export default function ForgotPasswordPage() {
                     className="mt-8 h-11 w-full rounded-lg bg-primary font-mono text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground shadow-[0_0_20px_oklch(0.74_0.238_322.16/25%)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_0_30px_oklch(0.74_0.238_322.16/35%)]"
                   >
                     <ArrowLeft className="mr-2 size-4" />
-                    вернуться ко входу
+                    {t("auth.forgotBackToLogin")} →
                   </Button>
                 </Link>
               </div>
@@ -124,13 +126,13 @@ export default function ForgotPasswordPage() {
                       <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
                       <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
                     </span>
-                    password.recovery
+                    {t("auth.forgotHint")}
                   </div>
                   <h1 className="text-4xl font-bold tracking-tight text-foreground">
-                    Восстановить пароль
+                    {t("auth.forgotTitle")}
                   </h1>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Введи email и мы отправим ссылку для сброса.
+                    {t("auth.forgotSubtitle")}
                   </p>
                 </div>
 
@@ -175,11 +177,11 @@ export default function ForgotPasswordPage() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 size-4 animate-spin" />
-                        отправка...
+                        {t("auth.forgotSubmitting")}
                       </>
                     ) : (
                       <>
-                        отправить ссылку
+                        {t("auth.forgotSubmit")}
                         <span className="ml-2 opacity-70">→</span>
                       </>
                     )}
@@ -188,12 +190,12 @@ export default function ForgotPasswordPage() {
 
                 {/* Login link */}
                 <p className="mt-8 text-center font-mono text-xs text-muted-foreground">
-                  вспомнили пароль?{" "}
+                  {t("auth.forgotRemembered")}{" "}
                   <Link
                     href="/login"
                     className="uppercase tracking-[0.15em] text-primary hover:underline"
                   >
-                    войти →
+                    {t("auth.signIn")} →
                   </Link>
                 </p>
               </>

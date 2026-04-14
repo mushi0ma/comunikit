@@ -3,6 +3,7 @@
    Based on HomeFeed layout.
 */
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useListings } from "@/hooks/useListings";
 
-const TABS: { label: string; value: string }[] = [
-  { label: "Все", value: "all" },
-  { label: "Потеряно", value: "lost" },
-  { label: "Найдено", value: "found" },
-];
+function useLfTabs(t: (key: string) => string) {
+  return [
+    { label: t("lostFound.all"), value: "all" },
+    { label: t("lostFound.lost"), value: "lost" },
+    { label: t("lostFound.found"), value: "found" },
+  ];
+}
 
 function ListingCardSkeleton() {
   return (
@@ -39,6 +42,8 @@ function ListingCardSkeleton() {
 }
 
 export default function LostAndFoundPage() {
+  const { t } = useTranslation();
+  const TABS = useLfTabs(t);
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -48,7 +53,7 @@ export default function LostAndFoundPage() {
 
   useEffect(() => {
     if (error) {
-      toast.error("Не удалось загрузить объявления", { description: error.message });
+      toast.error(t("feed.loadError"), { description: error.message });
     }
   }, [error]);
 
@@ -64,7 +69,7 @@ export default function LostAndFoundPage() {
   }, [listings, activeTab, search, selectedCategory]);
 
   return (
-    <AppLayout title="Бюро находок">
+    <AppLayout title={t("lostFound.title")}>
       <div className="container py-4 flex gap-6">
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
@@ -73,7 +78,7 @@ export default function LostAndFoundPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Поиск по находкам и потерям..."
+              placeholder={t("lostFound.searchPlaceholder")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 bg-muted border-border"
@@ -98,19 +103,19 @@ export default function LostAndFoundPage() {
         {showFilters && (
           <div className="p-4 rounded-xl border border-border bg-card flex flex-col gap-3 ck-animate-in">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">Фильтры</span>
+              <span className="text-sm font-bold">{t("feed.filters")}</span>
               <button onClick={() => setSelectedCategory("all")} className="text-xs text-primary hover:underline">
-                Сбросить
+                {t("feed.resetFilters")}
               </button>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-muted-foreground">Категория</label>
+              <label className="text-xs font-semibold text-muted-foreground">{t("feed.category")}</label>
               <select
                 value={selectedCategory}
                 onChange={e => setSelectedCategory(e.target.value)}
                 className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="all">Все категории</option>
+                <option value="all">{t("feed.allCategories")}</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -138,8 +143,8 @@ export default function LostAndFoundPage() {
         {/* Results count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {isLoading ? "Загрузка..." : `${filtered.length} объявлений`}
-            {!isLoading && activeTab !== "all" && ` · ${TABS.find(t => t.value === activeTab)?.label}`}
+            {isLoading ? t("common.loading") : t("feed.resultsCount", { count: filtered.length })}
+            {!isLoading && activeTab !== "all" && ` · ${TABS.find(tab => tab.value === activeTab)?.label}`}
           </p>
         </div>
 
@@ -156,10 +161,10 @@ export default function LostAndFoundPage() {
         {!isLoading && (
           filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-lg font-bold text-foreground">Ничего не найдено</p>
-              <p className="text-sm text-muted-foreground mt-1">Попробуйте изменить фильтры или поисковый запрос</p>
+              <p className="text-lg font-bold text-foreground">{t("feed.nothingFound")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t("feed.nothingFoundHint")}</p>
               <Button variant="outline" className="mt-4" onClick={() => { setSearch(""); setActiveTab("all"); setSelectedCategory("all"); }}>
-                Сбросить фильтры
+                {t("feed.resetAllFilters")}
               </Button>
             </div>
           ) : (
@@ -177,7 +182,7 @@ export default function LostAndFoundPage() {
 
       {/* FAB */}
       <Link href="/create">
-        <button className="ck-fab md:hidden" aria-label="Сообщить о потере/находке">
+        <button className="ck-fab md:hidden" aria-label={t("lostFound.reportFab")}>
           <span className="text-2xl font-bold leading-none">+</span>
         </button>
       </Link>

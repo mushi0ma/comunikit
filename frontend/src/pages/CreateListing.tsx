@@ -2,6 +2,7 @@
    Design: clean card sections, option cards, dashed upload zone
 */
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useSearch } from "wouter";
 import {
   ArrowLeft, Upload, X, MapPin, Loader2, Send,
@@ -22,26 +23,33 @@ import { toast } from "sonner";
 type MainType = "marketplace" | "lostfound";
 type SubType = "sell" | "buy" | "service" | "lost" | "found";
 
-const MAIN_TYPES = [
-  { value: "marketplace" as const, label: "Маркетплейс", Icon: ShoppingBag, desc: "Продать, купить, услуга" },
-  { value: "lostfound" as const,   label: "Lost & Found", Icon: Search,      desc: "Потерял или нашёл вещь" },
-];
+function useMainTypes(t: (key: string) => string) {
+  return [
+    { value: "marketplace" as const, label: t("createListing.marketplace"), Icon: ShoppingBag, desc: t("createListing.marketplaceDesc") },
+    { value: "lostfound" as const,   label: t("createListing.lostFound"), Icon: Search,      desc: t("createListing.lostFoundDesc") },
+  ];
+}
 
-const SUB_TYPES: Record<MainType, { value: SubType; label: string; Icon: React.ElementType }[]> = {
-  marketplace: [
-    { value: "sell",    label: "Продам",  Icon: Banknote },
-    { value: "buy",     label: "Куплю",   Icon: ShoppingCart },
-    { value: "service", label: "Услуга",  Icon: Wrench },
-  ],
-  lostfound: [
-    { value: "lost",  label: "Потерял", Icon: Search },
-    { value: "found", label: "Нашёл",   Icon: Search },
-  ],
-};
+function useSubTypes(t: (key: string) => string): Record<MainType, { value: SubType; label: string; Icon: React.ElementType }[]> {
+  return {
+    marketplace: [
+      { value: "sell",    label: t("createListing.sell"),    Icon: Banknote },
+      { value: "buy",     label: t("createListing.buy"),     Icon: ShoppingCart },
+      { value: "service", label: t("createListing.service"), Icon: Wrench },
+    ],
+    lostfound: [
+      { value: "lost",  label: t("createListing.lost"),  Icon: Search },
+      { value: "found", label: t("createListing.found"), Icon: Search },
+    ],
+  };
+}
 
 import { BASE_URL as API_URL } from "@/lib/api";
 
 export default function CreateListing() {
+  const { t } = useTranslation();
+  const MAIN_TYPES = useMainTypes(t);
+  const SUB_TYPES = useSubTypes(t);
   const [, navigate] = useLocation();
   const [mainType, setMainType] = useState<MainType | null>(null);
   const [subType, setSubType] = useState<SubType | null>(null);
@@ -81,16 +89,16 @@ export default function CreateListing() {
     const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     const invalid = files.filter(f => !ALLOWED.includes(f.type));
     if (invalid.length > 0) {
-      toast.error(`Неподдерживаемый формат: ${invalid.map(f => f.name).join(", ")}`);
+      toast.error(t("createListing.unsupportedFormat"));
       return;
     }
     const tooBig = files.filter(f => f.size > 5 * 1024 * 1024);
     if (tooBig.length > 0) {
-      toast.error("Файл слишком большой. Максимум 5 МБ");
+      toast.error(t("createListing.fileTooBig"));
       return;
     }
     if (imageUrls.length + files.length > 5) {
-      toast.error("Максимум 5 фотографий");
+      toast.error(t("createListing.maxPhotos"));
       return;
     }
     setUploading(true);
@@ -100,7 +108,7 @@ export default function CreateListing() {
       );
       setImageUrls(prev => [...prev, ...urls]);
     } catch {
-      toast.error("Ошибка загрузки фото");
+      toast.error(t("createListing.uploadError"));
     } finally {
       setUploading(false);
     }
@@ -116,7 +124,7 @@ export default function CreateListing() {
 
   const handlePublish = async () => {
     if (!canPublish || !subType) {
-      toast.error("Заполните обязательные поля");
+      toast.error(t("createListing.fillRequired"));
       return;
     }
     setPublishing(true);
@@ -127,7 +135,7 @@ export default function CreateListing() {
         session = refreshed.session;
       }
       if (!session?.access_token) {
-        toast.error("Войдите в аккаунт, чтобы публиковать объявления");
+        toast.error(t("createListing.loginToPublish"));
         setPublishing(false);
         return;
       }
@@ -173,24 +181,24 @@ export default function CreateListing() {
         throw new Error(result.error ?? `HTTP ${res.status}`);
       }
 
-      toast.success("Объявление опубликовано!");
+      toast.success(t("createListing.published"));
       navigate(result.data?.id ? `/listing/${result.data.id}` : "/marketplace");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Ошибка при публикации");
+      toast.error(err instanceof Error ? err.message : t("createListing.publishError"));
     } finally {
       setPublishing(false);
     }
   };
 
   return (
-    <AppLayout title="Новое объявление">
+    <AppLayout title={t("createListing.title")}>
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Back */}
         <button
           onClick={() => navigate("/marketplace")}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Назад к ленте
+          <ArrowLeft className="w-4 h-4" /> {t("createListing.backToFeed")}
         </button>
 
         {/* Header */}
@@ -199,10 +207,10 @@ export default function CreateListing() {
             className="text-2xl font-black text-foreground mb-1"
             style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
           >
-            Новое объявление
+            {t("createListing.title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Заполните форму — одна страница, без лишних шагов
+            {t("createListing.subtitle")}
           </p>
         </div>
 
@@ -210,8 +218,8 @@ export default function CreateListing() {
           {/* ── Section: Type ───────────────────────────── */}
           <section className="bg-card border border-border rounded-xl p-6 flex flex-col gap-6">
             <div>
-              <h2 className="text-base font-bold text-foreground">Тип объявления</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Выберите категорию</p>
+              <h2 className="text-base font-bold text-foreground">{t("createListing.listingType")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("createListing.chooseCategory")}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -236,7 +244,7 @@ export default function CreateListing() {
             {mainType && (
               <div className="flex flex-col gap-2 ck-animate-in">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Уточните
+                  {t("createListing.specify")}
                 </Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {SUB_TYPES[mainType].map(st => (
@@ -262,14 +270,14 @@ export default function CreateListing() {
           {/* ── Section: Details ─────────────────────────── */}
           <section className="bg-card border border-border rounded-xl p-6 flex flex-col gap-6">
             <div>
-              <h2 className="text-base font-bold text-foreground">Детали</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Основная информация</p>
+              <h2 className="text-base font-bold text-foreground">{t("createListing.details")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("createListing.mainInfo")}</p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="text-sm font-semibold">Заголовок *</Label>
+              <Label className="text-sm font-semibold">{t("createListing.titleLabel")} *</Label>
               <Input
-                placeholder="Например: MacBook Air M1, 8GB/256GB"
+                placeholder={t("createListing.titlePlaceholder")}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 maxLength={80}
@@ -279,24 +287,24 @@ export default function CreateListing() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-semibold">Категория *</Label>
+                <Label className="text-sm font-semibold">{t("createListing.categoryLabel")} *</Label>
                 <select
                   value={category}
                   onChange={e => setCategory(e.target.value)}
                   className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="">Выберите категорию</option>
+                  <option value="">{t("createListing.selectCategory")}</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
               {showPrice && (
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-sm font-semibold">Цена (₸)</Label>
+                  <Label className="text-sm font-semibold">{t("createListing.price")}</Label>
                   <div className="relative">
                     <Input
                       type="number"
-                      placeholder="0 = договорная"
+                      placeholder={t("createListing.pricePlaceholder")}
                       value={price}
                       onChange={e => setPrice(e.target.value)}
                       className="pr-8"
@@ -311,9 +319,9 @@ export default function CreateListing() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="text-sm font-semibold">Описание *</Label>
+              <Label className="text-sm font-semibold">{t("createListing.descriptionLabel")} *</Label>
               <Textarea
-                placeholder="Подробно опишите ваш товар, услугу или ситуацию..."
+                placeholder={t("createListing.descriptionPlaceholder")}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 rows={5}
@@ -326,8 +334,8 @@ export default function CreateListing() {
           {/* ── Section: Images ─────────────────────────── */}
           <section className="bg-card border border-border rounded-xl p-6 flex flex-col gap-6">
             <div>
-              <h2 className="text-base font-bold text-foreground">Фотографии</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">До 5 изображений</p>
+              <h2 className="text-base font-bold text-foreground">{t("createListing.photos")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("createListing.upTo5")}</p>
             </div>
 
             <input
@@ -353,10 +361,10 @@ export default function CreateListing() {
               >
                 <Upload className="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
                 <p className="text-sm font-semibold text-foreground">
-                  Перетащите фото или нажмите
+                  {t("createListing.dropOrClick")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  PNG, JPG до 5 МБ — максимум 5 файлов
+                  {t("createListing.photoHint")}
                 </p>
               </div>
             </div>
@@ -389,10 +397,10 @@ export default function CreateListing() {
             <section className="bg-card border border-border rounded-xl p-6 flex flex-col gap-6 ck-animate-in">
               <div>
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <MapPin className="size-4 text-primary" /> Место
+                  <MapPin className="size-4 text-primary" /> {t("createListing.location")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Где потерял / нашёл вещь
+                  {t("createListing.locationHint")}
                 </p>
               </div>
 
@@ -413,12 +421,12 @@ export default function CreateListing() {
             {publishing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Публикуем...
+                {t("createListing.publishing")}
               </>
             ) : (
               <>
                 <Send className="w-4 h-4 mr-2" />
-                Опубликовать
+                {t("createListing.publish")}
               </>
             )}
           </Button>

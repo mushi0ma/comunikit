@@ -2,6 +2,7 @@
    Design: RunPod-inspired — underline tabs, compact card grid, fuchsia accents
 */
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, SlidersHorizontal, X, ShoppingBag, Wrench, MessageSquare, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,14 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useListings } from "@/hooks/useListings";
 
-const TABS: { label: string; value: string }[] = [
-  { label: "Все", value: "all" },
-  { label: "Продажа", value: "sell" },
-  { label: "Покупка", value: "buy" },
-  { label: "Услуги", value: "service" },
-];
+function useTabs(t: (key: string) => string) {
+  return [
+    { label: t("common.all"), value: "all" },
+    { label: t("feed.sell"), value: "sell" },
+    { label: t("feed.buy"), value: "buy" },
+    { label: t("feed.services"), value: "service" },
+  ];
+}
 
 function ListingCardSkeleton() {
   return (
@@ -39,6 +42,8 @@ function ListingCardSkeleton() {
 }
 
 export default function HomeFeed() {
+  const { t } = useTranslation();
+  const TABS = useTabs(t);
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -49,7 +54,7 @@ export default function HomeFeed() {
 
   useEffect(() => {
     if (error) {
-      toast.error("Не удалось загрузить объявления", { description: error.message });
+      toast.error(t("feed.loadError"), { description: error.message });
     }
   }, [error]);
 
@@ -66,7 +71,7 @@ export default function HomeFeed() {
   }, [listings, activeTab, search, selectedCategory, priceMax]);
 
   return (
-    <AppLayout title="Лента объявлений">
+    <AppLayout title={t("nav.marketplace")}>
       <div className="container py-4 flex gap-6">
         <div className="flex-1 min-w-0 flex flex-col gap-4">
         {/* Hero banner (mobile) */}
@@ -113,7 +118,7 @@ export default function HomeFeed() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Поиск объявлений..."
+              placeholder={t("feed.searchPlaceholder")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 bg-muted border-border"
@@ -138,28 +143,28 @@ export default function HomeFeed() {
         {showFilters && (
           <div className="p-4 rounded-xl border border-border bg-card flex flex-col gap-3 ck-animate-in">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">Фильтры</span>
+              <span className="text-sm font-bold">{t("feed.filters")}</span>
               <button onClick={() => { setSelectedCategory("all"); setPriceMax(""); }} className="text-xs text-primary hover:underline">
-                Сбросить
+                {t("feed.resetFilters")}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-muted-foreground">Категория</label>
+                <label className="text-xs font-semibold text-muted-foreground">{t("feed.category")}</label>
                 <select
                   value={selectedCategory}
                   onChange={e => setSelectedCategory(e.target.value)}
                   className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="all">Все категории</option>
+                  <option value="all">{t("feed.allCategories")}</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-muted-foreground">Макс. цена (₸)</label>
+                <label className="text-xs font-semibold text-muted-foreground">{t("feed.maxPrice")}</label>
                 <Input
                   type="number"
-                  placeholder="Без ограничений"
+                  placeholder={t("feed.noLimit")}
                   value={priceMax}
                   onChange={e => setPriceMax(e.target.value)}
                   className="text-sm"
@@ -190,7 +195,7 @@ export default function HomeFeed() {
         {/* Results count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {isLoading ? "Загрузка..." : `${filtered.length} объявлений`}
+            {isLoading ? t("common.loading") : t("feed.resultsCount", { count: filtered.length })}
             {!isLoading && activeTab !== "all" && ` · ${TABS.find(t => t.value === activeTab)?.label}`}
           </p>
         </div>
@@ -213,10 +218,10 @@ export default function HomeFeed() {
                 alt="Ничего не найдено"
                 className="w-32 h-32 object-contain mb-4 opacity-60"
               />
-              <p className="text-lg font-bold text-foreground">Ничего не найдено</p>
-              <p className="text-sm text-muted-foreground mt-1">Попробуйте изменить фильтры или поисковый запрос</p>
+              <p className="text-lg font-bold text-foreground">{t("feed.nothingFound")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t("feed.nothingFoundHint")}</p>
               <Button variant="outline" className="mt-4" onClick={() => { setSearch(""); setActiveTab("all"); setSelectedCategory("all"); }}>
-                Сбросить фильтры
+                {t("feed.resetAllFilters")}
               </Button>
             </div>
           ) : (
@@ -235,7 +240,7 @@ export default function HomeFeed() {
 
       {/* FAB */}
       <Link href="/create">
-        <button className="ck-fab md:hidden" aria-label="Добавить объявление">
+        <button className="ck-fab md:hidden" aria-label={t("feed.addListing")}>
           <span className="text-2xl font-bold leading-none">+</span>
         </button>
       </Link>

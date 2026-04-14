@@ -3,6 +3,7 @@
    Fixed: now fetches real listing from API by ID instead of MOCK_LISTINGS lookup
 */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -55,7 +56,7 @@ function CommentVote({ commentId, initialVotes }: { commentId: string; initialVo
       setVotes(v => voted ? v - 1 : v + 1);
       setVoted(!voted);
     } catch {
-      toast.error("Ошибка голосования");
+      toast.error("Vote error");
     }
   }
 
@@ -68,7 +69,7 @@ function CommentVote({ commentId, initialVotes }: { commentId: string; initialVo
       )}
     >
       <ThumbsUp className="size-3" />
-      <span>{votes > 0 ? votes : "Нравится"}</span>
+      <span>{votes > 0 ? votes : ""}</span>
     </button>
   );
 }
@@ -76,6 +77,7 @@ function CommentVote({ commentId, initialVotes }: { commentId: string; initialVo
 /* ── page ─────────────────────────────────────────────────── */
 
 export default function ListingDetail() {
+  const { t } = useTranslation();
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
 
@@ -119,7 +121,7 @@ export default function ListingDetail() {
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(["interaction-status", params.id, "listing"], ctx.prev);
-      toast.error("Ошибка");
+      toast.error(t("common.error"));
     },
     onSettled: () => invalidateStatus(),
   });
@@ -135,10 +137,10 @@ export default function ListingDetail() {
       }));
       return { prev };
     },
-    onSuccess: () => toast.success(saved ? "Убрано из сохранённых" : "Сохранено"),
+    onSuccess: () => toast.success(saved ? t("listing.unsaved") : t("listing.saved")),
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(["interaction-status", params.id, "listing"], ctx.prev);
-      toast.error("Ошибка сохранения");
+      toast.error(t("listing.saveError"));
     },
     onSettled: () => invalidateStatus(),
   });
@@ -146,10 +148,10 @@ export default function ListingDetail() {
   const deleteMutation = useMutation({
     mutationFn: () => apiFetch(`/api/listings/${params.id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success("Объявление удалено");
+      toast.success(t("listing.deleted"));
       navigate("/marketplace");
     },
-    onError: (err: Error) => toast.error(err.message || "Ошибка удаления"),
+    onError: (err: Error) => toast.error(err.message || t("listing.deleteError")),
   });
 
   /* ── Fetch listing from API by ID ──────────────────────── */
@@ -194,7 +196,7 @@ export default function ListingDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", "listing", params.id] });
       setCommentText("");
-      toast.success("Комментарий добавлен");
+      toast.success(t("listing.commentAdded"));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -202,7 +204,7 @@ export default function ListingDetail() {
 
   function submitComment() {
     if (!isAuthenticated) {
-      toast.error("Войдите, чтобы оставить комментарий");
+      toast.error(t("listing.loginToComment"));
       return;
     }
     if (commentText.trim().length === 0) return;
@@ -212,7 +214,7 @@ export default function ListingDetail() {
   /* ── Loading / Not found states ────────────────────────── */
   if (listingLoading) {
     return (
-      <AppLayout title="Объявление">
+      <AppLayout title={t("listing.title")}>
         <LoadingScreen />
       </AppLayout>
     );
@@ -220,15 +222,15 @@ export default function ListingDetail() {
 
   if (!listing) {
     return (
-      <AppLayout title="Объявление">
+      <AppLayout title={t("listing.title")}>
         <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
           <Package className="w-16 h-16 mx-auto text-muted-foreground opacity-40" />
-          <h1 className="text-xl font-bold text-foreground">Объявление не найдено</h1>
+          <h1 className="text-xl font-bold text-foreground">{t("listing.notFound")}</h1>
           <p className="text-sm text-muted-foreground">
-            Возможно, оно было удалено или ссылка некорректна.
+            {t("listing.notFoundHint")}
           </p>
           <Button variant="outline" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/marketplace")}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> Назад
+            <ArrowLeft className="w-4 h-4 mr-2" /> {t("common.back")}
           </Button>
         </div>
       </AppLayout>
@@ -239,7 +241,7 @@ export default function ListingDetail() {
   const isLostFound = listing.type === "lost" || listing.type === "found";
 
   return (
-    <AppLayout title="Объявление">
+    <AppLayout title={t("listing.title")}>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Back + owner actions */}
         <div className="flex items-center justify-between">
@@ -247,7 +249,7 @@ export default function ListingDetail() {
             onClick={() => navigate("/marketplace")}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Назад к ленте
+            <ArrowLeft className="w-4 h-4" /> {t("createListing.backToFeed")}
           </button>
           {isOwner && (
             <div className="flex items-center gap-2">
@@ -258,7 +260,7 @@ export default function ListingDetail() {
                 onClick={() => navigate(`/listing/${params.id}/edit`)}
               >
                 <Pencil className="size-3.5" />
-                Редактировать
+                {t("common.edit")}
               </Button>
               <Button
                 variant="outline"
@@ -267,7 +269,7 @@ export default function ListingDetail() {
                 onClick={() => setShowDeleteDialog(true)}
               >
                 <Trash2 className="size-3.5" />
-                Удалить
+                {t("common.delete")}
               </Button>
             </div>
           )}
@@ -277,8 +279,8 @@ export default function ListingDetail() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           onConfirm={() => deleteMutation.mutate()}
-          title="Удалить объявление?"
-          description="Объявление будет удалено навсегда. Это действие нельзя отменить."
+          title={t("listing.confirmDeleteTitle")}
+          description={t("listing.confirmDeleteDesc")}
           isPending={deleteMutation.isPending}
         />
 
@@ -361,10 +363,10 @@ export default function ListingDetail() {
                 <MapPin className="w-5 h-5 text-red-400 shrink-0" />
                 <div>
                   <div className="text-sm font-semibold text-red-400">
-                    {listing.type === "lost" ? "Потеряно" : "Найдено"}
+                    {listing.type === "lost" ? t("lostFound.lost") : t("lostFound.found")}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Место: {resolveLocationText(listing.location)}
+                    {t("listing.place")}: {resolveLocationText(listing.location)}
                   </div>
                 </div>
               </div>
@@ -419,7 +421,7 @@ export default function ListingDetail() {
                     onClick={(e) => !contactUrl && e.preventDefault()}
                   >
                     <Send className="w-4 h-4" />
-                    {contactUrl ? "Написать продавцу" : "Telegram не указан"}
+                    {contactUrl ? t("listing.contactSeller") : t("listing.noTelegram")}
                   </a>
                 );
               })()}
@@ -430,7 +432,7 @@ export default function ListingDetail() {
                 onClick={() => saveMutation.mutate()}
               >
                 {saved ? <BookmarkCheck className="w-4 h-4 text-green-400" /> : <Bookmark className="w-4 h-4" />}
-                {saved ? "Сохранено" : "Сохранить"}
+                {saved ? t("listing.saved") : t("listing.save")}
               </Button>
             </div>
           </div>
@@ -439,7 +441,7 @@ export default function ListingDetail() {
         {/* ── Comments Section ─────────────────────────────── */}
         <div className="space-y-4">
           <h3 className="text-base font-bold text-foreground">
-            Комментарии ({comments.length})
+            {t("listing.comments")} ({comments.length})
           </h3>
 
           {/* Comment input */}
@@ -449,7 +451,7 @@ export default function ListingDetail() {
             </div>
             <div className="flex-1 flex gap-2">
               <Input
-                placeholder="Написать комментарий..."
+                placeholder={t("listing.commentPlaceholder")}
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
                 onKeyDown={e => {
@@ -480,7 +482,7 @@ export default function ListingDetail() {
           {/* Comments list */}
           {!commentsLoading && comments.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Пока нет комментариев. Будьте первым!
+              {t("listing.noComments")}
             </p>
           )}
 
@@ -504,7 +506,7 @@ export default function ListingDetail() {
         {/* Related listings */}
         {relatedListings.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-foreground">Похожие объявления</h2>
+            <h2 className="text-base font-bold text-foreground">{t("listing.related")}</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {relatedListings.map(l => <ListingCard key={l.id} listing={l} />)}
             </div>
@@ -514,10 +516,10 @@ export default function ListingDetail() {
         {/* Report */}
         <div className="flex justify-center pb-4">
           <button
-            onClick={() => toast.info("Жалоба отправлена на модерацию")}
+            onClick={() => toast.info(t("listing.reportSent"))}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
           >
-            <Flag className="w-3 h-3" /> Пожаловаться на объявление
+            <Flag className="w-3 h-3" /> {t("listing.report")}
           </button>
         </div>
       </div>

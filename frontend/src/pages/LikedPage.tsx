@@ -2,6 +2,7 @@
    Liked listings & threads with tabs
 */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Heart, ShoppingBag, MessageSquare, Loader2, Clock } from "lucide-react";
@@ -49,6 +50,7 @@ function timeAgo(dateStr: string): string {
 /* ── page ─────────────────────────────────────────────────── */
 
 export default function LikedPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"listings" | "forum">("listings");
 
   const { data, isLoading } = useQuery<LikedData>({
@@ -60,7 +62,7 @@ export default function LikedPage() {
   const threads = data?.threads ?? [];
 
   return (
-    <AppLayout title="Понравилось">
+    <AppLayout title={t("liked.title")}>
       <div className="container max-w-2xl py-4">
         {/* Header */}
         <div className="mb-4 flex items-center gap-3">
@@ -68,9 +70,9 @@ export default function LikedPage() {
             <Heart className="size-4 text-red-500" strokeWidth={1.5} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Понравилось</h1>
+            <h1 className="text-lg font-semibold text-foreground">{t("liked.title")}</h1>
             <p className="text-xs text-muted-foreground">
-              {listings.length + threads.length} элементов
+              {listings.length + threads.length} {t("common.items")}
             </p>
           </div>
         </div>
@@ -87,7 +89,7 @@ export default function LikedPage() {
             )}
           >
             <ShoppingBag className="size-3.5" strokeWidth={1.5} />
-            Объявления
+            {t("common.listings")}
             <span className="text-xs opacity-60">{listings.length}</span>
           </button>
           <button
@@ -100,7 +102,7 @@ export default function LikedPage() {
             )}
           >
             <MessageSquare className="size-3.5" strokeWidth={1.5} />
-            Форум
+            {t("common.forum")}
             <span className="text-xs opacity-60">{threads.length}</span>
           </button>
         </div>
@@ -111,14 +113,14 @@ export default function LikedPage() {
             <div className="flex size-12 items-center justify-center rounded-2xl bg-muted border border-border mb-4">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
+            <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
           </div>
         )}
 
         {/* Content — Listings */}
         {!isLoading && tab === "listings" && (
           listings.length === 0 ? (
-            <EmptyState icon={ShoppingBag} text="Нет понравившихся объявлений" />
+            <EmptyState icon={ShoppingBag} text={t("liked.emptyListings")} />
           ) : (
             <div className="flex flex-col gap-3">
               {listings.map((l) => (
@@ -131,18 +133,18 @@ export default function LikedPage() {
         {/* Content — Forum */}
         {!isLoading && tab === "forum" && (
           threads.length === 0 ? (
-            <EmptyState icon={MessageSquare} text="Нет понравившихся тем" />
+            <EmptyState icon={MessageSquare} text={t("liked.emptyThreads")} />
           ) : (
             <div className="flex flex-col gap-3">
-              {threads.map((t) => (
-                <Link key={t.id} href={`/forum/${t.id}`} className="block">
+              {threads.map((th) => (
+                <Link key={th.id} href={`/forum/${th.id}`} className="block">
                   <div className="rounded-2xl border border-border bg-card p-4 hover:border-primary/30 transition-all">
-                    <h3 className="text-sm font-semibold text-foreground">{t.title}</h3>
-                    {t.body && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.body}</p>}
+                    <h3 className="text-sm font-semibold text-foreground">{th.title}</h3>
+                    {th.body && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{th.body}</p>}
                     <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{t.author.name}</span>
-                      <span className="flex items-center gap-1"><MessageSquare className="size-3" />{t._count?.comments ?? t.replyCount}</span>
-                      <span className="flex items-center gap-1"><Clock className="size-3" />{timeAgo(t.createdAt)}</span>
+                      <span>{th.author.name}</span>
+                      <span className="flex items-center gap-1"><MessageSquare className="size-3" />{th._count?.comments ?? th.replyCount}</span>
+                      <span className="flex items-center gap-1"><Clock className="size-3" />{timeAgo(th.createdAt)}</span>
                     </div>
                   </div>
                 </Link>

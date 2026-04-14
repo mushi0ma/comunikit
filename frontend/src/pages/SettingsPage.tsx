@@ -4,6 +4,7 @@
    Features: profile editing (PATCH /api/users/me), email verification, set-password for OAuth users.
 */
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -49,6 +50,7 @@ function isSyntheticTelegramEmail(email: string | null): boolean {
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
@@ -88,9 +90,9 @@ export default function SettingsPage() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
-      toast.success("Профиль сохранён");
+      toast.success(t("settings.profileSaved"));
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка сохранения"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("settings.profileSaveError")),
   });
 
   function handleSaveProfile() {
@@ -114,28 +116,28 @@ export default function SettingsPage() {
         body: JSON.stringify({ avatarUrl: url }),
       });
       void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
-      toast.success("Фото профиля обновлено");
+      toast.success(t("settings.avatarUpdated"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Ошибка загрузки фото");
+      toast.error(err instanceof Error ? err.message : t("settings.avatarUploadError"));
     } finally {
       setAvatarUploading(false);
     }
   };
 
   const themeOptions = [
-    { value: "dark", label: "Тёмная", Icon: Moon },
-    { value: "light", label: "Светлая", Icon: Sun },
-    { value: "system", label: "Системная", Icon: Monitor },
+    { value: "dark", label: t("settings.themeDark"), Icon: Moon },
+    { value: "light", label: t("settings.themeLight"), Icon: Sun },
+    { value: "system", label: t("settings.themeSystem"), Icon: Monitor },
   ] as const;
 
-  const displayName = profile?.name || (authUser?.user_metadata?.name as string) || "Студент";
+  const displayName = profile?.name || (authUser?.user_metadata?.name as string) || t("profile.student");
 
   return (
-    <AppLayout title="Настройки">
+    <AppLayout title={t("settings.title")}>
       <div className="mx-auto max-w-3xl px-4 py-6 lg:px-0">
         {/* ── Профиль ────────────────────────────────────── */}
-        <Section title="Профиль">
-          <FormRow label="Аватар">
+        <Section title={t("settings.profile")}>
+          <FormRow label={t("settings.avatar")}>
             <label className="relative cursor-pointer group inline-block">
               <Avatar className="size-16 rounded-xl">
                 <AvatarImage src={avatarUrl ?? undefined} className="rounded-xl object-cover" />
@@ -158,25 +160,25 @@ export default function SettingsPage() {
             </label>
           </FormRow>
 
-          <FormRow label="Имя">
+          <FormRow label={t("settings.name")}>
             <Input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Ваше имя"
+              placeholder={t("settings.namePlaceholder")}
               disabled={profileLoading}
             />
           </FormRow>
 
-          <FormRow label="Bio">
+          <FormRow label={t("settings.bio")}>
             <Input
               value={bio}
               onChange={e => setBio(e.target.value)}
-              placeholder="Расскажите о себе"
+              placeholder={t("settings.bioPlaceholder")}
               disabled={profileLoading}
             />
           </FormRow>
 
-          <FormRow label="Telegram">
+          <FormRow label={t("settings.telegram")}>
             <Input
               placeholder="@username"
               value={telegram}
@@ -192,8 +194,8 @@ export default function SettingsPage() {
               disabled={saveProfileMutation.isPending || profileLoading}
             >
               {saveProfileMutation.isPending ? (
-                <><Loader2 className="size-4 mr-1 animate-spin" /> Сохранение...</>
-              ) : "Сохранить"}
+                <><Loader2 className="size-4 mr-1 animate-spin" /> {t("settings.saving")}</>
+              ) : t("common.save")}
             </Button>
           </div>
         </Section>
@@ -210,8 +212,8 @@ export default function SettingsPage() {
         )}
 
         {/* ── Внешний вид ────────────────────────────────── */}
-        <Section title="Внешний вид">
-          <FormRow label="Тема интерфейса">
+        <Section title={t("settings.appearance")}>
+          <FormRow label={t("settings.themeLabel")}>
             <div className="flex gap-2">
               {themeOptions.map(opt => {
                 const isActive =
@@ -222,7 +224,7 @@ export default function SettingsPage() {
                     key={opt.value}
                     onClick={() => {
                       if (opt.value === "system") {
-                        toast.info("Системная тема в разработке");
+                        toast.info(t("settings.themeSystemWip"));
                         return;
                       }
                       if (theme !== opt.value && toggleTheme) toggleTheme();
@@ -244,26 +246,26 @@ export default function SettingsPage() {
         </Section>
 
         {/* ── Уведомления ────────────────────────────────── */}
-        <Section title="Уведомления">
+        <Section title={t("settings.notifications")}>
           <ToggleRow
             Icon={Bell}
-            title="Push-уведомления"
-            description="Новые сообщения, ответы, отклики"
+            title={t("settings.pushTitle")}
+            description={t("settings.pushDesc")}
             checked={pushEnabled}
             onChange={setPushEnabled}
           />
           <div className="h-px bg-border my-3" />
           <ToggleRow
             Icon={Mail}
-            title="Email-уведомления"
-            description="Еженедельный дайджест на почту"
+            title={t("settings.emailNotifTitle")}
+            description={t("settings.emailNotifDesc")}
             checked={emailEnabled}
             onChange={setEmailEnabled}
           />
         </Section>
 
         {/* ── Безопасность ───────────────────────────────── */}
-        <Section title="Безопасность">
+        <Section title={t("settings.security")}>
           {/* Set password for OAuth users */}
           <SetPasswordSection hasPassword={profile?.hasPassword ?? true} />
 
@@ -271,8 +273,8 @@ export default function SettingsPage() {
 
           <LinkRow
             Icon={Shield}
-            title="Сменить пароль"
-            description="Обновите пароль для входа по email"
+            title={t("settings.changePassword")}
+            description={t("settings.changePasswordDesc")}
             onClick={() => navigate("/reset-password")}
           />
           <div className="h-px bg-border my-3" />
@@ -280,14 +282,14 @@ export default function SettingsPage() {
         </Section>
 
         {/* ── О приложении ───────────────────────────────── */}
-        <Section title="О приложении">
+        <Section title={t("settings.about")}>
           <div className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Версия</span>
+              <span className="text-muted-foreground">{t("settings.version")}</span>
               <span className="font-mono text-foreground">0.1.0</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Сборка</span>
+              <span className="text-muted-foreground">{t("settings.build")}</span>
               <span className="font-mono text-foreground">2026.04</span>
             </div>
             <div className="h-px bg-border my-2" />
@@ -298,12 +300,12 @@ export default function SettingsPage() {
               className="flex items-center justify-between py-2 text-foreground transition-colors hover:text-primary"
             >
               <span className="flex items-center gap-2">
-                <Github className="size-4" /> GitHub репозиторий
+                <Github className="size-4" /> {t("settings.githubRepo")}
               </span>
               <ChevronRight className="size-4 text-muted-foreground" />
             </a>
             <p className="mt-2 text-xs text-muted-foreground">
-              Карта кампуса — спасибо проекту{" "}
+              {t("settings.mapCredits")}{" "}
               <a
                 href="https://github.com/Yuujiso/aitumap"
                 target="_blank"
@@ -312,7 +314,7 @@ export default function SettingsPage() {
               >
                 aitumap
               </a>{" "}
-              от Yuujiso.
+              {t("settings.mapCreditsBy")}
             </p>
           </div>
         </Section>
@@ -322,11 +324,11 @@ export default function SettingsPage() {
           variant="outline"
           className="h-11 w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/5"
           onClick={() => {
-            toast.success("Вы вышли из аккаунта");
+            toast.success(t("settings.loggedOut"));
             window.location.href = "/login";
           }}
         >
-          <LogOut className="size-4" /> Выйти из аккаунта
+          <LogOut className="size-4" /> {t("settings.logout")}
         </Button>
       </div>
     </AppLayout>
@@ -342,6 +344,7 @@ function EmailVerificationSection({
   email: string | null;
   emailVerified: string | null;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [otpCode, setOtpCode] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
@@ -353,7 +356,7 @@ function EmailVerificationSection({
       toast.success(data.message);
       setShowOtpInput(true);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка отправки кода"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("settings.sendCodeError")),
   });
 
   const verifyMutation = useMutation({
@@ -368,7 +371,7 @@ function EmailVerificationSection({
       setOtpCode("");
       void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Неверный код"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("settings.invalidCode")),
   });
 
   // Hide confirm-email UI for synthetic Telegram addresses — those users
@@ -378,7 +381,7 @@ function EmailVerificationSection({
   const isVerified = !!emailVerified;
 
   return (
-    <Section title="Почта">
+    <Section title={t("settings.email")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={cn(
@@ -396,7 +399,7 @@ function EmailVerificationSection({
               "text-xs",
               isVerified ? "text-emerald-500" : "text-amber-500",
             )}>
-              {isVerified ? "✓ Подтверждён" : "Не подтверждён"}
+              {isVerified ? t("settings.emailVerified") : t("settings.emailNotVerified")}
             </p>
           </div>
         </div>
@@ -412,7 +415,7 @@ function EmailVerificationSection({
             {sendCodeMutation.isPending ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <><SendIcon className="size-3.5" /> Подтвердить почту</>
+              <><SendIcon className="size-3.5" /> {t("settings.verifyEmail")}</>
             )}
           </Button>
         )}
@@ -422,8 +425,8 @@ function EmailVerificationSection({
       {showOtpInput && !isVerified && (
         <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
           <p className="text-sm text-muted-foreground">
-            Код подтверждения отправлен на <strong className="text-foreground">{email}</strong>.
-            Проверьте почту (или консоль бэкенда).
+            {t("settings.verificationSent")} <strong className="text-foreground">{email}</strong>.
+            {t("settings.checkEmail")}
           </p>
           <div className="flex gap-2">
             <Input
@@ -441,7 +444,7 @@ function EmailVerificationSection({
             >
               {verifyMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />
-              ) : "Подтвердить"}
+              ) : t("common.confirm")}
             </Button>
           </div>
           <button
@@ -449,7 +452,7 @@ function EmailVerificationSection({
             onClick={() => sendCodeMutation.mutate()}
             disabled={sendCodeMutation.isPending}
           >
-            Отправить код повторно
+            {t("settings.resendCode")}
           </button>
         </div>
       )}
@@ -460,6 +463,7 @@ function EmailVerificationSection({
 /* ── Link Real Email (Telegram users) ────────────────────────── */
 
 function LinkEmailSection() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -477,7 +481,7 @@ function LinkEmailSection() {
       void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
     },
     onError: (e) =>
-      toast.error(e instanceof Error ? e.message : "Ошибка привязки email"),
+      toast.error(e instanceof Error ? e.message : t("settings.linkEmailError")),
   });
 
   const verifyMutation = useMutation({
@@ -493,22 +497,21 @@ function LinkEmailSection() {
       setEmail("");
       void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Неверный код"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("settings.invalidCode")),
   });
 
   return (
-    <Section title="Привязать реальный Email">
+    <Section title={t("settings.linkEmail")}>
       <div className="flex items-start gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
           <Mail className="size-5 text-amber-500" />
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">
-            Вы вошли через Telegram
+            {t("settings.linkEmailTitle")}
           </p>
           <p className="text-xs text-muted-foreground">
-            У вас нет настоящего email-адреса. Привяжите реальный ящик, чтобы
-            получать уведомления и восстанавливать доступ.
+            {t("settings.linkEmailDesc")}
           </p>
         </div>
       </div>
@@ -533,14 +536,14 @@ function LinkEmailSection() {
             {linkMutation.isPending ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              "Привязать email"
+              t("settings.linkEmailButton")
             )}
           </Button>
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
           <p className="text-sm text-muted-foreground">
-            Код подтверждения отправлен на{" "}
+            {t("settings.verificationSent")}{" "}
             <strong className="text-foreground">{email}</strong>.
           </p>
           <div className="flex gap-2">
@@ -562,7 +565,7 @@ function LinkEmailSection() {
               {verifyMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                "Подтвердить"
+                t("common.confirm")
               )}
             </Button>
           </div>
@@ -571,7 +574,7 @@ function LinkEmailSection() {
             onClick={() => linkMutation.mutate(email.trim().toLowerCase())}
             disabled={linkMutation.isPending}
           >
-            Отправить код повторно
+            {t("settings.resendCode")}
           </button>
         </div>
       )}
@@ -582,6 +585,7 @@ function LinkEmailSection() {
 /* ── Set Password Section (for OAuth users) ──────────────────── */
 
 function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -595,14 +599,14 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
         body: JSON.stringify({ password: pwd }),
       }),
     onSuccess: () => {
-      toast.success("Пароль установлен!");
+      toast.success(t("settings.setPasswordSuccess"));
       setJustSet(true);
       setShowForm(false);
       setPassword("");
       setConfirmPassword("");
       void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Ошибка"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("common.error")),
   });
 
   if (hasPassword || justSet) return null;
@@ -614,9 +618,9 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
           <Lock className="size-5 text-amber-500" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">Пароль не установлен</p>
+          <p className="text-sm font-semibold text-foreground">{t("settings.noPassword")}</p>
           <p className="text-xs text-muted-foreground">
-            Вы вошли через соцсеть. Установите пароль, чтобы входить по email.
+            {t("settings.noPasswordDesc")}
           </p>
         </div>
         {!showForm && (
@@ -626,7 +630,7 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
             className="gap-1.5 border-amber-500/30 text-amber-500 hover:bg-amber-500/5"
             onClick={() => setShowForm(true)}
           >
-            Установить
+            {t("settings.setPassword")}
           </Button>
         )}
       </div>
@@ -634,29 +638,29 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
       {showForm && (
         <div className="mt-3 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Новый пароль</Label>
+            <Label className="text-xs text-muted-foreground">{t("settings.newPassword")}</Label>
             <Input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Минимум 6 символов"
+              placeholder={t("settings.newPasswordPlaceholder")}
               autoFocus
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Повторите пароль</Label>
+            <Label className="text-xs text-muted-foreground">{t("settings.confirmPassword")}</Label>
             <Input
               type="password"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Повторите пароль"
+              placeholder={t("settings.confirmPasswordPlaceholder")}
             />
           </div>
           {password.length > 0 && password.length < 6 && (
-            <p className="text-xs text-destructive">Минимум 6 символов</p>
+            <p className="text-xs text-destructive">{t("settings.passwordMinError")}</p>
           )}
           {confirmPassword.length > 0 && password !== confirmPassword && (
-            <p className="text-xs text-destructive">Пароли не совпадают</p>
+            <p className="text-xs text-destructive">{t("settings.passwordMismatch")}</p>
           )}
           <div className="flex gap-2">
             <Button
@@ -665,7 +669,7 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
               className="flex-1"
               onClick={() => { setShowForm(false); setPassword(""); setConfirmPassword(""); }}
             >
-              Отмена
+              {t("common.cancel")}
             </Button>
             <Button
               size="sm"
@@ -679,7 +683,7 @@ function SetPasswordSection({ hasPassword }: { hasPassword: boolean }) {
             >
               {setPasswordMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />
-              ) : "Установить пароль"}
+              ) : t("settings.setPasswordButton")}
             </Button>
           </div>
         </div>
@@ -696,19 +700,24 @@ const DEVICE_ICON: Record<string, React.ComponentType<{ className?: string }>> =
   desktop: Monitor,
 };
 
-function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "Только что";
-  if (mins < 60) return `${mins} мин. назад`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} ч. назад`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} дн. назад`;
-  return new Date(iso).toLocaleDateString("ru-RU");
+function useFormatRelative() {
+  const { t } = useTranslation();
+  return (iso: string): string => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60_000);
+    if (mins < 1) return t("common.justNow");
+    if (mins < 60) return `${mins} ${t("common.minsAgo")}`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} ${t("common.hoursFullAgo")}`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days} ${t("common.daysFullAgo")}`;
+    return new Date(iso).toLocaleDateString();
+  };
 }
 
 function SessionsList() {
+  const { t } = useTranslation();
+  const formatRelative = useFormatRelative();
   const queryClient = useQueryClient();
 
   const { data: sessions, isLoading, isError } = useQuery<SessionInfo[]>({
@@ -721,10 +730,10 @@ function SessionsList() {
       apiFetch<null>(`/api/auth/sessions/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["auth", "sessions"] });
-      toast.success("Сеанс завершён");
+      toast.success(t("settings.sessionRevoked"));
     },
     onError: () => {
-      toast.error("Не удалось завершить сеанс");
+      toast.error(t("settings.sessionRevokeError"));
     },
   });
 
@@ -739,7 +748,7 @@ function SessionsList() {
   if (isError || !sessions) {
     return (
       <p className="py-4 text-center text-sm text-muted-foreground">
-        Не удалось загрузить сессии
+        {t("settings.sessionsLoadError")}
       </p>
     );
   }
@@ -747,7 +756,7 @@ function SessionsList() {
   return (
     <div>
       <p className="mb-3 text-sm font-semibold text-foreground">
-        Активные сессии ({sessions.length})
+        {t("settings.sessions")} ({sessions.length})
       </p>
       <div className="flex flex-col gap-2">
         {sessions.map((s) => {
@@ -781,7 +790,7 @@ function SessionsList() {
                     {s.browser} — {s.os}
                     {s.isCurrent && (
                       <span className="ml-2 inline-block rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
-                        Текущая
+                        {t("settings.currentSession")}
                       </span>
                     )}
                   </p>
@@ -799,7 +808,7 @@ function SessionsList() {
                   className="size-8 text-muted-foreground hover:text-destructive"
                   disabled={revokeMutation.isPending}
                   onClick={() => revokeMutation.mutate(s.id)}
-                  title="Завершить сеанс"
+                  title={t("settings.revokeSession")}
                 >
                   <X className="size-4" />
                 </Button>

@@ -1,5 +1,6 @@
 /* comunikit — LoginPage (Runpod-inspired dark minimal) */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,18 +17,20 @@ import TelegramLoginButton from "@/components/auth/TelegramLoginButton";
 
 /* ── Validation ──────────────────────────────────────────────── */
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Введите email")
-    .email("Некорректный email"),
-  password: z
-    .string()
-    .min(1, "Введите пароль")
-    .min(6, "Минимум 6 символов"),
-});
+function createLoginSchema(t: (key: string) => string) {
+  return z.object({
+    email: z
+      .string()
+      .min(1, t("auth.validation.enterEmail"))
+      .email(t("auth.validation.invalidEmail")),
+    password: z
+      .string()
+      .min(1, t("auth.validation.enterPassword"))
+      .min(6, t("auth.validation.minPassword6")),
+  });
+}
 
-type LoginValues = z.infer<typeof loginSchema>;
+type LoginValues = z.infer<ReturnType<typeof createLoginSchema>>;
 
 /* ── Shared input class for Runpod-style fields ──────────────── */
 
@@ -39,10 +42,12 @@ const inputError = "border-destructive/40 focus:border-destructive/60 focus:ring
 /* ── Component ───────────────────────────────────────────────── */
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const [showPass, setShowPass] = useState(false);
   const signIn = useAuthStore((s) => s.signIn);
   const hydrateFromCookie = useAuthStore((s) => s.hydrateFromCookie);
+  const loginSchema = createLoginSchema(t);
 
   const {
     register,
@@ -65,7 +70,7 @@ export default function LoginPage() {
       await signIn(data.email, data.password);
       navigate("/forum");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Ошибка входа");
+      toast.error(err instanceof Error ? err.message : t("auth.loginError"));
     }
   }
 
@@ -91,7 +96,7 @@ export default function LoginPage() {
           >
             <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
             <span className="font-mono text-xs uppercase tracking-[0.2em]">
-              back
+              {t("common.back")}
             </span>
           </Link>
           <Link href="/register">
@@ -100,7 +105,7 @@ export default function LoginPage() {
               size="sm"
               className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
             >
-              sign up →
+              {t("auth.register")} →
             </Button>
           </Link>
         </header>
@@ -133,13 +138,13 @@ export default function LoginPage() {
                   <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
                   <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
                 </span>
-                authentication required
+                {t("auth.loginHint")}
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                Войти
+                {t("auth.loginTitle")}
               </h1>
               <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                Продолжи работу в студенческом сообществе{" "}
+                {t("auth.loginSubtitle")}{" "}
                 <span className="font-mono text-foreground">AITU</span>.
               </p>
             </div>
@@ -161,7 +166,7 @@ export default function LoginPage() {
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-white/[0.06]" />
               <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
-                or with email
+                {t("auth.orWithEmail")}
               </span>
               <div className="h-px flex-1 bg-white/[0.06]" />
             </div>
@@ -224,7 +229,7 @@ export default function LoginPage() {
                     onClick={() => setShowPass((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors hover:text-foreground"
                     aria-label={
-                      showPass ? "Скрыть пароль" : "Показать пароль"
+                      showPass ? t("auth.hidePassword") : t("auth.showPassword")
                     }
                   >
                     {showPass ? (
@@ -250,11 +255,11 @@ export default function LoginPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    вход...
+                    {t("auth.loginSubmitting")}
                   </>
                 ) : (
                   <>
-                    войти
+                    {t("auth.loginSubmit")}
                     <span className="ml-2 opacity-60">→</span>
                   </>
                 )}
@@ -263,12 +268,12 @@ export default function LoginPage() {
 
             {/* Register link */}
             <p className="mt-8 text-center font-mono text-xs text-muted-foreground/70">
-              нет аккаунта?{" "}
+              {t("auth.noAccount")}{" "}
               <Link
                 href="/register"
                 className="uppercase tracking-[0.15em] text-primary/80 transition-colors hover:text-primary"
               >
-                зарегистрироваться →
+                {t("auth.register")} →
               </Link>
             </p>
           </motion.div>

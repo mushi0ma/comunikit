@@ -79,6 +79,7 @@ tmp/
 temp/
 
 # ─── AI Agent Configs (local only) ────────────────────────────────────────────
+obsidian/
 .claude/
 .agents/
 .agent/

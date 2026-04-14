@@ -19,12 +19,15 @@ export interface Listing {
 export interface User {
   id: string;
   studentId: string;
+  isStudentVerified: boolean;
   name: string;
   email?: string;
   emailVerified?: string | null;
   bio?: string;
   avatarUrl?: string;
   telegramHandle?: string;
+  group?: string;
+  karma: number;
 }
 
 export interface ForumThread {
@@ -35,6 +38,30 @@ export interface ForumThread {
   category: string;
   createdAt: string;
   replyCount: number;
+  upvotes: number;
+  isPinned: boolean;
+  deletedAt?: string | null;
+}
+
+export interface Comment {
+  id: string;
+  body: string;
+  authorId: string;
+  listingId?: string | null;
+  threadId?: string | null;
+  parentId?: string | null;
+  deletedAt?: string | null;
+  createdAt: string;
+}
+
+export interface Vote {
+  id: string;
+  userId: string;
+  listingId?: string | null;
+  threadId?: string | null;
+  commentId?: string | null;
+  value: number;
+  createdAt: string;
 }
 
 export interface SessionInfo {

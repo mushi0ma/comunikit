@@ -18,6 +18,7 @@ model User {
   avatarUrl          String?
   telegramId         BigInt?        @unique @map("telegram_id")
   telegramHandle     String?
+  group              String?
   karma              Int            @default(0)
   listings       Listing[]
   threads        ForumThread[]
@@ -87,6 +88,7 @@ model ForumThread {
   replyCount Int        @default(0) @map("replyCount")
   upvotes    Int        @default(0)
   isPinned   Boolean    @default(false) @map("isPinned")
+  deletedAt  DateTime?  @map("deleted_at")
   createdAt  DateTime   @default(now())
   comments   Comment[]
   votes      Vote[]
@@ -108,6 +110,7 @@ model Comment {
   parent    Comment?     @relation("replies", fields: [parentId], references: [id])
   replies   Comment[]    @relation("replies")
   votes     Vote[]
+  deletedAt DateTime?    @map("deleted_at")
   createdAt DateTime     @default(now())
 
   @@map("Comment")

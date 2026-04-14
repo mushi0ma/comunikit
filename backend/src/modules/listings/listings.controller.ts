@@ -1,11 +1,13 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -86,6 +88,31 @@ export class ListingsController {
     }
 
     const data = await this.listings.create(parsed.data, user.id);
+    return { success: true, data };
+  }
+
+  /** PATCH /api/listings/:id — auth required, owner only */
+  @Patch(':id')
+  @UseGuards(SupabaseAuthGuard)
+  async update(@Param('id') id: string, @Req() req: Request, @Body() body: unknown) {
+    const user = (req as Request & { user: User }).user;
+    const updateSchema = z.object({
+      title: z.string().min(3).max(100).optional(),
+      description: z.string().min(10).max(2000).optional(),
+      price: z.number().min(0).optional(),
+      category: z.string().min(1).optional(),
+      location: z.string().max(200).optional(),
+      images: z.array(z.string()).max(5).optional(),
+    });
+    const parsed = updateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: parsed.error.issues.map((i) => i.message).join(', '),
+      });
+    }
+    const data = await this.listings.update(id, parsed.data, user.id);
     return { success: true, data };
   }
 

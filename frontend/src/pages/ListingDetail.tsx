@@ -7,7 +7,7 @@ import { Link, useLocation, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, MapPin, Package, Heart, Bookmark, BookmarkCheck, Clock,
-  MessageCircle, Flag, Send, Loader2, ThumbsUp,
+  MessageCircle, Flag, Send, Loader2, ThumbsUp, Pencil, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import { resolveLocationText } from "@/lib/locationUtils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import LoadingScreen from "@/components/LoadingScreen";
+import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog";
 
 /* ── types ─────────────────────────────────────────────────── */
 interface CommentAuthor {
@@ -80,7 +81,9 @@ export default function ListingDetail() {
 
   const [imgIdx, setImgIdx] = useState(0);
   const [commentText, setCommentText] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
 
   /* ── Fetch interaction status (liked/saved) from API ──── */
@@ -103,12 +106,60 @@ export default function ListingDetail() {
     void queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
   };
 
+  const likeMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/users/me/like/listing/${params.id}`, { method: "POST" }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["interaction-status", params.id, "listing"] });
+      const prev = queryClient.getQueryData<{ saved: boolean; liked: boolean }>(["interaction-status", params.id, "listing"]);
+      queryClient.setQueryData(["interaction-status", params.id, "listing"], (old: { saved: boolean; liked: boolean } | undefined) => ({
+        saved: old?.saved ?? false,
+        liked: !(old?.liked ?? false),
+      }));
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["interaction-status", params.id, "listing"], ctx.prev);
+      toast.error("Ошибка");
+    },
+    onSettled: () => invalidateStatus(),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/users/me/save/listing/${params.id}`, { method: "POST" }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["interaction-status", params.id, "listing"] });
+      const prev = queryClient.getQueryData<{ saved: boolean; liked: boolean }>(["interaction-status", params.id, "listing"]);
+      queryClient.setQueryData(["interaction-status", params.id, "listing"], (old: { saved: boolean; liked: boolean } | undefined) => ({
+        liked: old?.liked ?? false,
+        saved: !(old?.saved ?? false),
+      }));
+      return { prev };
+    },
+    onSuccess: () => toast.success(saved ? "Убрано из сохранённых" : "Сохранено"),
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["interaction-status", params.id, "listing"], ctx.prev);
+      toast.error("Ошибка сохранения");
+    },
+    onSettled: () => invalidateStatus(),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/listings/${params.id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success("Объявление удалено");
+      navigate("/marketplace");
+    },
+    onError: (err: Error) => toast.error(err.message || "Ошибка удаления"),
+  });
+
   /* ── Fetch listing from API by ID ──────────────────────── */
   const { data: listing, isLoading: listingLoading } = useQuery<Listing>({
     queryKey: ["listing", params.id],
     queryFn: () => apiFetch<Listing>(`/api/listings/${params.id}`),
     retry: false,
   });
+
+  const isOwner = !!(user?.id && listing?.author?.id === user.id);
 
   /* ── Fetch related listings by category ────────────────── */
   const { data: relatedListings = [] } = useQuery<Listing[]>({
@@ -190,13 +241,46 @@ export default function ListingDetail() {
   return (
     <AppLayout title="Объявление">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Back */}
-        <button
-          onClick={() => navigate("/marketplace")}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Назад к ленте
-        </button>
+        {/* Back + owner actions */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate("/marketplace")}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Назад к ленте
+          </button>
+          {isOwner && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => navigate(`/listing/${params.id}/edit`)}
+              >
+                <Pencil className="size-3.5" />
+                Редактировать
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive hover:bg-destructive/10"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="size-3.5" />
+                Удалить
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <ConfirmDeleteDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={() => deleteMutation.mutate()}
+          title="Удалить объявление?"
+          description="Объявление будет удалено навсегда. Это действие нельзя отменить."
+          isPending={deleteMutation.isPending}
+        />
 
         {/* Two-column layout */}
         <div className="flex flex-col lg:flex-row gap-6">
@@ -217,12 +301,8 @@ export default function ListingDetail() {
               )}
               {/* Like overlay */}
               <button
-                onClick={async () => {
-                  try {
-                    await apiFetch(`/api/users/me/like/listing/${params.id}`, { method: "POST" });
-                  } catch { /* ignore */ }
-                  invalidateStatus();
-                }}
+                onClick={() => likeMutation.mutate()}
+                disabled={likeMutation.isPending}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
               >
                 <Heart className={cn("w-4 h-4", liked ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
@@ -346,15 +426,8 @@ export default function ListingDetail() {
               <Button
                 variant="outline"
                 className={cn("w-full gap-2 transition-all duration-200", saved && "scale-[1.02]")}
-                onClick={async () => {
-                  try {
-                    await apiFetch(`/api/users/me/save/listing/${listing.id}`, { method: "POST" });
-                    toast.success(saved ? "Убрано из сохранённых" : "Сохранено");
-                  } catch {
-                    toast.error("Ошибка сохранения");
-                  }
-                  invalidateStatus();
-                }}
+                disabled={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
               >
                 {saved ? <BookmarkCheck className="w-4 h-4 text-green-400" /> : <Bookmark className="w-4 h-4" />}
                 {saved ? "Сохранено" : "Сохранить"}

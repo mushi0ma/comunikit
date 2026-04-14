@@ -25,6 +25,7 @@ import * as nodemailer from 'nodemailer';
 import { z } from 'zod';
 import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { EnsureUserService } from '../../common/ensure-user.service.js';
 import { AuthService, type TelegramWidgetPayload } from './auth.service.js';
 import { IdCardService, type IdCardResult } from './id-card.service.js';
 import { SessionsService } from './sessions.service.js';
@@ -55,6 +56,7 @@ export class AuthController {
     private readonly idCardService: IdCardService,
     private readonly sessionsService: SessionsService,
     private readonly prisma: PrismaService,
+    private readonly ensureUserService: EnsureUserService,
   ) {
     const supabaseUrl = this.config.get<string>('SUPABASE_URL');
     const serviceRoleKey = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -120,13 +122,12 @@ export class AuthController {
       .create(result.user.id, result.accessToken, userAgent, ip)
       .catch(() => undefined);
 
-    await this.prisma.user
-      .update({
-        where: { id: result.user.id },
-        data: {
-          telegramId: BigInt(result.user.telegramId),
-          telegramHandle: result.user.username ?? undefined,
-        },
+    await this.ensureUserService
+      .ensureUser(result.user.id, {
+        name: [parsed.data.first_name, parsed.data.last_name].filter(Boolean).join(' ') || undefined,
+        avatarUrl: parsed.data.photo_url,
+        telegramId: BigInt(parsed.data.id),
+        telegramHandle: parsed.data.username,
       })
       .catch(() => undefined);
     
@@ -237,6 +238,7 @@ export class AuthController {
           data: { user },
         } = await this.admin.auth.getUser(token);
         if (user) {
+          await this.ensureUserService.ensureUser(user.id);
           await this.prisma.user.update({
             where: { id: user.id },
             data: {

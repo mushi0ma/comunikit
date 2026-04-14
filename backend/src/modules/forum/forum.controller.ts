@@ -1,10 +1,13 @@
 import {
   BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -74,6 +77,41 @@ export class ForumController {
     }
 
     const data = await this.forum.create(parsed.data, user.id);
+    return { success: true, data };
+  }
+
+  /** PATCH /api/forum/:id — auth required, owner only */
+  @Patch(':id')
+  @UseGuards(SupabaseAuthGuard)
+  async update(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Body() body: unknown,
+  ) {
+    const user = (req as Request & { user: User }).user;
+    const updateSchema = z.object({
+      title: z.string().min(3).max(200).optional(),
+      body: z.string().min(10).max(5000).optional(),
+      category: z.string().min(1).optional(),
+    });
+    const parsed = updateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: parsed.error.issues.map((i) => i.message).join(', '),
+      });
+    }
+    const data = await this.forum.update(id, parsed.data, user.id);
+    return { success: true, data };
+  }
+
+  /** DELETE /api/forum/:id — auth required, owner only (soft delete) */
+  @Delete(':id')
+  @UseGuards(SupabaseAuthGuard)
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    const user = (req as Request & { user: User }).user;
+    const data = await this.forum.softDelete(id, user.id);
     return { success: true, data };
   }
 

@@ -1,10 +1,13 @@
 import {
   BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -79,6 +82,39 @@ export class CommentsController {
     }
 
     const data = await this.comments.create(parsed.data, user.id);
+    return { success: true, data };
+  }
+
+  /** PATCH /api/comments/:id — auth required, owner only */
+  @Patch(':id')
+  @UseGuards(SupabaseAuthGuard)
+  async update(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Body() body: unknown,
+  ) {
+    const user = (req as Request & { user: User }).user;
+    const updateSchema = z.object({
+      body: z.string().min(1).max(2000),
+    });
+    const parsed = updateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        data: null,
+        error: parsed.error.issues.map((i) => i.message).join(', '),
+      });
+    }
+    const data = await this.comments.update(id, parsed.data, user.id);
+    return { success: true, data };
+  }
+
+  /** DELETE /api/comments/:id — auth required, owner only (soft delete) */
+  @Delete(':id')
+  @UseGuards(SupabaseAuthGuard)
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    const user = (req as Request & { user: User }).user;
+    const data = await this.comments.softDelete(id, user.id);
     return { success: true, data };
   }
 

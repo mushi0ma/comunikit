@@ -7,17 +7,16 @@ import {
   Star, LogOut, Edit3, Package, ShieldCheck, ChevronRight,
 } from "lucide-react";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import AppLayout from "@/components/AppLayout";
 import ListingCard from "@/components/ListingCard";
 import type { Listing } from "@/lib/mockData";
 import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
@@ -59,6 +58,8 @@ interface MeProfile {
   id: string;
   name: string;
   email: string | null;
+  avatarUrl: string | null;
+  group: string | null;
   karma: number;
   isStudentVerified: boolean;
   studentId: string | null;
@@ -77,9 +78,11 @@ export default function ProfilePage() {
     enabled: !!user?.id,
   });
 
+  const queryClient = useQueryClient();
+
   const displayName =
     profile?.name || (user?.user_metadata?.name as string) || "Студент AITU";
-  const userGroup = (user?.user_metadata?.group as string) || "";
+  const userGroup = profile?.group || (user?.user_metadata?.group as string) || "";
   const userEmail = profile?.email ?? user?.email ?? "";
   const karma = profile?.karma ?? (user?.user_metadata?.karma as number) ?? 0;
   const isVerified = profile?.isStudentVerified ?? false;
@@ -100,11 +103,14 @@ export default function ProfilePage() {
   async function saveProfile() {
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { name: editName.trim(), group: editGroup.trim() },
+      await apiFetch("/api/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: editName.trim(),
+          group: editGroup.trim(),
+        }),
       });
-      if (error) throw error;
-      // Explicitly refresh user in the store so UI updates instantly
+      await queryClient.invalidateQueries({ queryKey: ["users", "me"] });
       await refreshUser();
       toast.success("Профиль обновлён");
       setEditing(false);
@@ -121,6 +127,7 @@ export default function ProfilePage() {
         {/* ── Profile header card ─────────────────────────── */}
         <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:p-6 sm:flex-row sm:items-center sm:gap-6">
           <Avatar className="size-16 sm:size-20 rounded-xl">
+            <AvatarImage src={profile?.avatarUrl ?? undefined} className="rounded-xl" />
             <AvatarFallback className="rounded-xl bg-primary/10 text-xl sm:text-2xl font-black text-primary">
               {displayName[0]}
             </AvatarFallback>

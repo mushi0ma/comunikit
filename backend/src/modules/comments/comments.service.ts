@@ -1,9 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { EnsureUserService } from '../../common/ensure-user.service.js';
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ensureUserService: EnsureUserService,
+  ) {}
 
   private readonly authorSelect = {
     id: true,
@@ -14,7 +22,7 @@ export class CommentsService {
 
   async findByListing(listingId: string) {
     return this.prisma.comment.findMany({
-      where: { listingId, parentId: null },
+      where: { listingId, parentId: null, deletedAt: null },
       orderBy: { createdAt: 'asc' },
       include: {
         author: { select: this.authorSelect },
@@ -32,7 +40,7 @@ export class CommentsService {
 
   async findByThread(threadId: string) {
     return this.prisma.comment.findMany({
-      where: { threadId, parentId: null },
+      where: { threadId, parentId: null, deletedAt: null },
       orderBy: { createdAt: 'asc' },
       include: {
         author: { select: this.authorSelect },
@@ -57,6 +65,8 @@ export class CommentsService {
     },
     authorId: string,
   ) {
+    await this.ensureUserService.ensureUser(authorId);
+
     const comment = await this.prisma.comment.create({
       data: {
         body: data.body,
@@ -140,6 +150,8 @@ export class CommentsService {
   }
 
   async vote(commentId: string, userId: string, value: number) {
+    await this.ensureUserService.ensureUser(userId);
+
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
       select: { authorId: true },
@@ -195,5 +207,74 @@ export class CommentsService {
       }),
     ]);
     return { action: 'created', value };
+  }
+
+  async update(id: string, data: { body: string }, authorId: string) {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id },
+      select: { authorId: true, deletedAt: true },
+    });
+
+    if (!comment || comment.deletedAt) {
+      throw new NotFoundException({
+        success: false,
+        data: null,
+        error: `Comment ${id} not found`,
+      });
+    }
+
+    if (comment.authorId !== authorId) {
+      throw new ForbiddenException({
+        success: false,
+        data: null,
+        error: 'You can only edit your own comments',
+      });
+    }
+
+    return this.prisma.comment.update({
+      where: { id },
+      data: { body: data.body },
+      include: {
+        author: { select: this.authorSelect },
+        _count: { select: { votes: true, replies: true } },
+      },
+    });
+  }
+
+  async softDelete(id: string, authorId: string) {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id },
+      select: { authorId: true, deletedAt: true, threadId: true },
+    });
+
+    if (!comment || comment.deletedAt) {
+      throw new NotFoundException({
+        success: false,
+        data: null,
+        error: `Comment ${id} not found`,
+      });
+    }
+
+    if (comment.authorId !== authorId) {
+      throw new ForbiddenException({
+        success: false,
+        data: null,
+        error: 'You can only delete your own comments',
+      });
+    }
+
+    await this.prisma.comment.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    // Decrement parent thread's replyCount
+    if (comment.threadId) {
+      await this.prisma.forumThread.update({
+        where: { id: comment.threadId },
+        data: { replyCount: { decrement: 1 } },
+      });
+    }
+    return { success: true };
   }
 }

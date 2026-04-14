@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ForumService } from './forum.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { EnsureUserService } from '../../common/ensure-user.service.js';
 import { NotFoundException } from '@nestjs/common';
 
 const mockThread = {
@@ -16,6 +17,11 @@ const mockPrisma = {
   forumThread: {
     findMany: jest.fn().mockResolvedValue([mockThread]),
     findUnique: jest.fn().mockResolvedValue({
+      ...mockThread,
+      comments: [],
+      votes: [],
+    }),
+    findFirst: jest.fn().mockResolvedValue({
       ...mockThread,
       comments: [],
       votes: [],
@@ -36,6 +42,7 @@ describe('ForumService', () => {
       providers: [
         ForumService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: EnsureUserService, useValue: { ensureUser: jest.fn() } },
       ],
     }).compile();
     service = module.get(ForumService);
@@ -50,7 +57,9 @@ describe('ForumService', () => {
   it('findAll passes category filter', async () => {
     await service.findAll('general');
     expect(mockPrisma.forumThread.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ category: 'general' }) }),
+      expect.objectContaining({
+        where: expect.objectContaining({ category: 'general', deletedAt: null }),
+      }),
     );
   });
 
@@ -61,7 +70,7 @@ describe('ForumService', () => {
   });
 
   it('findOne throws NotFoundException when not found', async () => {
-    mockPrisma.forumThread.findUnique.mockResolvedValueOnce(null);
+    mockPrisma.forumThread.findFirst.mockResolvedValueOnce(null);
     await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
   });
 });

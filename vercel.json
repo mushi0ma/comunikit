@@ -1,1 +1,11 @@
-{"rewrites":[{"source":"/(.*)","destination":"/index.html"}],"buildCommand":"cd frontend && pnpm build","outputDirectory":"dist/public","installCommand":"cd frontend && pnpm install"}
+{
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ],
+    "buildCommand": "cd frontend && pnpm build",
+    "outputDirectory": "dist/public",
+    "installCommand": "cd frontend && pnpm install"
+}

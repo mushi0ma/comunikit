@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { EnsureUserService } from '../../common/ensure-user.service.js';
 
 export interface ListingsFilter {
   type?: string;
@@ -15,7 +16,10 @@ export interface ListingsFilter {
 
 @Injectable()
 export class ListingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ensureUserService: EnsureUserService,
+  ) {}
 
   async findAll(filters: ListingsFilter = {}) {
     const where: Record<string, unknown> = { status: 'active' };
@@ -79,16 +83,7 @@ export class ListingsService {
     },
     authorId: string,
   ) {
-    // Upsert user from Supabase auth data — ensure FK target exists
-    await this.prisma.user.upsert({
-      where: { id: authorId },
-      update: {},
-      create: {
-        id: authorId,
-        studentId: authorId.slice(0, 8),
-        name: 'Студент AITU',
-      },
-    });
+    await this.ensureUserService.ensureUser(authorId);
 
     return this.prisma.listing.create({
       data: {
@@ -131,6 +126,50 @@ export class ListingsService {
       },
       orderBy: { createdAt: 'desc' },
       take: 20,
+    });
+  }
+
+  async update(
+    id: string,
+    data: {
+      title?: string;
+      description?: string;
+      price?: number;
+      category?: string;
+      location?: string;
+      images?: string[];
+    },
+    authorId: string,
+  ) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+
+    if (!listing) {
+      throw new NotFoundException({
+        success: false,
+        data: null,
+        error: `Listing ${id} not found`,
+      });
+    }
+
+    if (listing.authorId !== authorId) {
+      throw new ForbiddenException({
+        success: false,
+        data: null,
+        error: 'You can only edit your own listings',
+      });
+    }
+
+    return this.prisma.listing.update({
+      where: { id },
+      data,
+      include: {
+        author: {
+          select: { id: true, name: true, avatarUrl: true, telegramHandle: true },
+        },
+      },
     });
   }
 

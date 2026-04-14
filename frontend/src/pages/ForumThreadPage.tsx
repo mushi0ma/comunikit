@@ -2,21 +2,25 @@
    Thread detail view: title, body, author, votes, comments list, add-comment form.
 */
 import { useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute, useLocation, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Check,
   Clock,
   Loader2,
   MessageSquare,
+  Pencil,
   Pin,
   Reply,
   Send,
   ThumbsUp,
   ThumbsDown,
+  Trash2,
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
@@ -24,6 +28,7 @@ import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
+import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog";
 
 /* ── types ─────────────────────────────────────────────────── */
 
@@ -249,30 +254,61 @@ function CommentItem({
   onReplyAdded: () => void;
 }) {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const currentUser = useAuthStore(s => s.user);
+  const isCommentOwner = !!(currentUser?.id && comment.author.id === currentUser.id);
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyBody, setReplyBody] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
+  const [editingComment, setEditingComment] = useState(false);
+  const [editCommentBody, setEditCommentBody] = useState("");
+  const [showCommentDeleteDialog, setShowCommentDeleteDialog] = useState(false);
 
   const hasReplies = (comment.replies?.length ?? 0) > 0;
+  const queryClient = useQueryClient();
 
-  async function handleReply() {
-    if (!replyBody.trim()) return;
-    setSubmitting(true);
-    try {
-      await apiFetch("/api/comments", {
+  const replyMutation = useMutation({
+    mutationFn: (body: string) =>
+      apiFetch("/api/comments", {
         method: "POST",
-        body: JSON.stringify({ body: replyBody.trim(), threadId, parentId: comment.id }),
-      });
+        body: JSON.stringify({ body, threadId, parentId: comment.id }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forum", threadId] });
       setReplyBody("");
       setShowReplyForm(false);
-      onReplyAdded();
       toast.success("Ответ добавлен");
-    } catch {
-      toast.error("Ошибка отправки");
-    } finally {
-      setSubmitting(false);
-    }
+    },
+    onError: (err: Error) => toast.error(err.message || "Ошибка отправки"),
+  });
+
+  const editCommentMutation = useMutation({
+    mutationFn: (body: string) =>
+      apiFetch(`/api/comments/${comment.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ body }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forum", threadId] });
+      setEditingComment(false);
+      toast.success("Комментарий обновлён");
+    },
+    onError: (err: Error) => toast.error(err.message || "Ошибка"),
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/comments/${comment.id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forum", threadId] });
+      toast.success("Комментарий удалён");
+    },
+    onError: (err: Error) => toast.error(err.message || "Ошибка"),
+  });
+
+  const submitting = replyMutation.isPending;
+
+  function handleReply() {
+    if (!replyBody.trim()) return;
+    replyMutation.mutate(replyBody.trim());
   }
 
   return (
@@ -305,9 +341,33 @@ function CommentItem({
 
         {/* Body */}
         <div className="px-4 py-3">
-          <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
-            {comment.body}
-          </p>
+          {editingComment ? (
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={editCommentBody}
+                onChange={e => setEditCommentBody(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm min-h-[60px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" className="rounded-xl text-xs" onClick={() => setEditingComment(false)}>
+                  Отмена
+                </Button>
+                <Button
+                  size="sm"
+                  className="gap-1 rounded-xl text-xs"
+                  disabled={editCommentMutation.isPending || editCommentBody.trim().length < 1}
+                  onClick={() => editCommentMutation.mutate(editCommentBody.trim())}
+                >
+                  {editCommentMutation.isPending ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+              {comment.body}
+            </p>
+          )}
         </div>
 
         {/* Actions */}
@@ -342,7 +402,33 @@ function CommentItem({
               {comment.replies!.length}
             </button>
           )}
+
+          {isCommentOwner && !editingComment && (
+            <>
+              <button
+                onClick={() => { setEditCommentBody(comment.body); setEditingComment(true); }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <Pencil className="size-3" />
+              </button>
+              <button
+                onClick={() => setShowCommentDeleteDialog(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            </>
+          )}
         </div>
+
+        <ConfirmDeleteDialog
+          open={showCommentDeleteDialog}
+          onOpenChange={setShowCommentDeleteDialog}
+          onConfirm={() => deleteCommentMutation.mutate()}
+          title="Удалить комментарий?"
+          description="Комментарий будет скрыт. Это действие нельзя отменить."
+          isPending={deleteCommentMutation.isPending}
+        />
 
         {/* Inline reply form */}
         {showReplyForm && (
@@ -399,15 +485,46 @@ function CommentItem({
 
 export default function ForumThreadPage() {
   const [, params] = useRoute("/forum/:id");
+  const [, navigate] = useLocation();
   const threadId = params?.id ?? "";
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
   const [commentBody, setCommentBody] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
 
   const { data: thread, isLoading, isError } = useQuery<ThreadDetail>({
     queryKey: ["forum", threadId],
     queryFn: () => apiFetch<ThreadDetail>(`/api/forum/${threadId}`),
     enabled: !!threadId,
+  });
+
+  const isOwner = !!(user?.id && thread?.author?.id === user.id);
+
+  const editMutation = useMutation({
+    mutationFn: (data: { title?: string; body?: string }) =>
+      apiFetch(`/api/forum/${threadId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forum", threadId] });
+      setEditing(false);
+      toast.success("Тема обновлена");
+    },
+    onError: (err: Error) => toast.error(err.message || "Ошибка сохранения"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/forum/${threadId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success("Тема удалена");
+      navigate("/forum");
+    },
+    onError: (err: Error) => toast.error(err.message || "Ошибка удаления"),
   });
 
   const addComment = useMutation({
@@ -532,11 +649,48 @@ export default function ForumThreadPage() {
 
           {/* Title & Body */}
           <div className="px-6 py-5">
-            <h1 className="text-xl font-semibold text-foreground">{thread.title}</h1>
-            {thread.body && (
-              <div className="mt-3 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">
-                {thread.body}
+            {editing ? (
+              <div className="flex flex-col gap-3">
+                <input
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                <textarea
+                  value={editBody}
+                  onChange={e => setEditBody(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 rounded-xl"
+                    onClick={() => setEditing(false)}
+                  >
+                    <X className="size-3.5" />
+                    Отмена
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 rounded-xl"
+                    disabled={editMutation.isPending || editTitle.trim().length < 3 || editBody.trim().length < 10}
+                    onClick={() => editMutation.mutate({ title: editTitle.trim(), body: editBody.trim() })}
+                  >
+                    {editMutation.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                    Сохранить
+                  </Button>
+                </div>
               </div>
+            ) : (
+              <>
+                <h1 className="text-xl font-semibold text-foreground">{thread.title}</h1>
+                {thread.body && (
+                  <div className="mt-3 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">
+                    {thread.body}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -549,7 +703,34 @@ export default function ForumThreadPage() {
                 {thread.comments.length} комментариев
               </span>
             </div>
+            {isOwner && !editing && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => { setEditTitle(thread.title); setEditBody(thread.body); setEditing(true); }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Pencil className="size-3" />
+                  Изменить
+                </button>
+                <button
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="size-3" />
+                  Удалить
+                </button>
+              </div>
+            )}
           </div>
+
+          <ConfirmDeleteDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            onConfirm={() => deleteMutation.mutate()}
+            title="Удалить тему?"
+            description="Тема будет скрыта из форума. Это действие нельзя отменить."
+            isPending={deleteMutation.isPending}
+          />
         </article>
 
         {/* ── Comments section ─────────────────────────────── */}

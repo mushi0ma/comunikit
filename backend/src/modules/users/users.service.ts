@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { EnsureUserService } from '../../common/ensure-user.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 
 const profileSelect = {
@@ -10,6 +11,7 @@ const profileSelect = {
   bio: true,
   avatarUrl: true,
   telegramHandle: true,
+  group: true,
   karma: true,
   studentId: true,
   isStudentVerified: true,
@@ -30,6 +32,7 @@ export class UsersService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly ensureUserService: EnsureUserService,
     private readonly notifications: NotificationsService,
   ) {}
 
@@ -52,8 +55,10 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    data: { name?: string; bio?: string; telegramHandle?: string; avatarUrl?: string },
+    data: { name?: string; bio?: string; telegramHandle?: string; avatarUrl?: string; group?: string },
   ) {
+    await this.ensureUserService.ensureUser(userId);
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -63,6 +68,7 @@ export class UsersService {
           telegramHandle: data.telegramHandle,
         }),
         ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+        ...(data.group !== undefined && { group: data.group }),
       },
       select: {
         id: true,
@@ -70,6 +76,7 @@ export class UsersService {
         bio: true,
         avatarUrl: true,
         telegramHandle: true,
+        group: true,
       },
     });
 
@@ -99,6 +106,8 @@ export class UsersService {
    * `getProfile()` can derive `hasPassword` correctly.
    */
   async setPasswordHash(userId: string, password: string): Promise<void> {
+    await this.ensureUserService.ensureUser(userId);
+
     const bcrypt = await import('bcryptjs');
     const hash = await bcrypt.hash(password, 12);
     await this.prisma.user.update({
@@ -132,6 +141,8 @@ export class UsersService {
   // ─── Bookmarks ──────────────────────────────────────────
 
   async toggleBookmarkListing(userId: string, listingId: string) {
+    await this.ensureUserService.ensureUser(userId);
+
     const existing = await this.prisma.bookmark.findUnique({
       where: { userId_listingId: { userId, listingId } },
     });
@@ -148,6 +159,8 @@ export class UsersService {
   }
 
   async toggleBookmarkThread(userId: string, threadId: string) {
+    await this.ensureUserService.ensureUser(userId);
+
     const existing = await this.prisma.bookmark.findUnique({
       where: { userId_threadId: { userId, threadId } },
     });
@@ -201,6 +214,8 @@ export class UsersService {
   // ─── Likes (Votes) ─────────────────────────────────────
 
   async toggleLikeListing(userId: string, listingId: string) {
+    await this.ensureUserService.ensureUser(userId);
+
     const existing = await this.prisma.vote.findFirst({
       where: { userId, listingId },
     });

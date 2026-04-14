@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ListingsService } from './listings.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { EnsureUserService } from '../../common/ensure-user.service.js';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 const mockPrisma = {
@@ -26,6 +27,7 @@ describe('ListingsService', () => {
       providers: [
         ListingsService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: EnsureUserService, useValue: { ensureUser: jest.fn() } },
       ],
     }).compile();
     service = module.get(ListingsService);

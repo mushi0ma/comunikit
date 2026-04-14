@@ -12,6 +12,7 @@ import { AuthController } from './auth.controller.js';
 import { IdCardService } from './id-card.service.js';
 import { SessionsService } from './sessions.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { EnsureUserService } from '../../common/ensure-user.service.js';
 import { AuthService } from './auth.service.js';
 
 jest.mock('nodemailer');
@@ -104,6 +105,7 @@ describe('AuthController — SMTP (nodemailer) integration', () => {
             }),
           },
         },
+        { provide: EnsureUserService, useValue: { ensureUser: jest.fn() } },
       ],
     }).compile();
 
@@ -499,6 +501,7 @@ describe('AuthController — SMTP (nodemailer) integration', () => {
             provide: AuthService,
             useValue: { verifyTelegramAuth: jest.fn(), loginWithTelegramWidget: jest.fn() },
           },
+          { provide: EnsureUserService, useValue: { ensureUser: jest.fn() } },
         ],
       }).compile();
 
@@ -570,6 +573,7 @@ describe('AuthController — SMTP (nodemailer) integration', () => {
             provide: AuthService,
             useValue: { verifyTelegramAuth: jest.fn(), loginWithTelegramWidget: jest.fn() },
           },
+          { provide: EnsureUserService, useValue: { ensureUser: jest.fn() } },
         ],
       }).compile();
 

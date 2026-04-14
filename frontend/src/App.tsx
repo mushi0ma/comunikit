@@ -8,7 +8,15 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { useAuthStore } from "./store/authStore";
 import LoadingScreen from "./components/LoadingScreen";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -39,6 +47,7 @@ import LostAndFoundPage from "./pages/LostAndFoundPage";
 import SavedPage from "./pages/SavedPage";
 import LikedPage from "./pages/LikedPage";
 import VerifyIdPage from "./pages/VerifyIdPage";
+import EditListing from "./pages/EditListing";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -52,6 +61,7 @@ function Router() {
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/dashboard">{() => <ProtectedRoute component={Home} />}</Route>
       <Route path="/marketplace">{() => <ProtectedRoute component={HomeFeed} />}</Route>
+      <Route path="/listing/:id/edit">{() => <ProtectedRoute component={EditListing} />}</Route>
       <Route path="/listing/:id">{() => <ProtectedRoute component={ListingDetail} />}</Route>
       <Route path="/create">{() => <ProtectedRoute component={CreateListing} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>

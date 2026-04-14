@@ -19,8 +19,11 @@ import {
   Bookmark,
   Heart,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 import NotificationBell from "@/components/NotificationBell";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -105,8 +108,19 @@ function SidebarIconBtn({
 
 export default function AppLayout({ title, children }: AppLayoutProps) {
   const [location, navigate] = useLocation();
+  const user = useAuthStore((s) => s.user);
   // TODO: replace with auth store value
   const isAdmin = false;
+
+  const { data: profile } = useQuery<{
+    name?: string;
+    avatarUrl?: string;
+  }>({
+    queryKey: ["users", "me"],
+    queryFn: () => apiFetch("/api/users/me").then((r: unknown) => (r as { data: { name?: string; avatarUrl?: string } }).data),
+    enabled: !!user?.id,
+    staleTime: 60_000,
+  });
 
   function isActive(href: string) {
     return location === href || location.startsWith(href + "/");
@@ -192,8 +206,9 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
               {/* Avatar */}
               <Link href="/profile">
                 <Avatar className="w-8 h-8 cursor-pointer">
+                  <AvatarImage src={profile?.avatarUrl ?? undefined} />
                   <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
-                    А
+                    {(profile?.name ?? user?.user_metadata?.name ?? "А").charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </Link>

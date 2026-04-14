@@ -21,7 +21,7 @@ import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Request, Response } from 'express';
-import * as nodemailer from 'nodemailer';
+// Resend HTTP API replaces nodemailer SMTP — zero dependencies, just fetch.
 import { z } from 'zod';
 import { SupabaseAuthGuard } from '../../guards/supabase-auth.guard.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -47,7 +47,8 @@ const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 @Controller('auth')
 export class AuthController {
   private readonly admin: SupabaseClient;
-  private readonly mailer: nodemailer.Transporter | null;
+  private readonly resendApiKey: string | null;
+  private readonly emailFrom: string;
   private readonly isProd: boolean;
 
   constructor(
@@ -69,19 +70,40 @@ export class AuthController {
     this.isProd =
       (this.config.get<string>('NODE_ENV') ?? 'development') === 'production';
 
-    const smtpHost = this.config.get<string>('SMTP_HOST');
-    const smtpPort = Number(this.config.get<string>('SMTP_PORT')) || 465;
-    const smtpUser = this.config.get<string>('SMTP_USER');
-    const smtpPass = this.config.get<string>('SMTP_PASS');
-    this.mailer =
-      smtpHost && smtpUser && smtpPass
-        ? nodemailer.createTransport({
-            host: smtpHost,
-            port: smtpPort,
-            secure: smtpPort === 465,
-            auth: { user: smtpUser, pass: smtpPass },
-          })
-        : null;
+    this.resendApiKey = this.config.get<string>('RESEND_API_KEY') ?? null;
+    this.emailFrom = this.config.get<string>('EMAIL_FROM') ?? 'Comunikit <onboarding@resend.dev>';
+  }
+
+  /**
+   * Send an email via the Resend HTTP API.
+   * Falls back to console.log in development when no API key is set.
+   */
+  private async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+    if (this.resendApiKey) {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: this.emailFrom,
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text().catch(() => 'unknown');
+        console.error('[Resend] Failed to send email:', err);
+        return false;
+      }
+      return true;
+    }
+
+    // No email provider configured
+    console.log(`\n📧 [DEV] Email to ${to}: ${subject}\n${html}\n`);
+    return false;
   }
 
   /**
@@ -352,53 +374,35 @@ export class AuthController {
       data: { userId: user.id, code, expiresAt },
     });
 
-    // Send verification email via SMTP (nodemailer) or fallback to console.
-    if (this.mailer) {
-      try {
-        const smtpUser = this.config.get<string>('SMTP_USER') ?? 'noreply@comunikit.app';
-        await this.mailer.sendMail({
-          from: `Comunikit <${smtpUser}>`,
-          to: user.email,
-          subject: 'Код подтверждения — Comunikit',
-          html: `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
-        });
-      } catch (err) {
-        console.error('[SMTP] Failed to send verification email:', err);
-        console.log(
-          `\n📧 [FALLBACK] Verification code for ${user.email}: ${code}\n`,
-        );
-        throw new InternalServerErrorException({
-          success: false,
-          data: null,
-          error: 'Не удалось отправить письмо. Попробуйте позже.',
-        });
-      }
-    } else {
-      console.log(
-        `\n📧 [MOCK EMAIL] Verification code for ${user.email}: ${code}\n`,
-      );
+    // Send verification email via Resend API or dev console fallback.
+    const emailSent = await this.sendEmail(
+      user.email,
+      'Код подтверждения — Comunikit',
+      `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
+    );
 
-      // In production, SMTP MUST be configured — surface the error clearly.
-      if (this.isProd) {
-        throw new InternalServerErrorException({
-          success: false,
-          data: null,
-          error: 'SMTP не настроен. Обратитесь к администратору.',
-        });
-      }
-
-      // In development/staging, return the code directly for convenience.
+    if (emailSent) {
       return {
         success: true,
-        data: {
-          message: `[DEV] Код: ${code} (SMTP не настроен)`,
-        },
+        data: { message: 'Код подтверждения отправлен на почту' },
       };
     }
 
+    // No email provider or send failed
+    if (this.isProd) {
+      throw new InternalServerErrorException({
+        success: false,
+        data: null,
+        error: 'Email-сервис не настроен. Обратитесь к администратору.',
+      });
+    }
+
+    // Development: return code directly
     return {
       success: true,
-      data: { message: 'Код подтверждения отправлен на почту' },
+      data: {
+        message: `[DEV] Код: ${code} (email-сервис не настроен)`,
+      },
     };
   }
 
@@ -507,15 +511,20 @@ export class AuthController {
 
     // Uniqueness check against Supabase Auth as well — another user may
     // exist in Supabase but not yet in our Prisma table.
-    const { data: existingSupabase } = await this.admin.auth.admin
-      .listUsers({ page: 1, perPage: 1 })
-      .catch(() => ({ data: { users: [] as Array<{ id: string; email?: string }> } }));
+    let supabaseUsers: Array<{ id: string; email?: string }> = [];
+    try {
+      const { data: existingSupabase } = await this.admin.auth.admin.listUsers({ page: 1, perPage: 1 });
+      if (Array.isArray(existingSupabase?.users)) {
+        supabaseUsers = existingSupabase.users.map((u) => ({ id: u.id, email: u.email }));
+      }
+    } catch {
+      // Non-critical — rely on Prisma uniqueness check only.
+    }
     // The Supabase admin SDK does not expose a direct "find by email" — we
     // rely on `getUserById` alone being insufficient, so use updateUserById
     // wrapped in an existence check below. Short-circuit obvious duplicates.
     if (
-      Array.isArray(existingSupabase?.users) &&
-      existingSupabase.users.some(
+      supabaseUsers.some(
         (u) => u.email?.toLowerCase() === newEmail && u.id !== user.id,
       )
     ) {
@@ -583,31 +592,18 @@ export class AuthController {
       data: { userId: user.id, code, expiresAt },
     });
 
-    if (this.mailer) {
-      try {
-        const smtpUser =
-          this.config.get<string>('SMTP_USER') ?? 'noreply@comunikit.app';
-        await this.mailer.sendMail({
-          from: `Comunikit <${smtpUser}>`,
-          to: newEmail,
-          subject: 'Подтвердите новый email — Comunikit',
-          html: `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
-        });
-      } catch (err) {
-        console.error('[SMTP] Failed to send link-email OTP:', err);
-        console.log(
-          `\n📧 [FALLBACK] link-email code for ${newEmail}: ${code}\n`,
-        );
-        throw new InternalServerErrorException({
-          success: false,
-          data: null,
-          error: 'Email привязан, но не удалось отправить код. Попробуйте запросить код повторно.',
-        });
-      }
-    } else {
-      console.log(
-        `\n📧 [MOCK EMAIL] link-email code for ${newEmail}: ${code}\n`,
-      );
+    const linkEmailSent = await this.sendEmail(
+      newEmail,
+      'Подтвердите новый email — Comunikit',
+      `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действует 10 минут.</p>`,
+    );
+
+    if (!linkEmailSent && this.isProd) {
+      throw new InternalServerErrorException({
+        success: false,
+        data: null,
+        error: 'Email привязан, но не удалось отправить код. Попробуйте запросить код повторно.',
+      });
     }
 
     return {

@@ -33,7 +33,6 @@ import Home from "./pages/Home";
 import ListingDetail from "./pages/ListingDetail";
 import CreateListing from "./pages/CreateListing";
 import ProfilePage from "./pages/ProfilePage";
-import SettingsPage from "./pages/SettingsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import MapPage from "./pages/MapPage";
 import SearchPage from "./pages/SearchPage";
@@ -65,7 +64,7 @@ function Router() {
       <Route path="/listing/:id">{() => <ProtectedRoute component={ListingDetail} />}</Route>
       <Route path="/create">{() => <ProtectedRoute component={CreateListing} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
-      <Route path="/settings">{() => <ProtectedRoute component={SettingsPage} />}</Route>
+      <Route path="/settings">{() => <Redirect to="/profile" />}</Route>
       <Route path="/notifications">{() => <ProtectedRoute component={NotificationsPage} />}</Route>
       <Route path="/map">{() => <ProtectedRoute component={MapPage} />}</Route>
       <Route path="/search">{() => <ProtectedRoute component={SearchPage} />}</Route>

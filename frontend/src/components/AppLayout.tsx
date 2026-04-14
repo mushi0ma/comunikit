@@ -12,7 +12,6 @@ import {
   User,
   Shield,
   Boxes,
-  Settings,
   Search,
   ShoppingBag,
   SearchCheck,
@@ -117,7 +116,7 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
     avatarUrl?: string;
   }>({
     queryKey: ["users", "me"],
-    queryFn: () => apiFetch("/api/users/me").then((r: unknown) => (r as { data: { name?: string; avatarUrl?: string } }).data),
+    queryFn: () => apiFetch<{ name?: string; avatarUrl?: string }>("/api/users/me"),
     enabled: !!user?.id,
     staleTime: 60_000,
   });
@@ -153,12 +152,8 @@ export default function AppLayout({ title, children }: AppLayoutProps) {
           )}
         </nav>
 
-        {/* Bottom: Settings + Profile */}
+        {/* Bottom: Profile */}
         <div className="flex flex-col items-center py-3 border-t border-sidebar-border gap-1">
-          <SidebarIconBtn
-            item={{ href: "/settings", icon: Settings, label: "Настройки" }}
-            active={isActive("/settings")}
-          />
           <SidebarIconBtn
             item={{ href: "/profile", icon: User, label: "Профиль" }}
             active={isActive("/profile")}

@@ -15,11 +15,22 @@ export class EnsureUserService {
   /**
    * Guarantee a User row exists in Prisma for the given Supabase auth ID.
    * Uses upsert so it's safe to call repeatedly (idempotent).
+   *
+   * On subsequent logins the update clause re-syncs avatar, name, and
+   * Telegram fields so they stay fresh across sessions.
    */
   async ensureUser(userId: string, metadata?: EnsureUserMetadata): Promise<void> {
+    // Build update payload — only set fields that were explicitly provided
+    // so we never accidentally overwrite user-edited values with `undefined`.
+    const update: Record<string, unknown> = {};
+    if (metadata?.avatarUrl)       update.avatarUrl       = metadata.avatarUrl;
+    if (metadata?.name)            update.name            = metadata.name;
+    if (metadata?.telegramId)      update.telegramId      = metadata.telegramId;
+    if (metadata?.telegramHandle)  update.telegramHandle  = metadata.telegramHandle;
+
     await this.prisma.user.upsert({
       where: { id: userId },
-      update: {},
+      update,
       create: {
         id: userId,
         studentId: userId.slice(0, 8),

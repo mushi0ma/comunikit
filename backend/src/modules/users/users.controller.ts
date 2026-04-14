@@ -57,18 +57,26 @@ export class UsersController {
     const user = (req as Request & { user: User }).user;
     const profile = await this.users.getProfile(user.id);
     if (!profile) {
+      // Pull avatar from Supabase user_metadata (photo_url for Telegram,
+      // avatar_url for GitHub OAuth) so the UI shows it immediately.
+      const meta = user.user_metadata ?? {};
+      const avatarUrl =
+        (meta.photo_url as string) ||
+        (meta.avatar_url as string) ||
+        null;
+
       return {
         success: true,
         data: {
           id: user.id,
-          name: (user.user_metadata?.name as string) || 'Студент',
+          name: (meta.name as string) || (meta.first_name as string) || 'Студент',
           email: user.email ?? null,
           emailVerified: null,
           bio: null,
-          avatarUrl: null,
-          telegramHandle: null,
+          avatarUrl,
+          telegramHandle: (meta.username as string) || null,
           karma: 0,
-          studentId: (user.user_metadata?.studentId as string) || null,
+          studentId: (meta.studentId as string) || null,
           isStudentVerified: false,
           hasPassword: !!user.app_metadata?.providers?.includes('email'),
           createdAt: user.created_at,
